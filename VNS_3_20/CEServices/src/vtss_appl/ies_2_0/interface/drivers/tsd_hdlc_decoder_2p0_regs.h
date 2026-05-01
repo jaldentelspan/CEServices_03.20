@@ -1,0 +1,97 @@
+/*
+ * tsd_hdlc_decoder_2p0_regs.h
+ *
+ *  Created on: Mar 31, 2020
+ *      Author: eric
+ */
+
+#ifndef TSD_HDLC_DECODER_2P0_REGS_H_
+#define TSD_HDLC_DECODER_2P0_REGS_H_
+
+#include <io.h>
+
+/**************************************
+ * HDLC DECODER DEFINES
+ **************************************/
+#define TSD_HDLC_DEC_CTRL_ENABLE_BIT            (0x00000080)
+#define TSD_HDLC_DEC_CTRL_FCS_REMOVE_16         (0x00000020)
+#define TSD_HDLC_DEC_CTRL_FCS_REMOVE_32         (0x00000040)
+#define TSD_HDLC_DEC_CTRL_ETH_SHFT_1            (0x00040000) /* DONT USE */
+#define TSD_HDLC_DEC_CTRL_ETH_SHFT_2            (0x00080000) /* IF TSE REQUIRES TX DATA TO BE SHIFTED BY 2 BYTES, ENABLE THIS */
+#define TSD_HDLC_DEC_CTRL_ETH_SHFT_3            (0x000C0000) /* DONT USE */
+#define TSD_HDLC_DEC_CTRL_ETH_HDR_ADD_BIT       (0x00100000)
+#define TSD_HDLC_DEC_CTRL_CSDW_HDR_ADD_EN       (0x00200000)
+#define TSD_HDLC_DEC_CTRL_SEC_HDR_ADD_EN        (0x00400000)
+#define TSD_HDLC_DEC_CTRL_STREAMING_HDR_ADD_EN  (0x00800000)
+#define TSD_HDLC_DEC_CTRL_INVERT_CLOCK          (0x01000000)
+#define TSD_HDLC_DEC_CTRL_CLR_SEQ_CNTR          (0x10000000)
+#define TSD_HDLC_DEC_CTRL_RESET_BIT             (0x80000000)
+
+#define TSD_HDLC_DEC_STATUS_AVMM_TIMEOUT        (0x80000000)
+
+#define TSD_HDLC_DEC_COUNTER_MASK               (0x7FFFFFFF)
+#define TSD_HDLC_DEC_COUNTER_RESET              (0x80000000)
+
+
+/**************************************
+ * HDLC DECODER REGISTERS
+ **************************************/
+#define TSD_HDLC_DEC_VERSION_REG               (0x00)
+#define TSD_HDLC_DEC_IP_ID_REG                 (0x01)
+#define TSD_HDLC_DEC_STATUS_REG                (0x02)
+#define TSD_HDLC_DEC_CTRL_REG                  (0x03)
+#define TSD_HDLC_DEC_PACKET_CNT_REG            (0x06)
+#define TSD_HDLC_DEC_FIFO0_OFLOW_CNT_REG       (0x08)
+#define TSD_HDLC_DEC_FIFO0_UFLOW_CNT_REG       (0x09)
+#define TSD_HDLC_DEC_STUFFING_ERR_CNT_REG      (0x0C)
+
+/**************************************
+ * HDLC DECODER REGISTER ACCESS
+ **************************************/
+#define TSD_HDLC_DEC_IORD_VERSION(base) \
+    IORD(base, TSD_HDLC_DEC_VERSION_REG)
+
+#define TSD_HDLC_DEC_IORD_IP_ID(base) \
+    IORD(base, TSD_HDLC_DEC_IP_ID_REG)
+
+#define TSD_HDLC_DEC_IORD_STATUS(base)    \
+    IORD(base, TSD_HDLC_DEC_STATUS_REG)
+#define TSD_HDLC_DEC_IOWR_STATUS(base, val)\
+    IOWR(base, TSD_HDLC_DEC_STATUS_REG, val)
+
+#define TSD_HDLC_DEC_IORD_CONTROL(base)    \
+    IORD(base, TSD_HDLC_DEC_CTRL_REG)
+#define TSD_HDLC_DEC_IOWR_CONTROL(base, val)\
+    IOWR(base, TSD_HDLC_DEC_CTRL_REG, val)
+
+#define TSD_HDLC_DEC_IORD_PORT_SELECT(base)    \
+    IORD(base, TSD_HDLC_DEC_PORT_SELECT_REG)
+#define TSD_HDLC_DEC_IOWR_PORT_SELECT(base, val)\
+    IOWR(base, TSD_HDLC_DEC_PORT_SELECT_REG, val)
+
+#define TSD_HDLC_DEC_IORD_PACKET_CNT(base) \
+    IORD(base, TSD_HDLC_DEC_PACKET_CNT_REG)
+#define TSD_HDLC_DEC_RESET_PACKET_CNT(base) \
+    IOWR(base, TSD_HDLC_DEC_PACKET_CNT_REG, TSD_HDLC_DEC_COUNTER_RESET); \
+    IOWR(base, TSD_HDLC_DEC_PACKET_CNT_REG, 0)
+
+#define TSD_HDLC_DEC_IORD_FIFO0_OFLOW_CNT(base) \
+    IORD(base, TSD_HDLC_DEC_FIFO0_OFLOW_CNT_REG)
+#define TSD_HDLC_DEC_RESET_FIFO0_OFLOW_CNT(base) \
+    IOWR(base, TSD_HDLC_DEC_FIFO0_OFLOW_CNT_REG, TSD_HDLC_DEC_COUNTER_RESET); \
+    IOWR(base, TSD_HDLC_DEC_FIFO0_OFLOW_CNT_REG, 0)
+
+#define TSD_HDLC_DEC_IORD_FIFO0_UFLOW_CNT(base) \
+    IORD(base, TSD_HDLC_DEC_FIFO0_UFLOW_CNT_REG)
+#define TSD_HDLC_DEC_RESET_FIFO0_UFLOW_CNT(base) \
+    IOWR(base, TSD_HDLC_DEC_FIFO0_UFLOW_CNT_REG, TSD_HDLC_DEC_COUNTER_RESET); \
+    IOWR(base, TSD_HDLC_DEC_FIFO0_UFLOW_CNT_REG, 0)
+
+#define TSD_HDLC_DEC_IORD_STUFFING_ERR_CNT(base) \
+    IORD(base, TSD_HDLC_DEC_STUFFING_ERR_CNT_REG)
+#define TSD_HDLC_DEC_RESET_STUFFING_ERR_CNT(base) \
+    IOWR(base, TSD_HDLC_DEC_STUFFING_ERR_CNT_REG, TSD_HDLC_DEC_COUNTER_RESET); \
+    IOWR(base, TSD_HDLC_DEC_STUFFING_ERR_CNT_REG, 0)
+
+
+#endif /* SD_HDLC_DECODER_2P0_REGS_H_ */

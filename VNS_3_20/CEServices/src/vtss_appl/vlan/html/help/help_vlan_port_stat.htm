@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+Vitesse Switch Software.
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+-->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>VLAN Port Status Help</title>
+<link href="/lib/help.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="/lib/dynforms.js"></script>
+<script type="text/javascript" src="/lib/mootools-core.js"></script>
+<script type="text/javascript" language="JavaScript">
+  window.addEvent('domready', function() {
+   $$('span.refreshInterval').set('text', settingsRefreshInterval() / 1000);
+  });
+</script>
+</head>
+<body>
+<h1>VLAN Port Status Help</h1>
+<p>This page provides <a href="glossary.htm#vlan" class="glossary">VLAN</a> Port Status.</p>
+<p class="SPOM_only">The ports belong to the currently selected stack
+unit, as reflected by the page header.</p>
+
+<h2>VLAN USER </h2>
+<dl>
+<dd>
+VLAN User module uses services of the VLAN management functionality to configure VLAN memberships and VLAN port configuration such as PVID, UVID. Currently we support following VLAN User types:
+<p> CLI/Web/SNMP  : These are referred to as static. </p>
+<p> <span class="has_dot1x"> NAS		      : NAS provides port-based authentication, which involves communications between a Supplicant, Authenticator, and an Authentication Server. </span></p>
+<p> <span class="has_mvrp"> MVRP		      : Multiple VLAN Registration Protocol (MVRP) allows dynamic registration and deregistration of VLANs on ports on a VLAN bridged network.</span> </p>
+<p> <span class="has_voice_vlan"> Voice VLAN		: Voice VLAN is a VLAN configured specially for voice traffic typically originating from IP phones.</span> </p>
+<p> <span class="has_mvr"> MVR			: MVR is used to eliminate the need to duplicate multicast traffic for subscribers in each VLAN. Multicast traffic for all channels is sent only on a single (multicast) VLAN. </span> </p>
+<p>  <span class="has_mstp"> MSTP		      : The 802.1s Multiple Spanning Tree protocol (MSTP) uses VLANs to create multiple spanning trees in a network, which significantly improves network resource utilization while maintaining a loop-free environment.</span> </p>
+ </dd>
+<dt>Port</dt>
+<dd>
+The logical port for the settings contained in the same row.
+</dd>
+<dt>PVID</dt>
+<dd>
+Shows the VLAN identifier for that port. The allowed values are <samp>1</samp> through <samp>4095</samp>. The default value is  <samp>1</samp>.
+</dd>
+<dt>Port Type</dt>
+<dd>
+Shows the Port Type. Port type can be any of Unaware, C-port<span class="IsV2">, S-port, Custom S-port.</span>
+<p>If Port Type is Unaware, all frames are classified to the Port VLAN ID and tags are not removed.</p> 
+<p>C-port is Customer Port. <span class="IsV2">S-port is Service port. Custom S-port is S-port with Custom TPID.</span></p>
+</dd>
+<dt>Ingress Filtering</dt>
+<dd>
+Shows the ingress filtering on a port. This parameter affects VLAN ingress processing. If ingress filtering is enabled and the ingress port is not a member of the classified VLAN, the frame is discarded.
+</dd>
+<dt>Frame Type</dt>
+<dd>
+Shows whether the port accepts all frames or only tagged frames. This parameter affects VLAN ingress processing. If the port only accepts tagged frames, untagged frames received on that port are discarded.
+</dd>
+<dt>Tx Tag</dt>
+<dd>
+Shows egress filtering frame status whether tagged or untagged.
+</dd>
+<dt>UVID </dt>
+<dd>
+Shows UVID (untagged VLAN ID). Port's UVID determines the packet's behaviour at the egress side.
+</dd>
+<dt>Conflicts</dt>
+<dd>
+Shows status of Conflicts whether exists or not. When a Volatile VLAN User requests to set VLAN membership or VLAN port configuration, the following conflicts can occur:
+<p> Functional Conflicts between features. </p>
+<p> Conflicts due to hardware limitation. </p>
+<p> Direct conflict between user modules. </p>
+</dd>
+</dl>
+<h2> Buttons </h2>
+<p><select id="VlanUser" onchange= "VLANUserSelect(this);">
+<option value= 0  > Static </option>
+<option value= 1 > NAS </option>
+<option value= 2 > MVRP </option>
+<option value= 3 > MVR</option>
+<option value= 4 > Voice VLAN</option>
+<option value= 5 > MSTP  </option>
+<option value= 6 > Combined
+</option>
+</select> : Select VLAN Users from this drop down list.</p>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">: Click to refresh the page immediately.</p>
+</body>
+</html>
+

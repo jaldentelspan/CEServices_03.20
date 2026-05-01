@@ -1,0 +1,106 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>VLAN Membership Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>VLAN Membership Configuration Help</h1>
+
+<p>
+  The <a href="glossary.htm#vlan" class="glossary">VLAN</a> membership configuration for the
+  <span class="SPOM_only"> selected stack switch unit </span><span class="Standalone_only"> switch </span>
+  can be monitored and modified here. Up to 4096 VLANs are supported. This page allows for adding and
+  deleting VLANs as well as adding and deleting port members of each VLAN.
+</p>
+
+<h2> Navigating the VLAN Table</h2>
+<p>
+  Each page shows up to 99 entries from the VLAN table, default being 20, selected through the
+  "entries per page" input field. When first visited, the web page will show the first 20 entries from
+  the beginning of the VLAN Table. The first displayed will be the one with the lowest VLAN ID
+  found in the VLAN Table.<br/>
+  The "VLAN" input fields allow the user to select the starting point in the VLAN Table.
+  Clicking the <input type="button" value="Refresh"/> button will update the displayed table starting from
+  that or the closest next VLAN Table match.
+  The <input type="button" value=" >> "/> will use the last entry of the
+  currently displayed VLAN entry as a basis for the next lookup. When the end is reached the text "No more entries" is shown in the
+  displayed table. Use the <input type="button" value=" |<<"/> button to start over.
+</p>
+
+
+<dl>
+ <dt>Delete</dt>
+ <dd >
+  To delete a VLAN entry, check this box. The entry will be deleted <span class="SPOM_only">on
+  the selected switch in the stack. If none of the ports of this switch are members of a VLAN then the delete checkbox will
+  be greyed out (you cannot delete that entry.</span> during the next Save.
+ </dd>
+
+ <dt><a href="glossary.htm#vlan_id" class="glossary">VLAN ID</a></dt>
+ <dd>
+  Indicates the ID of this particular VLAN.
+ </dd>
+
+ <dt class="haveVLANName">VLAN Name</dt>
+ <dd class="haveVLANName">
+  Indicates the name of the VLAN. Maximum length of the VLAN Name String is 32. VLAN Name can be null. If it is not null, it must contain alphabets or numbers. At least one alphabet must be present in a non-null VLAN name. VLAN name can be edited for the existing VLAN entries or it can be added to the new entries.
+ </dd>
+
+ <dt>Port Members</dt>
+ <dd>
+  A row of check boxes for each port is displayed for each VLAN ID. 
+  <br/>To include a port in a VLAN, check the box as <img src="../../images/port.gif" alt="port" width=15 height =12 border = 1/>.
+  <br/>To include a port in a forbidden port list, check the box as shown <img src = "../../images/forbid.gif" alt="forbid" width=15 height =12 border = 1/>.
+  <br>To remove or exclude the port from the VLAN, make sure the box is unchecked as shown <img src ="../../images/menu_o.gif" alt="menu_o" width=15 height =12 border = 1/>.</br>
+  By default, no ports are members, and for every new VLAN entry all boxes are unchecked.
+ </dd>
+
+ <dt>Adding a New VLAN</dt>
+ <dd>
+   Click <input type="button" value=" Add New VLAN "> to add a new VLAN ID. An empty row is added
+   to the table, and the VLAN can be configured as needed. Legal values for a VLAN ID are
+   <samp>1</samp> through <samp>4095</samp>.<br/><br/>
+   The VLAN is enabled <span class="SPOM_only">on the selected stack switch unit</span> when you click on "Save".
+   <span class="SPOM_only">The VLAN is thereafter present on the other stack switch units, but with no port members. The check box is greyed out when VLAN is displayed on other stacked switches, but user can add member ports to it.<br/></span>
+   The <input type="button" value=" Delete "> button can be used to undo the addition of new VLANs.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+<p><input type="button" value="Refresh">: Refreshes the displayed table starting from the "VLAN ID" input fields.</p>
+<p><input type="button" value=" |<< ">: Updates the table starting from the first entry in the VLAN Table, i.e. the entry with the lowest VLAN ID.</p>
+<p><input type="button" value=" >> ">: Updates the table, starting with the entry after the last entry currently displayed.</p>
+
+</body>
+</html>

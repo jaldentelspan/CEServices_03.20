@@ -1,0 +1,6 @@
+---
+directory: vtss_appl/board
+license: VTSS
+maintainer: Lars Povlsen
+name: Board Support
+source: Vitesse

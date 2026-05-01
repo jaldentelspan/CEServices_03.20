@@ -1,0 +1,74 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Ethernet PCM Encoder Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>Ethernet PCM Encoder Configuration Help</h1>
+
+<p>Configure <a href="glossary.htm#EPE" class="glossary">EPE</a> port on this page.</p>
+
+
+<p>To configure the Ethernet PCM encoder Ethnet traffic can be converted to the <b>EPE port</b> then output as a HDLC or CH7-15 encoded PCM stream.</p>
+<p>If packet ONLY need to be encoded a mirror might need to be utilized to encode traffic. The switch may disgard packets being sent to the FPGA port. If the traffic is bi-directional through the <b>EPE port</b> , the mirror cannot be used. </p>
+<p>The traffic to be copied on the <b>EPE port</b> is selected as follows:</p>
+<ul>
+<li> Set the destination port of the mirror to the EPE port, port 14 on the 12 iES-12 and port 18 on the iES-16. </li>
+<li> All frames received on a given port (also known as ingress or source mirroring).</li>
+<li> All frames transmitted on a given port (also known as egress or destination mirroring).</li>
+</ul>
+
+<h2>Bit Rate</h2>
+
+<!-- <dt>Bit Rate</dt> -->
+<!-- <p><b>Bit Rate</b> sets the bitrate to a percentage of the base frequency, 20MHz ranging from 10 to 100%. Fractional bit rates are not supported.  -->
+<p><b>Bit Rate</b> sets the bitrate to  200000-50000000 bps.  </p>
+<h2>EPE Port</h2>
+
+<p><b>EPE Port</b> Enables encoding in ISO/IEC 13239 HDLC Ethernet or CH7-15, IRIG 106-15 chapter 7 Ethernet formats.
+</p>
+
+<h2>CH7-15: Word(s) in Minor Frame</h2>
+<p><b>CH7-15: Word(s) in minor frame</b> sets the number of data words in a
+minor frame. Values 1-8 may be used.
+</p>
+
+
+<h2>Invert Clock</h2>
+
+<p>The invert clock feature allows a device to flip the sample clocks polarity, optimizing PCM data decoding by aligning the sampling edge with the data signal.</p>
+
+<h2>Buttons</h2>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

@@ -1,0 +1,39 @@
+########################################################-*- mode: Makefile -*-
+#
+# Telspan Data Software.
+#
+# Copyright (c) 2012-2013 Telspan Data. All
+# Rights Reserved.
+#
+# ------------------------------------------------------------------------
+
+# Pointer to timer source code folder
+DIR_mitr_fpga := $(DIR_APPL)/mitr_fpga
+
+# Timer module files
+OBJECTS_mitr_fpga := mitr_strings.o mitr_fpga.o $(call if-module,vcli,mitr_fpga_cli.o,) \
+$(if $(MODULE_WEB),mitr_fpga_web.o) \
+$(if $(MODULE_CONF_XML),mitr_fpga_xml.o)
+
+# Compile/dependencies
+$(OBJECTS_mitr_fpga): %.o: $(DIR_mitr_fpga)/%.c
+	$(call compile_c, $@, $<)
+
+# Include files
+INCLUDES += -I$(DIR_mitr_fpga)
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_mitr_fpga)/html
+
+# Files to be linted
+LINT_FILES_mitr_fpga += $(addprefix $(DIR_mitr_fpga)/,$(OBJECTS_mitr_fpga:.o=.c))
+
+# Tidy files
+TIDY_FILES_mitr_fpga += $(DIR_mitr_fpga)/html/*.htm $(DIR_mitr_fpga)/html/help/*.htm
+
+# JSLINT files
+JSLINT_FILES_mitr_fpga += $(DIR_mitr_fpga)/html/*.htm $(DIR_mitr_fpga)/html/help/*.htm
+
+# Coding style check
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_mitr_fpga := $(DIR_mitr_fpga)/*.*
+

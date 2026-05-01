@@ -1,0 +1,579 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>VLAN Membership Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/format.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_vlan.htm";
+
+var reqObject;
+var entryIdxArray = Array();
+var vlanconfig = Array();
+var LastVlanVal = 0;
+var vidArray = Array();
+var originalEntriesNum, newEntriesNum;
+var maxEntriesNum = configVlanIdMax - configVlanIdMin + 1;;
+var flag_to_clear_entries = 0;
+var all_vlans_conf = Array();
+
+function resetForm()
+{
+    processUpdate(reqObject, "vlanData");
+}
+
+function checkName(sText)
+{
+    var ValidChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    var ValidDigits = "0123456789";
+    var IsValid = 0;
+    var NumDigits = 0;
+    var Char;
+
+    for (i = 0; i < sText.length; i++)
+    {
+        Char = sText.charAt(i);
+        if (ValidDigits.indexOf(Char) == -1 || Char == "")
+        {
+            if (ValidChars.indexOf(Char) == -1 || Char == "")
+            {
+                return IsValid;
+            }
+        } else {
+            NumDigits = NumDigits + 1;
+        }
+    }
+    if (NumDigits != i) {
+        IsValid = 1;
+    }
+    return IsValid;
+}
+
+function CreateTableHeader(frag)
+{
+    var tr;
+    var portcount = SpomCurrentPorts() - configPortMin + 1;
+    var front_port_count = portcount;
+    for (var i = 0; i < SpomCurrentPorts(); i++) {
+        if (isStackPort(i + 1)) {
+            front_port_count--;
+        }
+    }
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "", "hdrc", 3);
+    addTextHeaderCell(tr, "Port Members", "hdrc", front_port_count);
+    frag.appendChild(tr);       // Add row to fragment
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr,"Delete","hdrc");
+    addTextHeaderCell(tr,"VLAN ID","hdrc");
+    addTextHeaderCell(tr,"VLAN Name","hdrc haveVLANName");
+    for (var i = 0; i < SpomCurrentPorts(); i++ ) {
+        if (isStackPort(i + 1)) {
+            continue;
+        }
+        addTextHeaderCell(tr, configPortName(i+1, 0), "portno");
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function addRow(index, frag, vid, vlan_name, values)
+{
+    vidArray[originalEntriesNum] = vid;
+    originalEntriesNum++;
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    addCheckBoxCell(tr, 0, "c", "delete_" + vid);
+    addTextCell(tr, vid, "cr");
+    var edit_ctrl_disp = addInputCell(tr, vlan_name, "cr haveVLANName", "name_" + vid, 32);
+    edit_ctrl_disp.setAttribute("maxLength", 32);
+
+    var i = 0;
+    for(var pb_index = 0; pb_index < SpomCurrentPorts(); pb_index++) {
+        if (isStackPort(pb_index + 1)) {
+            continue;
+        }
+        if((values[i] == 0) || (values[i] == 1) || (values[i] == 2)) {
+            addPortList(tr, parseInt(values[i]), "c", "mask_" + vid + "_" + (pb_index + 1));
+        }
+        i++;
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    // Format:
+    // <startvid>|<NumberOfEntries>|<vid>,<en>/<en>/..../<en>/|....
+    //VTSS_SW_OPTION_VLAN_NAME
+    // <startvid>|<NumberOfEntries>|<vid>,<name>,<en>/<en>/..../<en>/|....
+    // 17,1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1|....
+    //VTSS_SW_OPTION_VLAN_NAME
+    // 17,vitesse,1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1|....
+
+    var temp;
+    if(redirectOnError(req))
+        return;
+
+    originalEntriesNum = newEntriesNum = 0;
+    if (reqObject != req)
+        reqObject = req;
+    if (req.responseText) {
+        kk = vidArray.length;
+        if (kk > 0) {
+            vidArray.splice(0, kk);
+        }
+        vlanconfig = req.responseText.split("|");
+
+        var fld = document.getElementById("StartVid");
+        fld.value = fld.defaultValue = parseInt(vlanconfig[0]);
+
+        var fld = document.getElementById("NumberOfEntries");
+        fld.value = fld.defaultValue = parseInt(vlanconfig[1]);
+        
+        all_vlans_conf = req.responseText.split("$");
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+        CreateTableHeader(frag);
+
+    // Add rows ( Starting from 2 because the first 2 entries in the vlanconfig array is StartVid and NumberOfEntries)
+    var index_start = 2;
+    var portlist = Array();
+
+    // Determine if there are any entries
+    if (index_start < vlanconfig.length) {
+        flag_to_clear_entries = 0;
+        for(var i = index_start; i < vlanconfig.length; i++) {
+        if(vlanconfig[i]) {
+            var vlanval = vlanconfig[i].split(",");
+            if (vlanval[1] == 0) {
+                temp = vlanval[2].split("/");
+                var kk = 0;
+                for(var pb_index = 0; pb_index < SpomCurrentPorts(); pb_index++) {
+                    if (isStackPort(pb_index + 1)) {
+                        continue;
+                    }
+                    portlist[kk] = 0;
+                     if (((temp[parseInt((pb_index)/4)] & (3<<(((pb_index)%4)*2)))) == (1<<(((pb_index)%4)*2))) {
+                         portlist[kk] = 1;
+                     } else if (((temp[parseInt((pb_index)/4)] & (3<<(((pb_index)%4)*2)))) == (2<<(((pb_index)%4)*2))) {
+                         portlist[kk] = 2;
+                     }
+                     kk++;
+                }
+                addRow(i-index_start, frag, vlanval[0], "", portlist);
+            } else {
+                temp = vlanval[3].split("/");
+                var kk = 0;
+                for(var pb_index = 0; pb_index < SpomCurrentPorts(); pb_index++) {
+                    if (isStackPort(pb_index + 1)) {
+                        continue;
+                    }
+                    portlist[kk] = 0;
+                    if (((temp[parseInt((pb_index)/4)] & (3<<(((pb_index)%4)*2)))) == (1<<(((pb_index)%4)*2))) {
+                         portlist[kk] = 1;
+                    } else if (((temp[parseInt((pb_index)/4)] & (3<<(((pb_index)%4)*2)))) == (2<<(((pb_index)%4)*2))) {
+                        portlist[kk] = 2;
+                    }
+                    kk++;
+                }
+                addRow(i-index_start, frag, vlanval[0], vlanval[2], portlist);
+            }
+            // Store the last VID in the table shown ( Used when then ">>" button
+            // is pressed to find out where to start the lookup)
+            LastVlanVal = vlanval[0];
+        }
+        }
+    } else {
+        flag_to_clear_entries = 1;
+        // no entries found - Display that in the table
+        var tr = CreateStyledElement("tr","config_even");
+        addTextCell(tr, "", "c");
+        var td = addTextCell(tr, "No more entries", "c");
+        var front_port_count = SpomCurrentPorts();
+        for (var i = 0; i < SpomCurrentPorts(); i++) {
+            if (isStackPort(i + 1)) {
+                front_port_count--;
+            }
+        }
+        td.setAttribute("colSpan", 2 + front_port_count);
+        frag.appendChild(tr);       // Add row to fragment
+    }
+
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    } else {
+        SpomHandleError();
+    }
+}
+
+function requestUpdate(type)
+{
+    if(SpomNavigationLoading())
+        return;                 // Bail out, navigation will trigger update
+
+    if (type == "GetFirstEntry") {
+    StartVid_var = 1;
+    loadXMLDoc(SpomAddSidArg("/config/vlan?DynStartVid=" + StartVid_var  + "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value),
+           processUpdate, 'vlanData');
+    } else if (type == "NextEntries") {
+        StartVid_var = parseInt(LastVlanVal) + 1;
+        var fld = document.getElementById("StartVid");
+        if((parseInt(StartVid_var) > 0) && (parseInt(StartVid_var) < 4096)) {
+            fld.value = fld.defaultValue = parseInt(StartVid_var);
+            loadXMLDoc(SpomAddSidArg("/config/vlan?DynStartVid=" + StartVid_var  + "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value),
+               processUpdate, 'vlanData');
+        } else {
+            alert("The vlaue of VLAN is restricted to 1 - 4095");
+        }
+    } else if (type == "Refresh") {
+        var fld = document.getElementById("StartVid");
+        StartVid_var = fld.value;
+        loadXMLDoc(SpomAddSidArg("/config/vlan?DynStartVid=" + StartVid_var  + "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value), processUpdate, 'vlanData');
+    } else {
+        StartVid_var = 1;
+        var num_entries = 20;
+        // This happens when the save button is pressed
+		loadXMLDoc(SpomAddSidArg("/config/vlan?DynStartVid=" + StartVid_var  + "&DynNumberOfEntries=" + num_entries), processUpdate, 'vlanData');
+    }
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function checkForm()
+{
+
+    // Check that there is at least one VLAN.
+
+    var fld1, fld2, k;
+    var deleteEntriesNum = 0;
+    var new_port;
+    var port_count = 0;
+    var front_port_count = SpomCurrentPorts();
+
+    //counter delete entries number
+
+    for(var j = 0; j < SpomCurrentPorts(); j++) {
+        if (isStackPort(j + 1)) {
+            front_port_count--;
+        }
+    }
+    for (var i = 0; i < originalEntriesNum; i++) {
+        var var1 = document.getElementById("name_"+ vidArray[i]).value;
+        var jj = 0;
+        for (var ii = 1; ii < (all_vlans_conf.length - 2);) {
+            //var name_fd = document.getElementById("name_"+ vidArray[jj]);
+            var temp_vlan_conf, temp_vlan;
+            if (jj < vidArray.length) {
+                temp_vlan_conf = document.getElementById("name_"+ vidArray[jj]).value;
+                temp_vlan= vidArray[jj];
+                jj++;
+            } else {
+                var var2 = all_vlans_conf[ii].split(",");
+                temp_vlan_conf = var2[1];
+                temp_vlan = var2[0];
+                ii++;
+            }
+            if (vidArray[i] != temp_vlan) {
+                if((var1 != 0) && (temp_vlan_conf != 0)) {
+                    if (var1 === temp_vlan_conf) {
+                        GiveAlert("VLAN name error: Entries with same VLAN name found. VLAN name should be unique");
+                        return false;
+                    }
+                }
+            }
+        }
+        fld1 = document.getElementById("delete_" + vidArray[i]);
+        if (fld1.checked) {
+            deleteEntriesNum++;
+        }
+        else {
+            port_count = 0;
+            for(var j = 0; j < SpomCurrentPorts(); j++) {
+                if (isStackPort(j + 1)) {
+                    continue;
+                }
+                var port_fld = document.getElementById("hidden_mask_" + vidArray[i] +"_" + (j + 1));
+                if ((port_fld.getAttribute("value")) == 0) {
+                    port_count++;
+                }
+            }
+        }
+
+        if((document.getElementById("name_"+ vidArray[i]).value) != 0) {
+            if (!checkName(document.getElementById("name_"+ vidArray[i]).value)) {
+                GiveAlert("Invalid characters found. Please check help page for correct VLAN name format.");
+                return false;
+            }
+        }
+    }
+
+    if ((originalEntriesNum - deleteEntriesNum + newEntriesNum) > maxEntriesNum) {
+        alert("The maximum number of entries is " + maxEntriesNum);
+        return false;
+    }
+
+
+    // Check that there is at least one VLAN.
+    if (originalEntriesNum != 0 && (originalEntriesNum - deleteEntriesNum + newEntriesNum) == 0) {
+        if (deleteEntriesNum == (all_vlans_conf.length - 2)) {
+            answer = confirm ("Deleting all VLANs will cause loss of connection to the switch.\nContinue?");
+            if (!answer) { return false } ; // skip submit
+        }
+    }
+
+    //check new entries's
+    for (var i = 0; i < newEntriesNum; i++) {
+        var var1 = document.getElementById("name_new_"+ entryIdxArray[i]).value;
+        var var_vid = document.getElementById("vid_new_"+ entryIdxArray[i]).value;
+        var var_name = document.getElementById("name_new_"+ entryIdxArray[i]).value;
+        /* all_vlans_conf contains all vlans information (vid and VLAN name) */
+        for (var ii = 1; ii < (all_vlans_conf.length - 1); ii++) {
+            var temp_vlan_conf = all_vlans_conf[ii].split(",");
+            if (temp_vlan_conf[0] == var_vid) {
+                alert("VLAN ID " + var_vid + " is already in use.", var_vid);
+                return false;
+            }
+            if (var_name != "") {
+                if (temp_vlan_conf[1] == var_name) {
+                    alert("VLAN Name " + var_name + " is already in use.", var_name);
+                    return false;
+                }
+            }
+        }
+        for (var ii = (i + 1); ii < newEntriesNum; ii++) {
+            var var2 = document.getElementById("name_new_"+ entryIdxArray[ii]).value;
+            if((var1 != 0) && (var2 != 0)) {
+                if (var1 === var2) {
+                    GiveAlert("VLAN name creation error: Entries with same VLAN name found. VLAN name should be unique");
+                    return false;
+                }
+            }
+        }
+
+        fld2 = document.getElementById("vid_new_"+ entryIdxArray[i]);
+
+        //Check whether the vid added is an integer.
+        if (!isInt(fld2.value)) {
+            GiveAlert("Invalid VLAN ID " + fld2.value);
+            return false;
+        }
+
+        //vid
+        if(!isWithinRange("vid_new_"+ entryIdxArray[i], 1, 4095, "'VLAN ID'")) {
+            return false;
+        }
+
+        //check the entry exist in new entries
+        for (var j = i + 1; j < newEntriesNum; j++) {
+            if (fld2.value == document.getElementById("vid_new_"+ entryIdxArray[j]).value) {
+                GiveAlert("VLAN ID " + fld2.value + " is already in use.", fld2);
+                return false;
+            }
+        }
+        k = i + 1;
+        if((document.getElementById("name_new_"+ entryIdxArray[k-1]).value) != 0) {
+            var junk = document.getElementById("name_new_"+ entryIdxArray[k-1]).value;
+            if (!checkName(document.getElementById("name_new_"+ entryIdxArray[k-1]).value)) {
+                GiveAlert("Invalid characters found. Please check help page for correct VLAN name format.");
+                return false;
+            }
+        }
+
+        new_port = 0;
+        for(var p = 0; p < SpomCurrentPorts(); p++) {
+            if (isStackPort(p + 1)) {
+                continue;
+            }
+            var new_port_fld = document.getElementById("hidden_mask_new_" + entryIdxArray[i] + "_" + (p + 1));
+            if((new_port_fld.getAttribute("value")) == 0 ) {
+                new_port++;
+            }
+        }
+    }
+
+    if(!isWithinRange("StartVid", 1,4095, "'Start Vid'", " ")) {
+        return false;
+    }
+
+    if(!isWithinRange("NumberOfEntries", 1,99, "'Number of entries'", " ")) {
+        return false;
+    }
+
+    return true; // Feed the chickens and go home
+}
+
+
+function addEntryIdx()
+{
+    var fld;
+
+    for (var i = 1; i <= maxEntriesNum; i++) {
+        fld = document.getElementById("delEntryIdx_" + i);
+        if (!fld) {
+            entryIdxArray[newEntriesNum++] = i;
+            return i;
+        }
+    }
+    return 0;
+}
+
+function delEntryIdx(id, tr, frag)
+{
+    var values = id.split("_");
+    var idx = parseInt(values[1]);
+    for (var i = 0; i < newEntriesNum; i++) {
+        if (idx == entryIdxArray[i]) {
+            for (var j = i; j < newEntriesNum; j++) {
+                entryIdxArray[j] = entryIdxArray[j + 1];
+            }
+            break;
+        }
+    }
+
+    newEntriesNum--;
+    clearChildNodes(tr);
+    document.getElementById('vlanData').deleteRow(tr.rowIndex);
+    if ((newEntriesNum == 0) && (originalEntriesNum == 0)) {
+        processUpdate(reqObject, "vlanData");
+    }
+}
+
+function AddNewRow()
+{
+    var entryIdx = addEntryIdx();
+    if (entryIdx == 0) {
+        alert("The maximum number of entries is " + maxEntriesNum);
+        return;
+    }
+
+    if (flag_to_clear_entries) {
+        if (newEntriesNum == 1) {
+            document.getElementById('vlanData').deleteRow(2);
+        }
+    }
+    // create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    var tr = CreateStyledElement("tr", (originalEntriesNum + entryIdx) % 2 ? "config_even" : "config_odd");
+
+    var button = document.createElement('input');
+    button.onclick = function() { delEntryIdx(this.id, tr, frag); };
+    button.id = "delEntryIdx_" + entryIdx;
+    button.type = "button";
+    button.value = " Delete ";
+    var td = CreateTd("c");
+    addCell(tr, td, button);
+
+    var edit_ctrl = addInputCell(tr, 0, "cr", "vid_new_" + entryIdx, 5);
+    edit_ctrl.setAttribute("maxLength", 4); // 'camelCase' required for maxLength for this to work with IE.
+    var edit_ctrl_name = addInputCell(tr, "", "cr haveVLANName", "name_new_" + newEntriesNum, 32);
+    edit_ctrl_name.setAttribute("maxLength", 32);
+
+    for(var i = 0; i < SpomCurrentPorts(); i++) {
+        if (isStackPort(i + 1)) {
+            continue;
+        }
+        addPortList(tr, 0, "c", "mask_new_" + entryIdx + "_" + (i+1));
+    }
+
+    frag.appendChild(tr);       // Add row to fragment
+
+    var tbody = document.getElementById("vlanData");
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+      alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate('GetFirstEntry');            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>VLAN Membership Configuration <span id="display_sid"></span></h1>
+
+<form method="POST" action="/config/vlan" onsubmit="return checkForm();">
+
+<div class="refreshbar">
+  <input type="button" value="Refresh" onClick="requestUpdate('Refresh'); this.blur();">
+  <input type="button" value=" |<< "   title="First page" onClick="requestUpdate('GetFirstEntry'); this.blur();">
+  <input type="button" value=" >> "    title="Next page" onClick="requestUpdate('NextEntries'); this.blur();">
+</div>
+
+<p class="config">
+  <span class="displaytext">Start from VLAN</span>
+  <INPUT id="StartVid" name="StartVid" maxlength="4" value="1" size = "5">
+  <span class="displaytext"> with </span>
+  <INPUT id="NumberOfEntries" name="NumberOfEntries" maxlength="4" value = "20" size = "4">
+  <span class="displaytext"> entries per page. </span>
+</p>
+
+<table id="vlanConfig" summary="Switch VLAN Configuration" cellspacing="0" class="config">
+ <tbody id="vlanData">
+ </tbody>
+</table>
+
+<p>
+<input type="button" id="addNewEntry" value="Add New VLAN" onclick="AddNewRow()">
+</p>
+
+<p>
+  <input type="hidden" id="submit_sid" name="sid">
+  <input type="submit" value="Save">
+  <input type="button" value="Reset" onclick="resetForm();">
+</p>
+
+</form>
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,400 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QoS Ingress Port Classification</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+ 
+var help_page = "/help/help_qcl_v2.htm";
+
+var rowwidth = 11; // For standalone
+if (SpomStackPortCount()) {
+    rowwidth++; // Increase rowwidth for stacking
+}
+
+var allPorts = configPortMin + "-" + configNormalPortMax;
+
+var processUpdate;    // forward declaration
+
+// indexes in values array:
+var idx = 0;
+var idx_usid       = idx++;
+var idx_qcl_id     = idx++;
+var idx_qce_id     = idx++;
+var idx_frame_type = idx++;
+var idx_ports      = idx++;
+var idx_key_smac   = idx++;
+var idx_key_dmac   = idx++;
+var idx_key_vid    = idx++;
+var idx_key_pcp    = idx++;
+var idx_key_dei    = idx++;
+var idx_act_class  = idx++;
+var idx_act_dpl    = idx++;
+var idx_act_dscp   = idx++;
+
+var qceIdMapTbl; // array of qceIds in each row (zero based) 
+var usidMapTbl;  // array of present switches indexed by usid
+
+var pageArgs = searchArgs(window.location.search);
+if (pageArgs.error && parseInt(pageArgs.error, 10) == 1) {
+    alert("QCE Entry Add Failed!");
+}
+
+function requestUpdate() {
+    loadXMLDoc("/config/qcl_v2", processUpdate, "qclData");
+}
+
+function qceDelete() {
+    if (!confirm("Do you want to delete this entry?")) {
+        return false;
+    } 
+    loadXMLDoc("/config/qcl_v2?qceConfigFlag=1&qce_id=" + this.value, processUpdate, 'qclData');
+    return true;
+}
+
+function qceMoveUp() {
+    loadXMLDoc("/config/qcl_v2?qceConfigFlag=2&qce_id=" + this.value, processUpdate, 'qclData');
+}
+
+function qceMoveDown() {
+    loadXMLDoc("/config/qcl_v2?qceConfigFlag=2&qce_id=" + this.value, processUpdate, 'qclData');
+}
+
+function qceEdit() {
+    document.location.href="qcl_v2_edit.htm?qceConfigFlag=3&qce_id=" + this.value;
+}
+
+function qceInsert() {
+    document.location.href="qcl_v2_edit.htm?qceConfigFlag=4&qce_id=" + this.value;
+}
+
+function qceAddLast() {
+    document.location.href="qcl_v2_edit.htm?qceConfigFlag=4&qce_id=0";
+}
+
+function addImageInline(frag, style, src, text, idx, value, click)
+{
+    var field = document.createElement('img');
+    field.id = text.split(" ").join("") + "_" + idx;
+    field.src = src;
+    field.border = 0;
+    field.value = value;
+    if (click) {
+        field.onclick = click;
+    }
+    field.title = field.alt = text;
+    frag.appendChild(field);
+    return field;
+}
+
+function addRowControlCol(tr, idx, first, last) {
+    var container = document.createElement("td");
+
+    addImageInline(container, "cl", "images/add.gif", "Insert new QCE before this QCE", idx, qceIdMapTbl[idx], qceInsert);
+  
+    if (first) {
+        addImageInline(container, "cl", "images/up_gray.gif", "Move QCE up", idx, -1);
+    } else {
+        addImageInline(container, "cl", "images/up.gif", "Move QCE up", idx, qceIdMapTbl[idx - 1], qceMoveUp);
+    }
+
+    container.appendChild(document.createElement("br"));
+    
+    addImageInline(container, "cl", "images/edit.gif", "Edit QCE", idx, qceIdMapTbl[idx], qceEdit);
+    
+    if (last) {
+        addImageInline(container, "cl", "images/down_gray.gif", "Move QCE down", idx, -1);
+    }  else {
+        addImageInline(container, "cl", "images/down.gif", "Move QCE down", idx, qceIdMapTbl[idx], qceMoveDown);
+    }
+    
+    addImageInline(container, "cl", "images/del.gif", "Delete QCE", idx, qceIdMapTbl[idx], qceDelete);
+    
+    tr.appendChild(container);
+}
+
+
+function addRow(frag, values, idx, first, last) {
+    var tr = CreateStyledElement("tr", idx % 2 ? "config_odd" : "config_even");
+    var usid;
+    var macTxt;
+    var splitpcp;
+
+    qceIdMapTbl[idx] = values[idx_qce_id];
+
+    addTextCell(tr, values[idx_qce_id], "cl");
+    
+    if (SpomStackPortCount()) {// only if stacking
+        usid = (parseInt(values[idx_usid], 10));
+        if (usid == -1) {
+            addTextCell(tr, "Any", "cl");
+        } else if (usidMapTbl[usid]) {
+            addTextCell(tr, usid, "cl");
+        } else {
+            addTextCell(tr, usid + " (not present)", "cl");
+        }
+    }
+    
+    if (values[idx_ports] !== "") {
+        if (allPorts == values[idx_ports]) {
+            addTextCell(tr, "All", "cl");
+        } else {
+            addTextCell(tr, values[idx_ports], "cl");
+        }
+    } else {
+        addTextCell(tr, "None", "cl");
+    }
+    
+    switch (parseInt(values[idx_frame_type], 10)){
+    case 0:
+        addTextCell(tr, "Ethernet", "cl");
+        break;
+    case 1:
+        addTextCell(tr, "Any", "cl");
+        break;
+    case 2:
+        addTextCell(tr, "LLC", "cl");
+        break;
+    case 3:
+        addTextCell(tr, "SNAP", "cl");
+        break;
+    case 4:
+        addTextCell(tr, "IPv4", "cl");
+        break;
+    case 5:
+        addTextCell(tr, "IPv6", "cl");
+        break;
+    default:
+        addTextCell(tr, "????", "cl");
+        alert("Unexpected frame type " + values[idx_frame_type]);
+        break;
+    }
+
+    if (values[idx_key_smac] == "Any") {
+        addTextCell(tr, "Any", "cl");
+    } else {
+        macTxt = values[idx_key_smac].split("-");
+        addTextCell(tr, macTxt[0] + "-" + macTxt[1] + "-" + macTxt[2], "cl");
+    }
+
+    switch (parseInt(values[idx_key_dmac], 10)) {
+    case 0:
+        addTextCell(tr, "Any", "cl");
+        break;
+    case 1:
+        addTextCell(tr, "UC", "cl");
+        break;
+    case 2:
+        addTextCell(tr, "MC", "cl");
+        break;
+    case 3:
+        addTextCell(tr, "BC", "cl");
+        break;
+    default:
+        addTextCell(tr, "??", "cl");
+        alert("Unextected DMAC " + values[idx_key_dmac]);
+        break;
+    }
+    
+    addTextCell(tr, values[idx_key_vid], "cl");
+
+    splitpcp = values[idx_key_pcp].split(",");
+    if (parseInt(splitpcp[0], 10) == -1) {
+        addTextCell(tr, "Any", "cl");
+    } else if (splitpcp[0] == splitpcp[1]) {
+        addTextCell(tr, splitpcp[0], "cl");
+    } else {
+        addTextCell(tr, splitpcp[0] + "-" + splitpcp[1], "cl");
+    }
+
+    if (parseInt(values[idx_key_dei], 10)) {
+        addTextCell(tr, parseInt(values[idx_key_dei], 10) - 1, "cl");
+    } else {
+        addTextCell(tr, "Any", "cl");
+    }
+
+    if (parseInt(values[idx_act_class], 10) != -1) {
+        addTextCell(tr, values[idx_act_class], "cl");
+    } else {
+        addTextCell(tr, "Default", "cl");
+    }
+
+    if (parseInt(values[idx_act_dpl], 10) != -1) {
+        addTextCell(tr, values[idx_act_dpl], "cl");
+    } else {
+        addTextCell(tr, "Default", "cl");
+    }
+
+    if (parseInt(values[idx_act_dscp], 10) != -1) {
+        addTextCell(tr, configQosDscpNames[parseInt(values[idx_act_dscp], 10)], "cl");
+    } else {
+        addTextCell(tr, "Default", "cl");
+    }
+
+    addRowControlCol(tr, idx, first, last);
+    frag.appendChild(tr);
+}
+
+processUpdate = function processUpdate(req, ref) {
+    var tbody;
+    var frag;
+    var data;
+    var usid_list;
+    var qce_list;
+    var values;
+    var i;
+    var tr;
+    var td;
+
+/* Format:
+ * <usid_list>#<qce_list>
+ *
+ * usid_list :== <usid l>;<usid m>;<usid n> // List of present (active) switches in usid order.
+ *
+ * qce_list         :== <qce 1>;<qce 2>;<qce 3>;...<qce n> // List of currently defined QCEs (might be empty).
+ *   qce  x         :== <usid>/<qcl_id>/<qce_id>/<frame_type>/<ports>/<key_smac>/<key_dmac>/<key_vid>/<key_pcp>/<key_dei>/<act_class>/<act_dpl>/<act_dscp>
+ *     usid       :== 1..16 or -1 for all switches
+ *     qcl_id     :== 1
+ *     qce_id     :== 1..256
+ *     frame_type :== 0..5    // One of vtss_qce_type_t
+ *     ports      :== String  // List of ports e.g. "1,3,5,7,9-53"
+ *     key_smac   :== String  // "Any" or "xx-xx-xx-xx-xx-xx"
+ *     key_dmac   :== 0..3    // One of qos_qce_dmac_type_t
+ *     key_vid    :== String  // "Any" or vid or vid-vid
+ *     key_pcp    :== <pcp_low>,<pcp_high>
+ *       pcp_low  :== -1..7   // -1 is Any
+ *       pcp_high :== 0..7    // Not used if pcp_low == -1. If pcp_low != pcp_high then it is a range, else use pcp_low.
+ *     key_dei    :== 0..2    // 0: Any, 1: 0, 2: 1
+ *     act_class  :== -1..7   // -1 is no action, else classify to selected value
+ *     act_dpl    :== -1..3   // -1 is no action, else classify to selected value
+ *     act_dscp   :== -1..63  // -1 is no action, else classify to selected value
+ *
+ */
+    qceIdMapTbl = [];
+    usidMapTbl = [];
+    frag = document.createDocumentFragment();
+
+    if (req.responseText) {
+        data = req.responseText.split("#");
+        if (data[0]) {
+            usid_list = data[0].split(";");
+            for (i = 0; i < usid_list.length; i++) {
+                usidMapTbl[usid_list[i]] = true;
+            }
+        }
+
+        i = 0; // i must be reset to zero here as qce_list might be empty
+        if (data[1]) {
+            qce_list  = data[1].split(";");
+            for (i = 0; i < qce_list.length; i++) {
+                values = qce_list[i].split("/");
+                addRow(frag, values, i, (i === 0), (i === (qce_list.length - 1)));
+            }
+        }
+    }
+    
+    // Always create a row with an AddLast button
+    tr = CreateStyledElement("tr", i % 2 ? "config_odd" : "config_even");
+
+    // Spans all columns - 1
+    td = document.createElement("td");
+    td.setAttribute("colSpan", rowwidth);
+    tr.appendChild(td);
+
+    // Spans last columns
+    td = document.createElement("td");
+    addImageInline(td, "cl", "images/add.gif", "Add QCE to end of list", i, 0, qceAddLast);
+    tr.appendChild(td);
+
+    frag.appendChild(tr);
+
+    tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    tbody.appendChild(frag);
+};
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>QoS Control List Configuration</h1>
+
+<table summary="QoS Control List" class="config">
+ <thead>
+  <tr class="display_header">
+   <th rowspan=2>QCE#</th>
+   <th rowspan=2 class="SPOM_only">Switch#</th>
+   <th rowspan=2>Port</th>
+   <th rowspan=2>Frame Type</th>
+   <th rowspan=2>SMAC</th>
+   <th rowspan=2>DMAC</th>
+   <th rowspan=2>VID</th>
+   <th rowspan=2>PCP</th>
+   <th rowspan=2>DEI</th>
+   <th colspan=3>Action</th>
+   <th rowspan=2></th>
+  </tr>
+  <tr>
+   <th>Class</th>
+   <th>DPL</th>
+   <th>DSCP</th>
+  </tr>    
+ </thead>
+ <tbody id="qclData">
+ </tbody>
+</table>
+
+<!-- IE caching bug -->
+<div style="visibility:hidden;">
+ <img alt="" src="images/add.gif">
+ <img alt="" src="images/up.gif">
+ <img alt="" src="images/up_gray.gif">
+ <img alt="" src="images/edit.gif">
+ <img alt="" src="images/down.gif">
+ <img alt="" src="images/down_gray.gif">
+ <img alt="" src="images/del.gif">
+</div>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

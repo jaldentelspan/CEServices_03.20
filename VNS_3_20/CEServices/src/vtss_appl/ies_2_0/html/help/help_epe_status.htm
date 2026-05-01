@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2010 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>FPGA Status & Error Report Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>EPE Status & Error Report Help</h1>
+
+<p>EPE Status & Error Reporting on this page.</p>
+
+<dl>
+    <dt>CH7 ENCODER BIT MASKS</dt></br>
+<dd>
+<b>STATUS</b></br>
+=AVMM_TIMEOUT..........(0x80000000)</br>
+<b>CTRL</b>...........(0x3)</br>
+=FRAME_SIZE_MASK.......(0x0000000F)</br>
+=FRAME_SIZE_SHFT.......(0)</br>
+=ENABLE_BIT............(0x00000080)</br>
+=REMOVE_TSE_PADDING....(0x00000100)</br>
+=INVERT_CLK............(0x00000200)</br>
+=REMOVE_FCS............(0x01000000)</br>
+<b>PORT_SELECT</b>....(0x4)</br>
+=PORT_SELECT_MASK......(0x000000FF)</br>
+=PORT_SELECT_SHFT......(0)</br>
+</dd></br>
+<dt>CH7.DECODER.BIT.MASKS</dt></br>
+<dd></br>
+<b>STATUS</b></br>
+=ILLEGAL_FRAME_SZ......(0x00000001)</br>
+=AVST_ERROR............(0x00000002)</br>
+=START_OF_MAJOR........(0x00000004)</br>
+=MISSED_CH7_SYNC.......(0x00000008)</br>
+=GOLAY_ERROR...........(0x00000010)</br>
+=FRAME_LOCK............(0x00000020)</br>
+=SFID_CAPTURE..........(0x00000100)</br>
+=AVMM_TIMEOUT..........(0x80000000)</br>
+<b>CTRL</b>...........(0x3)</br>
+=FRAME_SIZE_MASK.......(0x0000000F) /*.223*THIS.VALUE.*/</br>
+=FRAME_SIZE_SHFT.......(0)</br>
+=TSE_PAD_EN_BIT........(0x00000010)</br>
+=REMOVE_FCS_BIT........(0x00000040)</br>
+=ENABLE_BIT............(0x00000080)</br>
+=TSE_SHFT_EN...........(0x00080000)</br>
+=ETH_HDR_ADD_EN........(0x00100000)</br>
+=ETH_CSDW_HDR_ADD_EN...(0x00200000)</br>
+=ETH_SEC_HDR_ADD_EN....(0x00400000)</br>
+=ETH_STRM_HDR_ADD_EN...(0x00800000)</br>
+=CH10_HDR_ADD_EN.......(0x01000000)</br>
+=CH10_CSDW_HDR_ADD_EN..(0x02000000)</br>
+=CH10_SEC_HDR_ADD_EN...(0x04000000)</br>
+=CH10_STRM_HDR_ADD_EN..(0x08000000)</br>
+=INVERT_CLOCK..........(0x10000000)</br>
+=SOFT_RESET............(0x80000000)</br>
+<b>PORT_SELECT</b>.....(0x4)</br>
+=ENABLE.........(0x00000080)</br>
+=MASK...........(0x00000003)</br>
+=FIXED_CH10.....(0x00000001)</br>
+=FIXED_ETH......(0x00000002)</br>
+<b>COUNTER</b>......(0x5)</br>
+=MASK...............(0xFFFFFFFF)</br>
+=RESET_MASK.........(0x80000000)</br>
+</dd>
+
+<h2>Buttons</h2>
+<p>Auto-refresh<input type="checkbox">: Check this box to refresh the page automatically. Automatic refresh occurs every <span class="refreshInterval">?</span> seconds.</p>
+<p><input type="button" value=" Refresh ">:  Click to refresh the page immediately.</p>
+
+</body>
+</html>

@@ -1,0 +1,498 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QoS Control List</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_qcl_edit.htm";
+
+var oVPriority = ["Low","Normal","Medium","High"];
+var oVClass    = genArrayInt(1, oVPriority.length);
+var oTQCEType = ["Ethernet Type","VLAN ID","TCP/UDP Port","DSCP","ToS","Tag Priority"];
+var oVQCEType = genArrayInt(0, oTQCEType.length-1);
+var oTPortFilter = ["Specific","Range"];
+var oVPortFilter = [0, 1];
+var oldDportLowValue = "0";
+var oldDportHighValue = "65535";
+var oldSportLowValue = "0";
+var oldSportHighValue = "65535";
+
+var qceEditReq;
+var singleQceConfigData;
+
+function appendQceIdField() {
+    var values = singleQceConfigData.split("/");
+    var newChild = document.createElement("tr");
+    addInputCell(newChild, parseInt(values[0], 10), "cl", "qcl_id", 3);   
+    addInputCell(newChild, parseInt(values[1], 10), "cl", "qce_id", 3);   
+    addInputCell(newChild, parseInt(values[2], 10), "cl", "next_qce_id", 3);
+    newChild.style.visibility = "hidden";
+    var tbody = document.getElementById("qceData");
+    tbody.appendChild(newChild);
+}
+
+function isEthType(str) {
+    var myReg;
+    
+    if (!str) {
+        return false;
+    }
+
+    myReg = /^[A-Fa-f0-9]{1,4}$/;
+    
+    var result = myReg.test(str);
+    if (result) {
+        var intFormat = parseInt("0x"+str, 16); 
+        if (intFormat < 0x600) {
+            return false;
+        }
+    }
+    return result;
+}
+
+function checkForm() {
+    var fld;
+
+    // vid
+    fld = document.getElementById("vid");
+    if (fld && !isWithinRange("vid", 1, 4095, "'VLAN ID'")) {
+        return false;
+    }
+
+    // ether_type 
+    fld = document.getElementById("ether_type");
+    if (fld) {
+        if (!isEthType(fld.value)) {
+            GiveAlert("The format of 'Ethernet Type' is restricted to 0x600-FFFF", fld);
+            return false;
+        }
+    }
+    
+    // port_low, port_high
+    var range_low  = document.getElementById("port_low");
+    var range_high = document.getElementById("port_high");
+    if (range_low) {
+        var fld_name_txt;
+        if(range_high) {
+            fld_name_txt = "'TCP/UDP Port Range lower'";
+        } else {
+            fld_name_txt = "'TCP/UDP Port No.'";
+        }
+        if(!isWithinRange("port_low", 0, 65535, fld_name_txt)) {
+             return false;
+        }
+
+        if(range_high && !isWithinRange("port_high", 0, 65535, "'TCP/UDP Port Range higher'")) {
+            return false;
+        }
+        if(!range_high) {
+            range_high = range_low;
+        }
+        if(parseInt(range_low.value, 10) > parseInt(range_high.value, 10) ) {
+            GiveAlert("The higher value of 'TCP/UDP Port Range' must be at or above the lower.", range_low);
+            return false;
+        }
+    }
+    
+    // dscp
+    fld = document.getElementById("dscp");
+    if(fld && !isWithinRange("dscp", 0, 63, "'DSCP'")) {
+        return false;
+    }
+    
+    return true;
+}
+
+function changeFilter()
+{
+    var tbody = document.getElementById("qceData");
+    var newChild = document.createElement("tr");
+    var td;
+
+    if (oTPortFilter[this.value] == "Specific") {
+        addLabelTextCell(newChild, "TCP/UDP Port No.", "param_label", "port_low");
+        td = addInputCell(newChild, oldSportLowValue, "cl", "port_low", 5);
+        td.setAttribute("maxLength", 5);
+    } else if (oTPortFilter[this.value] == "Range") {
+        addLabelTextCell(newChild, "TCP/UDP Port Range", "param_label", "port_low");
+        td = CreateTd("cl");
+        var range_low = document.createElement('input');
+        range_low.id = range_low.name = "port_low";
+        range_low.setAttribute("size", 5);
+        range_low.setAttribute("maxLength", 5);
+        range_low.setAttribute("value", oldSportLowValue);
+        range_low.setAttribute("defaultValue", oldSportLowValue);
+
+        var dash_text = document.createTextNode("-");
+        td.appendChild(range_low);
+        td.appendChild(dash_text);
+
+        var range_high = document.createElement('input');
+        range_high.id = range_high.name = "port_high";
+        range_high.setAttribute("size", 5);
+        range_high.setAttribute("maxLength", 5);
+        range_high.setAttribute("value", oldSportHighValue);
+        range_high.setAttribute("defaultValue", oldSportHighValue);
+        td.appendChild(range_high);
+        newChild.appendChild(td); 
+    }
+
+    var oldChild = tbody.childNodes[2]; 
+    tbody.replaceChild(newChild, oldChild);
+}
+
+function changeQceType(event) {
+    var values = singleQceConfigData.split("/");
+    var frag = document.createDocumentFragment();
+    var newQceType;
+    var tr;
+    var td;
+    var i;
+    
+    if (event != "firstTime") {
+        newQceType = document.getElementById("qce_type").value;
+        
+        if (newQceType != parseInt(values[3], 10)) {
+            var totalFieldNum=12;
+            for (i = 3; i < totalFieldNum; i++) {
+                values[i]="";
+            }
+        }
+    } else {
+        newQceType = parseInt(values[3], 10);
+    }
+    
+    if (0) { 
+        // Don't remove, it's for debugging
+        // qcl_id
+        tr = document.createElement("tr");
+        addTextCell(tr, "QCL ID", "param_label");
+        addTextCell(tr, parseInt(values[0], 10), "cl");
+        frag.appendChild(tr);
+    
+        // qce_id
+        tr = document.createElement("tr");
+        addTextCell(tr, "qce_id", "param_label");
+        addTextCell(tr, parseInt(values[1], 10), "cl");
+        frag.appendChild(tr);
+    
+        // next_qce_id
+        tr = document.createElement("tr");
+        addTextCell(tr, "next_qce_id", "param_label");
+        addTextCell(tr, parseInt(values[2], 10), "cl");
+        frag.appendChild(tr);
+    }
+    
+    //qce_type
+    tr = document.createElement("tr");
+    addTextCell(tr, "QCE Type", "param_label");
+    td = addSelectCell(tr, oTQCEType, oVQCEType, newQceType, "cl", "qce_type");
+    td.onchange = changeQceType;
+    frag.appendChild(tr);
+    
+    if (oTQCEType[newQceType] == "Ethernet Type") {
+        //ether_type
+        if (values[4] === "") {
+            values[4] = "FFFF";
+        }
+        tr = document.createElement("tr");
+        addTextCell(tr, "Ethernet Type Value", "param_label");
+        td = CreateTd("cl");
+        var hex_header = document.createTextNode("0x");
+        td.appendChild(hex_header);       
+        var input_value = document.createElement('input');
+        input_value.id = input_value.name = "ether_type";
+        input_value.setAttribute("size", 4);
+        input_value.setAttribute("maxLength", 4);
+        input_value.setAttribute("value", values[4]);
+        input_value.setAttribute("defaultValue", values[4]);
+        td.appendChild(input_value);
+        tr.appendChild(td);
+        frag.appendChild(tr);
+
+        //class
+        tr = document.createElement("tr");
+        addTextCell(tr, "Traffic Class", "param_label");
+        addSelectCell(tr, oVPriority, oVClass, parseInt(values[5], 10), "cl", "class");
+        frag.appendChild(tr);
+    } else if (oTQCEType[newQceType] == "VLAN ID") {
+        //vid
+        if (values[4] === "") {
+            values[4] = 1;
+        }
+        tr = document.createElement("tr");
+        addLabelTextCell(tr, oTQCEType[newQceType], "param_label", "vid");
+        td = addInputCell(tr, parseInt(values[4], 10), "cl", "vid", 4);
+        td.setAttribute("maxLength", 4);
+        frag.appendChild(tr);
+        
+        //class
+        tr = document.createElement("tr");
+        addTextCell(tr, "Traffic Class", "param_label");
+        addSelectCell(tr, oVPriority, oVClass, parseInt(values[5], 10), "cl", "class");
+        frag.appendChild(tr);
+    } else if (oTQCEType[newQceType] == "TCP/UDP Port") {
+        //port_low, port_high
+        if (values[4] === "") {
+            values[4] = 0;
+        }
+        if (values[5] === "") {
+            values[5] = 65535;
+        }
+        if ( values[4] !== "") {
+            oldSportLowValue = values[4];
+        }
+        if ( values[5] !== "") {
+            oldSportHighValue = values[5];
+        }
+
+        var selected;
+        if ( values[4]==values[5] ) {
+            selected = 0;   //specific
+        } else {
+            selected = 1;   //range
+        }
+        tr = document.createElement("tr");
+        addLabelTextCell(tr, "TCP/UDP Port", "param_label", "port_low");
+        td = addSelectCell(tr, oTPortFilter, oVPortFilter, selected, "cl", "port_filter");
+        td.onchange=changeFilter;
+        frag.appendChild(tr);
+        
+        tr = document.createElement("tr");
+        if (oTPortFilter[selected] == "Specific") {
+            addLabelTextCell(tr, "TCP/UDP Port No.", "param_label", "port_low");
+            td = addInputCell(tr, oldSportLowValue, "cl", "port_low", 5);
+            td.setAttribute("maxLength", 5);
+        } else if (oTPortFilter[selected] == "Range") {
+            addLabelTextCell(tr, "TCP/UDP Port Range", "param_label", "port_low");
+        td = CreateTd("cl");
+        var range_low = document.createElement('input');
+        range_low.id = range_low.name = "port_low";
+        range_low.setAttribute("size", 5);
+        range_low.setAttribute("maxLength", 5);
+        range_low.setAttribute("value", oldSportLowValue);
+        range_low.setAttribute("defaultValue", oldSportLowValue);
+        
+        var dash_text = document.createTextNode("-");
+        td.appendChild(range_low);
+        td.appendChild(dash_text);
+        
+        var range_high = document.createElement('input');
+        range_high.id = range_high.name = "port_high";
+        range_high.setAttribute("size", 5);
+        range_high.setAttribute("maxLength", 5);
+        range_high.setAttribute("value", oldSportHighValue);
+        range_high.setAttribute("defaultValue", oldSportHighValue);
+        td.appendChild(range_high);
+        tr.appendChild(td);
+        }
+        frag.appendChild(tr);
+
+        //class
+        tr = document.createElement("tr");
+        addTextCell(tr, "Traffic Class", "param_label");
+        addSelectCell(tr, oVPriority, oVClass, parseInt(values[6], 10), "cl", "class");
+        frag.appendChild(tr);
+    } else if (oTQCEType[newQceType] == "DSCP") {
+        //dscp
+        if (values[4] === "") {
+            values[4] = 63;
+        }
+        tr = document.createElement("tr");
+        addLabelTextCell(tr, "DSCP Value", "param_label", "dscp");
+        td = addInputCell(tr, parseInt(values[4], 10), "cl", "dscp", 2);
+        td.setAttribute("maxLength", 2);
+        frag.appendChild(tr);
+        
+        //class
+        tr = document.createElement("tr");
+        addTextCell(tr, "Traffic Class", "param_label");
+        addSelectCell(tr, oVPriority, oVClass, parseInt(values[5], 10), "cl", "class");
+        frag.appendChild(tr);
+    } else if ( oTQCEType[newQceType] == "ToS") {
+        for (i = 0; i <= 7; i++) {
+            if (values[4 + i] === "") {
+                values[4 + i] = 0;
+            }
+            tr = document.createElement("tr");
+            addTextCell(tr, "ToS Priority " + i + " Class", "param_label");
+            addSelectCell(tr, oVPriority, oVClass, parseInt(values[4 + i], 10), "cl", "class" + i);
+            frag.appendChild(tr);
+        }
+    } else if (oTQCEType[newQceType] == "Tag Priority") {
+        for (i = 0; i <= 7; i++) {
+            if (values[4 + i] === "") {
+                switch (i) {
+                    case 0:
+                    case 3:
+                        values[4 + i] = 2;
+                        break;
+                    case 1:
+                    case 2:
+                        values[4 + i] = 1;
+                        break;
+                    case 4:
+                    case 5:
+                        values[4 + i] = 3;
+                        break;
+                    case 6:
+                    case 7:
+                        values[4 + i] = 4;
+                        break;
+                    default:
+                        values[4 + i] = 2;
+                        break;
+                }
+            }
+            tr = document.createElement("tr");
+            addTextCell(tr, "Tag Priority " + i + " Class", "param_label");
+            addSelectCell(tr, oVPriority, oVClass, parseInt(values[4 + i], 10), "cl", "class" + i);
+            frag.appendChild(tr);
+        }
+    }
+    
+    var tbody = document.getElementById("qceData");
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function processUpdateQceConfigTbl(req, ref) {
+    if (req.responseText) {
+        qceEditReq = req;
+        singleQceConfigData = req.responseText;
+        changeQceType("firstTime");
+    } else {
+        document.location.href = "qcl.htm";
+    }
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    // SID changed - Go back to list!
+    var values = singleQceConfigData.split("/");
+    parent.saveEditData("6/" + parseInt(values[0], 10));
+    document.location.href = "qcl.htm";
+}
+
+function requestUpdate() {
+    // Format: [qcl_id]/[qce_id]/[next_qce_id]/[qce_type]/[type_value_field]|...,
+    // [type_value_field]
+    // - Ethernet Type [eth_type]/[class]
+    // - VLAN ID       [vid]/[class]
+    // - TCP/UDP Port  [port_low]/[port_high]/[class]
+    // - DSCP          [dscp]/[class]
+    // - ToS           [class0]/[class1]/[class2]/[class3]/[class4]/[class5]/[class6]/[class7]
+    // - Tag Priority  [class0]/[class1]/[class2]/[class3]/[class4]/[class5]/[class6]/[class7]
+
+    //Format: [flag]/[date]
+    //<Del>         : 1/[qcl_id]/[qce_id]
+    //<Move>        : 2/[qcl_id]/[next_qce_id]
+    //<Edit>        : 3/[qcl_id]/[qce_id]
+    //<Insert>      : 4/[qcl_id]/[next_qce_id]
+    //<Add to Last> : 5/[qcl_id]/0
+    //<Get>         : 6/[qcl_id]
+
+    var qceConfigFlag = parent.getEditData().split("/");
+    parent.saveEditData("");
+    if (qceConfigFlag[0] == 3) {
+        loadXMLDoc("/config/qcl?qceConfigFlag=3&SelectQclId=" + qceConfigFlag[1] + "&SelectQceId=" + qceConfigFlag[2], processUpdateQceConfigTbl, null);
+    } else if (qceConfigFlag[0] == 4) {
+        loadXMLDoc("/config/qcl?qceConfigFlag=4&SelectQclId=" + qceConfigFlag[1] + "&SelectQceId=" + qceConfigFlag[2], processUpdateQceConfigTbl, null);
+    } else if (qceConfigFlag[0] == 5) {
+        loadXMLDoc("/config/qcl?qceConfigFlag=5&SelectQclId=" + qceConfigFlag[1], processUpdateQceConfigTbl, null);
+    } else {
+        document.location.href = "qcl.htm"; 
+    }
+}
+
+function qceSubmit() {
+    if (!checkForm()) {
+        return;
+    }
+    var values = singleQceConfigData.split("/");
+    parent.saveEditData("6/" + parseInt(values[0], 10));
+    appendQceIdField();
+    document.qceConfigForm.submit();
+}
+
+function qceReset() {
+    processUpdateQceConfigTbl(qceEditReq, 'qceData');
+}
+
+function qceCancel() {
+    var values = singleQceConfigData.split("/");
+    parent.saveEditData("6/" + parseInt(values[0], 10));
+    document.location.href="qcl.htm";
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form name="qceConfigForm" method="POST" action="/config/qcl">
+
+<h1>QCE Configuration</h1> 
+
+<table summary="QCE Configuration" cellspacing="0" class="config">
+    <tbody id="qceData">
+    </tbody>
+</table>
+
+<p>&nbsp;</p>
+
+<p>
+<input type="button" value="Save" onclick="qceSubmit();">
+<input type="button" value="Reset" onclick="qceReset();">
+<input type="button" value="Cancel" onclick="qceCancel();">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

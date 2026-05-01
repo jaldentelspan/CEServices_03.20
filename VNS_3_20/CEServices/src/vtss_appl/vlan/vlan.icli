@@ -1,0 +1,1482 @@
+//
+// Vitesse Switch Software.
+//
+// Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+// Rights Reserved.
+//
+// Unpublished rights reserved under the copyright laws of the United States of
+// America, other countries and international treaties. Permission to use, copy,
+// store and modify, the software and its source code is granted. Permission to
+// integrate into other products, disclose, transmit and distribute the software
+// in an absolute machine readable format (e.g. HEX file) is also granted.  The
+// source code of the software may not be disclosed, transmitted or distributed
+// without the written permission of Vitesse. The software and its source code
+// may only be used in products utilizing the Vitesse switch products.
+//
+// This copyright notice must appear in any copy, modification, disclosure,
+// transmission or distribution of the software. Vitesse retains all ownership,
+// copyright, trade secret and proprietary rights in the software.
+//
+// THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+// INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_VLAN)
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments.
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file.
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "icli_porting_util.h"
+#include "vlan_api.h"
+#include "mgmt_api.h"
+#include "misc_api.h"   //uport2iport(), iport2uport()
+#include "port_api.h"   //switch_iter_init(), port_iter_init()
+#if defined(VTSS_SWITCH_STACKABLE) && VTSS_SWITCH_STACKABLE
+#include "topo_api.h"   //topo_usid2isid(), topo_isid2usid()
+#else
+#include "standalone_api.h"
+#endif /* VTSS_SWITCH_STACKABLE */
+INCLUDE_END
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files.
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+
+#define VLAN_DEFAULT_TPID       0x88A8
+
+static void vlan_icli_port_conf_set(vtss_isid_t isid, vtss_port_no_t port_no, vlan_port_conf_t *pconf, BOOL pvid, BOOL frametype, 
+                                    BOOL ingressfilter, BOOL porttype, BOOL tx_tag)
+{
+    vlan_port_conf_t      conf;
+
+    if ((vlan_mgmt_hybrid_port_conf_get(isid, port_no, &conf)) != VTSS_OK) {
+        return;
+    }
+    conf.flags = VLAN_PORT_FLAGS_ALL;
+    if (pvid) {
+#ifdef VTSS_SW_OPTION_ACL
+        if (mgmt_vlan_pvid_change(isid, port_no, pconf->pvid, conf.pvid) != VTSS_OK) {
+            return;
+        }
+#endif /* VTSS_SW_OPTION_ACL */
+        conf.pvid = pconf->pvid;
+    }
+    if (frametype) {
+        conf.frame_type = pconf->frame_type;
+    }
+#ifdef VTSS_SW_OPTION_VLAN_INGRESS_FILTERING
+    if (ingressfilter) {
+        conf.ingress_filter = pconf->ingress_filter;
+    }
+#endif  /* VTSS_SW_OPTION_VLAN_INGRESS_FILTERING */
+    if (tx_tag) {
+        if (conf.tx_tag_type == VLAN_TX_TAG_TYPE_UNTAG_THIS) {
+            conf.untagged_vid = conf.pvid;
+        }
+        conf.tx_tag_type = pconf->tx_tag_type;
+    }
+    if (porttype) {
+        conf.port_type = pconf->port_type;
+    }
+    if((vlan_mgmt_hybrid_port_conf_set(isid, port_no, &conf)) != VTSS_OK) {
+        return;
+    }
+}
+
+static void vlan_cmd_vlan_port_conf(i32 session_id, vlan_port_conf_t *pconf,
+                                    icli_stack_port_range_t *port_list_p, BOOL pvid, BOOL frametype, 
+                                    BOOL ingressfilter, BOOL porttype, BOOL tx_tag)
+{
+    u32                   range_idx, cnt_idx;
+    vtss_isid_t           usid;
+    vtss_port_no_t        uport;
+
+    for (range_idx = 0; range_idx < port_list_p->cnt; range_idx++) {
+        usid = port_list_p->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < port_list_p->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = port_list_p->switch_range[range_idx].begin_uport + cnt_idx;
+            vlan_icli_port_conf_set(topo_usid2isid(usid), uport2iport(uport), pconf, pvid, frametype, ingressfilter,
+                                    porttype, tx_tag);
+        } /* for (cnt_idx = 0; cnt_idx < port_list_p->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < port_list_p->cnt; range_idx++) */
+}
+
+static char *vlan_frame_type_txt(vtss_vlan_frame_t tagged)
+{               
+    if (tagged == VTSS_VLAN_FRAME_ALL) {
+        return "all";
+    } else if (tagged == VTSS_VLAN_FRAME_TAGGED) {
+        return "tagged";
+#if defined(VTSS_FEATURE_VLAN_PORT_V2)
+    } else if (tagged == VTSS_VLAN_FRAME_UNTAGGED) {
+        return "untagged";
+#endif      
+    } else {
+        return "unknown";
+    }
+}
+
+static char *vlan_static_tag_type_txt(vlan_tx_tag_type_t tx_tag_type)
+{
+    if (tx_tag_type == VLAN_TX_TAG_TYPE_UNTAG_THIS) {
+        return "all except-native"; 
+    } else if (tx_tag_type == VLAN_TX_TAG_TYPE_UNTAG_ALL) {
+        return "none";
+    } else if (tx_tag_type == VLAN_TX_TAG_TYPE_TAG_ALL) {
+        return "all";
+    }
+    return "";
+}
+
+static char *vlan_port_type_txt(vlan_port_type_t pt)
+{
+    if (pt == VLAN_PORT_TYPE_UNAWARE) {
+        return "unaware";
+    } else if (pt == VLAN_PORT_TYPE_C) {
+        return "c-port";
+#if defined(VTSS_FEATURE_VLAN_PORT_V2)
+    } else if (pt == VLAN_PORT_TYPE_S) {
+        return "s-port";
+    } else if (pt == VLAN_PORT_TYPE_S_CUSTOM) {
+        return "s-custom-port";
+#endif
+    } else {
+        return "unknown-port";
+    }
+}
+
+
+static char *vlan_port_mode_txt(vlan_port_mode_t mode)
+{
+    if (mode == VLAN_PORT_MODE_ACCESS) {
+        return "access";
+    } else if (mode == VLAN_PORT_MODE_TRUNK) {
+        return "trunk";
+    } else if (mode == VLAN_PORT_MODE_HYBRID) {
+        return "hybrid";
+    }
+    return "";
+}   
+
+static void vlan_conf_show(i32 session_id, vtss_vid_t vid, BOOL first)
+{
+    switch_iter_t               sit;
+    port_iter_t                 pit;
+    vlan_mgmt_entry_t           conf;
+    char                        str_buf[VLAN_BUF_SIZE], buf[VLAN_BUF_SIZE + 40], *p;
+    u32                         port_cnt;
+    BOOL                        first_port, first_line, eol;
+    vlan_port_mode_conf_t       pconf;
+
+    //ICLI_PRINTF("\n");
+    (void)switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_USID);
+    while (switch_iter_getnext(&sit)) {
+        if (vlan_mgmt_vlan_get(sit.isid, vid, &conf, 0, VLAN_USER_STATIC, VLAN_MEMBERSHIP_OP) == VTSS_OK) {
+            if (first) {
+#ifdef  VTSS_SW_OPTION_VLAN_NAME
+                ICLI_PRINTF("%-4s  %-32s  %s\n", "VLAN", "Name", "Ports");
+                ICLI_PRINTF( "----------------------------------------------------------------------------------------------------\n");
+#else
+                ICLI_PRINTF("%-4s  %s\n", "VLAN", "Ports");
+                ICLI_PRINTF( "----------------------------------------------------------------------------------------------------\n");
+#endif
+                first = FALSE;
+            }
+#ifdef  VTSS_SW_OPTION_VLAN_NAME
+            ICLI_PRINTF("%-4d  %-32s  ", vid, conf.vlan_name);
+#else
+            ICLI_PRINTF("%-4d  ", vid);
+#endif
+             port_cnt = 0;
+             p = &buf[0];
+             first_port = TRUE;
+             first_line = TRUE;
+             eol = FALSE;
+            (void) port_iter_init(&pit, NULL, sit.isid, PORT_ITER_SORT_ORDER_UPORT, PORT_ITER_FLAGS_NORMAL);
+            while (port_iter_getnext(&pit)) {
+                (void)vlan_mgmt_port_mode_get(sit.isid, pit.iport, &pconf);
+                if (conf.ports[pit.iport] && (pconf.mode == VLAN_PORT_MODE_ACCESS)) {
+                    port_cnt++;
+                    (void)icli_port_info_txt(sit.usid, pit.uport, str_buf);
+                    if (first_port == FALSE) {
+                        if (eol == TRUE) {
+                            ICLI_PRINTF(",\n");
+                            eol = FALSE;
+                        } else {
+                            p += sprintf(p, ",");
+                        }
+                    }
+                    p += sprintf(p, "%s", str_buf);
+                    first_port = FALSE;
+                    if ((port_cnt % 3) == 0) {
+                        if (first_line == TRUE) {
+                            ICLI_PRINTF("%s", buf);
+                            first_line = FALSE;
+                        } else {
+                            ICLI_PRINTF("%-38s  %s", "", buf);
+                        }
+                        eol = TRUE;
+                        p = &buf[0];
+                    }
+                }
+            } /* while (port_iter_getnext(&pit)) */
+            if (port_cnt % 3) {
+                if (port_cnt > 3) {
+                    ICLI_PRINTF("%-38s  %s\n", "", buf);
+                } else {
+                    ICLI_PRINTF("%s\n", buf);
+                }
+            }
+            ICLI_PRINTF("\n");
+        } /* if (vlan_mgmt_vlan_get(sit.isid, vid, &conf, 0, VLAN_USER_STATIC, VLAN_MEMBERSHIP_OP) == VTSS_OK) */
+    } /* while (switch_iter_getnext(&sit)) */
+}
+FUNCTION_END
+
+//
+// Export Segment
+//   This segment contains the API declarations of the global functions in
+//   Function Segment. This will be pasted exactly to the generated H file.
+//   So, others can include the H file to use the global functions.
+//
+EXPORT_BEGIN
+EXPORT_END
+
+CMD_BEGIN
+COMMAND         = switchport mode {access | trunk | hybrid}
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the switchport mode command to define the type of the port.
+DOC_CMD_DEFAULT = Use the no form of this command to return to the default mode that is access mode.
+DOC_CMD_USAGE   = To configure a switch port as access port select the mode to access else to trunk or hybrid.
+DOC_CMD_EXAMPLE = This example shows to configure a switch port as trunk port. 
+DOC_CMD_EXAMPLE = Switch(config-if)#switchport mode trunk
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show vlan privileged EXEC command.
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_vlan_port_mode_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = mode_port_list
+
+   HELP = Set switching mode characteristics
+   HELP = Set trunking mode of the interface
+   HELP = Set trunking mode to ACCESS unconditionally
+   HELP = Set trunking mode to TRUNK unconditionally
+   HELP = Set trunking mode to HYBRID unconditionally
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_access
+   CMD_VAR   = has_trunk
+   CMD_VAR   = has_hybrid
+
+VARIABLE_BEGIN
+   vlan_port_mode_conf_t pmode, pconf;
+   u32                   range_idx, cnt_idx;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_access || has_trunk || has_hybrid) {
+        for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+            usid = mode_port_list->switch_range[range_idx].usid;
+            for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+                if (has_access) {
+                    pmode.mode = VLAN_PORT_MODE_ACCESS;
+                } else if (has_trunk) {
+                    pmode.mode = VLAN_PORT_MODE_TRUNK;
+                } else {
+                    pmode.mode = VLAN_PORT_MODE_HYBRID;
+                }
+                if ((vlan_mgmt_port_mode_get(topo_usid2isid(usid), uport2iport(uport), &pconf)) == VTSS_RC_OK) {
+                    if (pconf.mode != pmode.mode) {
+                        if ((vlan_mgmt_port_mode_set(topo_usid2isid(usid), uport2iport(uport), &pmode)) != VTSS_RC_OK) {
+                            T_D("vlan_mgmt_port_mode_set failed");
+                        } /* if ((vlan_mgmt_port_mode_set(topo_usid2isid(usid), uport2iport(uport), &pmode)) != VTSS_RC_OK) */
+                    } /* if (pconf.mode != pmode.mode) */
+                } /* if ((vlan_mgmt_port_mode_get(topo_usid2isid(usid), uport2iport(uport), &pconf)) == VTSS_RC_OK) */
+            } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+        } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+    } /* if (has_access || has_trunk) */
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+   vlan_port_mode_conf_t pmode, pconf;
+   u32                   range_idx, cnt_idx;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    if (has_access || has_trunk || has_hybrid) {
+        for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+            usid = mode_port_list->switch_range[range_idx].usid;
+            for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+                pmode.mode = VLAN_PORT_MODE_ACCESS;
+                if ((vlan_mgmt_port_mode_get(topo_usid2isid(usid), uport2iport(uport), &pconf)) == VTSS_RC_OK) {
+                    if (pconf.mode != pmode.mode) {
+                        if ((vlan_mgmt_port_mode_set(topo_usid2isid(usid), uport2iport(uport), &pmode)) != VTSS_RC_OK) {
+                            T_D("vlan_mgmt_port_mode_set failed");
+                        } /* if ((vlan_mgmt_port_mode_set(topo_usid2isid(usid), uport2iport(uport), &pmode)) != VTSS_RC_OK) */
+                    } /* if (pconf.mode != pmode.mode) */
+                } /* if ((vlan_mgmt_port_mode_get(topo_usid2isid(usid), uport2iport(uport), &pconf)) == VTSS_RC_OK) */
+            } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+        } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+    } /* if (has_access || has_trunk) */
+NO_FORM_CODE_END
+
+CMD_END
+
+CMD_BEGIN
+COMMAND         = switchport access vlan <vlan_id>
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the switchport access vlan command to configure a port to a VLAN. Valid VLAN IDs are 1 to 4095.
+DOC_CMD_DEFAULT = The no switchport access command resets the access mode VLAN to the appropriate default VLAN.
+DOC_CMD_USAGE   = This command configures the pvid of a access port.
+DOC_CMD_EXAMPLE = This example shows to configure a PVID of a access port. 
+DOC_CMD_EXAMPLE = Switch(config-if)#switchport access vlan 2
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show vlan privileged EXEC command.
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_vlan_access_vlan_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+//MODE_VAR  = mode_port_type
+MODE_VAR  = mode_port_list
+
+   HELP = Set switching mode characteristics
+   HELP = Set access mode characteristics of the interface
+   HELP = Set VLAN when interface is in access mode
+   HELP = VLAN ID of the VLAN when this port is in access mode
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = in_vid
+
+VARIABLE_BEGIN
+   u32                   range_idx, cnt_idx;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+VARIABLE_END
+
+CODE_BEGIN
+#if 0
+    if (mode_port_type == ICLI_PORT_TYPE_NONE) {
+        return FALSE;
+    }
+#endif
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            if ((vlan_mgmt_port_access_vlan_set(topo_usid2isid(usid), uport2iport(uport), in_vid))  != VTSS_RC_OK) {
+                T_D("vlan_mgmt_port_access_vlan_set failed");
+            } /* if ((vlan_mgmt_port_access_vlan_set(topo_usid2isid(usid), uport2iport(uport), in_vid))  != VTSS_RC_OK) */
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+   u32                   range_idx, cnt_idx;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+#if 0
+    if (mode_port_type == ICLI_PORT_TYPE_NONE) {
+        return FALSE;
+    }
+#endif
+    VLAN_UNUSED_PARAM(in_vid);
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            if ((vlan_mgmt_port_access_vlan_set(topo_usid2isid(usid), uport2iport(uport), VLAN_TAG_DEFAULT))  != VTSS_RC_OK) {
+                T_D("vlan_mgmt_port_access_vlan_set failed");
+            } /* if ((vlan_mgmt_port_access_vlan_set(topo_usid2isid(usid), uport2iport(uport), VLAN_TAG_DEFAULT))  != VTSS_RC_OK) */
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = switchport trunk native vlan <vlan_id>
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the switchport native vlan command to configure a port to a VLAN. Valid VLAN IDs are 1 to 4095.
+DOC_CMD_DEFAULT = The no form of the native vlan command resets the native mode VLAN to the appropriate default VLAN.
+DOC_CMD_USAGE   = This command configures the pvid of a trunk port.
+DOC_CMD_EXAMPLE = This example shows to configure a PVID of a trunk port. 
+DOC_CMD_EXAMPLE = Switch(config-if)#switchport trunk native vlan 7
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show vlan privileged EXEC command.
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_vlan_trunk_pvid_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = mode_port_list
+
+   HELP = Set switching mode characteristics
+   HELP = Set trunking characteristics of the interface
+   HELP = Set native VLAN
+   HELP = Set native VLAN when interface is in trunking or hybrid mode
+   HELP = VLAN ID of the native VLAN when this port is in trunking or hybrid mode
+
+   CMD_VAR   =
+   CMD_VAR   = 
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = in_vid
+
+VARIABLE_BEGIN
+   u32                   range_idx, cnt_idx;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+VARIABLE_END
+
+CODE_BEGIN
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            if ((vlan_mgmt_port_native_vlan_set(topo_usid2isid(usid), uport2iport(uport), in_vid, VLAN_PORT_MODE_TRUNK))  
+                    != VTSS_RC_OK) {
+                T_D("vlan_mgmt_port_native_vlan_set failed");
+            } /* if ((vlan_mgmt_port_native_vlan_set(topo_usid2isid(usid), uport2iport(uport), in_vid))  != VTSS_RC_OK) */
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+   u32                   range_idx, cnt_idx;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    VLAN_UNUSED_PARAM(in_vid);
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            if ((vlan_mgmt_port_native_vlan_set(topo_usid2isid(usid), uport2iport(uport), VLAN_TAG_DEFAULT, VLAN_PORT_MODE_TRUNK))  
+                    != VTSS_RC_OK) {
+                T_D("vlan_mgmt_port_native_vlan_set failed");
+            } /* if ((vlan_mgmt_port_native_vlan_set(topo_usid2isid(usid), uport2iport(uport), in_vid))  != VTSS_RC_OK) */
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+NO_FORM_CODE_END
+
+CMD_END
+
+CMD_BEGIN
+COMMAND         = switchport hybrid native vlan {<vlan_id> | none}
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the switchport native vlan command to configure a port to a VLAN. Valid VLAN IDs are 1 to 4095.
+DOC_CMD_DEFAULT = The no form of the native vlan command resets the native mode VLAN to the appropriate default VLAN.
+DOC_CMD_USAGE   = This command configures the pvid of a trunk port.
+DOC_CMD_EXAMPLE = This example shows to configure a PVID of a trunk port. 
+DOC_CMD_EXAMPLE = Switch(config-if)#switchport trunk native vlan 7
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show vlan privileged EXEC command.
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_vlan_hybrid_pvid_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = mode_port_list
+
+   HELP = Set switching mode characteristics
+   HELP = Set trunking characteristics of the interface
+   HELP = Set hybrid characteristics of the interface
+   HELP = Set native VLAN
+   HELP = Set native VLAN when interface is in trunking or hybrid mode
+   HELP = VLAN ID of the native VLAN when this port is in trunking or hybrid mode
+   HELP = PVID is none
+
+   CMD_VAR   =
+   CMD_VAR   = 
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = in_vid
+   CMD_VAR   = has_none
+
+VARIABLE_BEGIN
+   u32                   range_idx, cnt_idx;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+VARIABLE_END
+
+CODE_BEGIN
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            if (has_none) {
+                if ((vlan_mgmt_port_native_vlan_set(topo_usid2isid(usid), uport2iport(uport), 0, VLAN_PORT_MODE_HYBRID))  
+                    != VTSS_RC_OK) {
+                    T_D("vlan_mgmt_port_native_vlan_set failed");
+                } /* if ((vlan_mgmt_port_native_vlan_set(topo_usid2isid(usid), uport2iport(uport), in_vid))  != VTSS_RC_OK) */
+            } else {
+                if ((vlan_mgmt_port_native_vlan_set(topo_usid2isid(usid), uport2iport(uport), in_vid, VLAN_PORT_MODE_HYBRID))  
+                    != VTSS_RC_OK) {
+                    T_D("vlan_mgmt_port_native_vlan_set failed");
+                } /* if ((vlan_mgmt_port_native_vlan_set(topo_usid2isid(usid), uport2iport(uport), in_vid))  != VTSS_RC_OK) */
+            }
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+   u32                   range_idx, cnt_idx;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    VLAN_UNUSED_PARAM(in_vid);
+    VLAN_UNUSED_PARAM(has_none);
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            if ((vlan_mgmt_port_native_vlan_set(topo_usid2isid(usid), uport2iport(uport), VLAN_TAG_DEFAULT, VLAN_PORT_MODE_HYBRID))  
+                    != VTSS_RC_OK) {
+                T_D("vlan_mgmt_port_native_vlan_set failed");
+            } /* if ((vlan_mgmt_port_native_vlan_set(topo_usid2isid(usid), uport2iport(uport), in_vid))  != VTSS_RC_OK) */
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+NO_FORM_CODE_END
+
+CMD_END
+
+CMD_BEGIN
+COMMAND         = switchport hybrid port-type { unaware | c-port | s-port | s-custom-port }
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_vlan_hybrid_port_type_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = mode_port_list
+
+   HELP = Set switching mode characteristics
+   HELP = Set hybrid characteristics of the interface
+   HELP = Set port type
+   HELP = Port in not aware of VLAN tags.
+   HELP = Customer port
+   HELP = Provider port
+   HELP = Custom Provider port
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_unaware
+   CMD_VAR   = has_c_port
+   CMD_VAR   = has_s_port
+   CMD_VAR   = has_s_custom_port
+
+VARIABLE_BEGIN
+   vlan_port_conf_t      vport_conf;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&vport_conf, 0, sizeof(vport_conf));
+    /* Populate Port Type */
+    if (has_unaware) {
+        vport_conf.port_type = VLAN_PORT_TYPE_UNAWARE;
+    } else if (has_c_port) {
+        vport_conf.port_type = VLAN_PORT_TYPE_C;
+    } else if (has_s_port) {
+#if defined(VTSS_FEATURE_VLAN_PORT_V2)
+        vport_conf.port_type = VLAN_PORT_TYPE_S;
+#endif
+    } else if (has_s_custom_port) {
+#if defined(VTSS_FEATURE_VLAN_PORT_V2)
+        vport_conf.port_type = VLAN_PORT_TYPE_S_CUSTOM;
+#endif
+    }
+    vlan_cmd_vlan_port_conf(session_id, &vport_conf, mode_port_list, 0, 0, 0, 1, 0);
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+   vlan_port_conf_t      vport_conf;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    VLAN_UNUSED_PARAM(has_unaware);
+    VLAN_UNUSED_PARAM(has_c_port);
+    VLAN_UNUSED_PARAM(has_s_port);
+    VLAN_UNUSED_PARAM(has_s_custom_port);
+    memset(&vport_conf, 0, sizeof(vport_conf));
+    /* Default port type is unaware */
+    vport_conf.port_type = VLAN_PORT_TYPE_UNAWARE;
+    vlan_cmd_vlan_port_conf(session_id, &vport_conf, mode_port_list, 0, 0, 0, 1, 0);
+NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = switchport hybrid ingress-filtering
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_vlan_hybrid_ing_filter_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = mode_port_list
+
+IF_FLAG = defined(VTSS_SW_OPTION_VLAN_INGRESS_FILTERING)
+
+   HELP = Set switching mode characteristics
+   HELP = Set hybrid characteristics of the interface
+   HELP = VLAN Ingress filter configuration
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+
+VARIABLE_BEGIN
+   vlan_port_conf_t      vport_conf;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&vport_conf, 0, sizeof(vport_conf));
+    vport_conf.ingress_filter = TRUE;
+    vlan_cmd_vlan_port_conf(session_id, &vport_conf, mode_port_list, 0, 0, 1, 0, 0);
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+   vlan_port_conf_t      vport_conf;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    memset(&vport_conf, 0, sizeof(vport_conf));
+    vport_conf.ingress_filter = FALSE;
+    vlan_cmd_vlan_port_conf(session_id, &vport_conf, mode_port_list, 0, 0, 1, 0, 0);
+NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = switchport hybrid acceptable-frame-type { all | tagged | untagged }
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_vlan_hybrid_acceptable_frame_type_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = mode_port_list
+
+   HELP = Set switching mode characteristics
+   HELP = Set hybrid characteristics of the interface
+   HELP = Set acceptable frame type on a port
+   HELP = Allow all frames
+   HELP = Allow only tagged frames
+   HELP = Allow only untagged frames
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_all
+   CMD_VAR   = has_tagged
+   CMD_VAR   = has_untagged
+
+VARIABLE_BEGIN
+   vlan_port_conf_t      vport_conf;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&vport_conf, 0, sizeof(vport_conf));
+    /* Populate Port Type */
+    if (has_all) {
+        vport_conf.frame_type = VTSS_VLAN_FRAME_ALL;
+    } else if (has_tagged) {
+        vport_conf.frame_type = VTSS_VLAN_FRAME_TAGGED;
+    } else if (has_untagged) {
+    #if defined(VTSS_FEATURE_VLAN_PORT_V2)
+        vport_conf.frame_type = VTSS_VLAN_FRAME_UNTAGGED;
+    #else
+        ICLI_PRINTF("This is not supported on this chip\n");
+        return FALSE;
+    #endif
+    }
+    vlan_cmd_vlan_port_conf(session_id, &vport_conf, mode_port_list, 0, 1, 0, 0, 0);
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+   vlan_port_conf_t      vport_conf;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    VLAN_UNUSED_PARAM(has_all);
+    VLAN_UNUSED_PARAM(has_tagged);
+    VLAN_UNUSED_PARAM(has_untagged);
+    memset(&vport_conf, 0, sizeof(vport_conf));
+    /* Default Frame type is all */
+    vport_conf.frame_type = VTSS_VLAN_FRAME_ALL;
+    vlan_cmd_vlan_port_conf(session_id, &vport_conf, mode_port_list, 0, 1, 0, 0, 0);
+NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = switchport hybrid egress-tag {none | all [except-native]}
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_vlan_egr_tag_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = mode_port_list
+
+   HELP = Set switching mode characteristics
+   HELP = Set hybrid characteristics of the interface
+   HELP = Egress VLAN tagging configuration
+   HELP = No egress tagging
+   HELP = Tag all frames
+   HELP = Tag all frames except frames classified to native VLAN of the hybrid port
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_none
+   CMD_VAR   = has_all
+   CMD_VAR   = has_except_native
+
+VARIABLE_BEGIN
+   vlan_port_conf_t      vport_conf;
+VARIABLE_END
+
+CODE_BEGIN
+    memset(&vport_conf, 0, sizeof(vport_conf));
+    if (has_none) {
+        vport_conf.tx_tag_type = VLAN_TX_TAG_TYPE_UNTAG_ALL;
+    } else if (has_all) {
+        if (has_except_native) {
+            vport_conf.tx_tag_type = VLAN_TX_TAG_TYPE_UNTAG_THIS;
+        } else {
+            vport_conf.tx_tag_type = VLAN_TX_TAG_TYPE_TAG_ALL;
+        }
+    } else {
+        ICLI_PRINTF("Invalid option\n");
+        return FALSE;
+    }
+    vlan_cmd_vlan_port_conf(session_id, &vport_conf, mode_port_list, 0, 0, 0, 0, 1);
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+   vlan_port_conf_t      vport_conf;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    VLAN_UNUSED_PARAM(has_none);
+    VLAN_UNUSED_PARAM(has_all);
+    VLAN_UNUSED_PARAM(has_except_native);
+    memset(&vport_conf, 0, sizeof(vport_conf));
+    vport_conf.tx_tag_type = VLAN_TX_TAG_TYPE_UNTAG_THIS;
+    vlan_cmd_vlan_port_conf(session_id, &vport_conf, mode_port_list, 0, 0, 0, 0, 1);
+NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = switchport trunk vlan tag native
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_vlan_native_vlan_egr_tag_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = mode_port_list
+
+   HELP = Set switching mode characteristics
+   HELP = Set trunk characteristics of the interface
+   HELP = Vlan commands
+   HELP = tag parameters
+   HELP = tag native vlan
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+
+VARIABLE_BEGIN
+    u32                   range_idx, cnt_idx;
+    vtss_isid_t           usid;
+    vtss_port_no_t        uport;
+VARIABLE_END
+
+CODE_BEGIN
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            if ((vlan_mgmt_native_vlan_tagging_set(topo_usid2isid(usid), uport2iport(uport), TRUE)) != VTSS_RC_OK) {
+                ICLI_PRINTF("vlan_mgmt_native_vlan_tagging_set failed\n");
+            } /* if ((vlan_mgmt_native_vlan_tagging_set(topo_usid2isid(usid), uport2iport(uport), TRUE)) != VTSS_RC_OK) */
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+   u32                   range_idx, cnt_idx;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            if ((vlan_mgmt_native_vlan_tagging_set(topo_usid2isid(usid), uport2iport(uport), FALSE)) != VTSS_RC_OK) {
+                ICLI_PRINTF("vlan_mgmt_native_vlan_tagging_set failed\n");
+            } /* if ((vlan_mgmt_native_vlan_tagging_set(topo_usid2isid(usid), uport2iport(uport), TRUE)) != VTSS_RC_OK) */
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = switchport trunk allowed vlan {all | none | [add | remove | except] <vlan_list>}
+# /* ---------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_vlan_trunk_allowed_vlans_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = mode_port_list
+
+   HELP = Set switching mode characteristics
+   HELP = Set trunking characteristics of the interface
+   HELP = Set allowed VLAN characteristics when interface is in trunking mode
+   HELP = Set allowed VLANs when interface is in trunking mode
+   HELP = all VLANs
+   HELP = no VLANs
+   HELP = add VLANs to the current list
+   HELP = remove VLANs from the current list
+   HELP = all VLANs except the following
+   HELP = VLAN IDs of the allowed VLANs when this port is in trunking mode
+
+   CMD_VAR   =
+   CMD_VAR   = 
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_all
+   CMD_VAR   = has_none
+   CMD_VAR   = has_add
+   CMD_VAR   = has_remove
+   CMD_VAR   = has_except
+   CMD_VAR   = v_vlan_list
+
+VARIABLE_BEGIN
+   u32                   range_idx, cnt_idx, idx, temp;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+   vtss_vid_t            vidx;
+   u8                    vid_bit_mask[VLAN_BIT_MASK_LEN], vid_except_mask[VLAN_BIT_MASK_LEN];
+VARIABLE_END
+
+CODE_BEGIN
+    memset(vid_except_mask, 0, sizeof(vid_except_mask));
+    memset(vid_bit_mask, 0, sizeof(vid_bit_mask));
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            if (has_all) {
+                memset(vid_bit_mask, 0xFF, VLAN_BIT_MASK_LEN); /* This sets all bits */
+            } else if (has_none) {
+                memset(vid_bit_mask, 0x0, VLAN_BIT_MASK_LEN); /* This clears all bits */
+            } else {
+                if (has_add || has_remove || has_except) {
+                    if ((vlan_mgmt_port_allowed_vlans_get(topo_usid2isid(usid), uport2iport(uport), vid_bit_mask, 
+                                    VLAN_PORT_MODE_TRUNK)) != VTSS_RC_OK) {
+                        T_D("vlan_mgmt_port_allowed_vlans_get failed");
+                        return ICLI_RC_ERROR;
+                    }
+                } else { /* Overwrite */
+                    memset(vid_bit_mask, 0x0, VLAN_BIT_MASK_LEN); /* This clears all bits */
+                }
+                for (idx = 0; idx < v_vlan_list->cnt; idx++) {
+                    for (vidx = v_vlan_list->range[idx].min; vidx <= (v_vlan_list->range[idx].max); vidx++) {
+                        if (has_add) {
+                            VLAN_SET_VLAN_BIT_IN_VLAN_MASK(vid_bit_mask, vidx);
+                        } else if (has_remove) {
+                            VLAN_CLR_VLAN_BIT_IN_VLAN_MASK(vid_bit_mask, (u32)vidx);
+                        } else if (has_except) {
+                            VLAN_SET_VLAN_BIT_IN_VLAN_MASK(vid_except_mask, vidx);
+                        } else { /* Overwrite */
+                            VLAN_SET_VLAN_BIT_IN_VLAN_MASK(vid_bit_mask, vidx);
+                        } /* else of if (has_add) */
+                    } /* for (vidx = v_vlan_list->range[idx].min; vidx <= (v_vlan_list->range[idx].max); vidx++) */
+                } /* for (idx = 0; idx < v_vlan_list->cnt; idx++) */
+            } /* else of if (has_all) */
+            if (has_except) {
+                for (temp = 0; temp < VLAN_BIT_MASK_LEN; temp++) {
+                    /* Inverting vid_except_mask gives the vid mask */
+                    vid_bit_mask[temp] = ~vid_except_mask[temp];
+                } /* for (temp = 0; temp < VLAN_BIT_MASK_LEN; temp++) */
+            } /* if (has_except) */
+            if ((vlan_mgmt_port_allowed_vlans_set(topo_usid2isid(usid), uport2iport(uport), vid_bit_mask, 
+                            VLAN_PORT_MODE_TRUNK)) != VTSS_RC_OK) {
+                T_D("vlan_mgmt_port_allowed_vlans_set failed");
+                return ICLI_RC_ERROR;
+            } /* if ((vlan_mgmt_port_allowed_vlans_set(topo_usid2isid(usid), uport2iport(uport), vid_bit_mask)) != VTSS_RC_OK) */
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+   u32                   range_idx, cnt_idx;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+   u8                    vid_bit_mask[VLAN_BIT_MASK_LEN];
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    VLAN_UNUSED_PARAM(has_all);
+    VLAN_UNUSED_PARAM(has_none);
+    VLAN_UNUSED_PARAM(has_add);
+    VLAN_UNUSED_PARAM(has_remove);
+    VLAN_UNUSED_PARAM(has_except);
+    VLAN_UNUSED_PARAM(v_vlan_list);
+    memset(vid_bit_mask, 0, sizeof(vid_bit_mask));
+    /* no switchport trunk allowed vlan - resets the list to the default list, which allows all VLANs */
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            memset(vid_bit_mask, 0xFF, VLAN_BIT_MASK_LEN); /* This sets all bits */
+            if ((vlan_mgmt_port_allowed_vlans_set(topo_usid2isid(usid), uport2iport(uport), vid_bit_mask, VLAN_PORT_MODE_TRUNK)) 
+                    != VTSS_RC_OK) {
+                T_D("vlan_mgmt_port_allowed_vlans_set failed");
+                return ICLI_RC_ERROR;
+            } /* if ((vlan_mgmt_port_allowed_vlans_set(topo_usid2isid(usid), uport2iport(uport), vid_bit_mask)) != VTSS_RC_OK) */
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = switchport hybrid allowed vlan {all | none | [add | remove | except] <vlan_list>}
+# /* ---------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_vlan_hybrid_allowed_vlans_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = mode_port_list
+
+   HELP = Set switching mode characteristics
+   HELP = Set trunking characteristics of the interface
+   HELP = Set hybrid characteristics of the interface
+   HELP = Set allowed VLAN characteristics when interface is in trunking mode
+   HELP = Set allowed VLANs when interface is in trunking mode
+   HELP = all VLANs
+   HELP = no VLANs
+   HELP = add VLANs to the current list
+   HELP = remove VLANs from the current list
+   HELP = all VLANs except the following
+   HELP = VLAN IDs of the allowed VLANs when this port is in trunking mode
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_all
+   CMD_VAR   = has_none
+   CMD_VAR   = has_add
+   CMD_VAR   = has_remove
+   CMD_VAR   = has_except
+   CMD_VAR   = v_vlan_list
+
+VARIABLE_BEGIN
+   u32                   range_idx, cnt_idx, idx, temp;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+   vtss_vid_t            vidx;
+   u8                    vid_bit_mask[VLAN_BIT_MASK_LEN], vid_except_mask[VLAN_BIT_MASK_LEN];
+VARIABLE_END
+
+CODE_BEGIN
+    memset(vid_except_mask, 0, sizeof(vid_except_mask));
+    memset(vid_bit_mask, 0, sizeof(vid_bit_mask));
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            if (has_all) {
+                memset(vid_bit_mask, 0xFF, VLAN_BIT_MASK_LEN); /* This sets all bits */
+            } else if (has_none) {
+                memset(vid_bit_mask, 0x0, VLAN_BIT_MASK_LEN); /* This clears all bits */
+            } else {
+                if (has_add || has_remove || has_except) {
+                    if ((vlan_mgmt_port_allowed_vlans_get(topo_usid2isid(usid), uport2iport(uport), vid_bit_mask, 
+                                    VLAN_PORT_MODE_HYBRID)) != VTSS_RC_OK) {
+                        T_D("vlan_mgmt_port_allowed_vlans_get failed");
+                        return ICLI_RC_ERROR;
+                    }
+                } else { /* Overwrite */
+                    memset(vid_bit_mask, 0x0, VLAN_BIT_MASK_LEN); /* This clears all bits */
+                }
+                for (idx = 0; idx < v_vlan_list->cnt; idx++) {
+                    for (vidx = v_vlan_list->range[idx].min; vidx <= (v_vlan_list->range[idx].max); vidx++) {
+                        if (has_add) {
+                            VLAN_SET_VLAN_BIT_IN_VLAN_MASK(vid_bit_mask, vidx);
+                        } else if (has_remove) {
+                            VLAN_CLR_VLAN_BIT_IN_VLAN_MASK(vid_bit_mask, (u32)vidx);
+                        } else if (has_except) {
+                            VLAN_SET_VLAN_BIT_IN_VLAN_MASK(vid_except_mask, vidx);
+                        } else { /* Overwrite */
+                            VLAN_SET_VLAN_BIT_IN_VLAN_MASK(vid_bit_mask, vidx);
+                        } /* else of if (has_add) */
+                    } /* for (vidx = v_vlan_list->range[idx].min; vidx <= (v_vlan_list->range[idx].max); vidx++) */
+                } /* for (idx = 0; idx < v_vlan_list->cnt; idx++) */
+            } /* else of if (has_all) */
+            if (has_except) {
+                for (temp = 0; temp < VLAN_BIT_MASK_LEN; temp++) {
+                    /* Inverting vid_except_mask gives the vid mask */
+                    vid_bit_mask[temp] = ~vid_except_mask[temp];
+                } /* for (temp = 0; temp < VLAN_BIT_MASK_LEN; temp++) */
+            } /* if (has_except) */
+            if ((vlan_mgmt_port_allowed_vlans_set(topo_usid2isid(usid), uport2iport(uport), vid_bit_mask, 
+                            VLAN_PORT_MODE_HYBRID)) != VTSS_RC_OK) {
+                T_D("vlan_mgmt_port_allowed_vlans_set failed");
+                return ICLI_RC_ERROR;
+            } /* if ((vlan_mgmt_port_allowed_vlans_set(topo_usid2isid(usid), uport2iport(uport), vid_bit_mask)) != VTSS_RC_OK) */
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+   u32                   range_idx, cnt_idx;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+   u8                    vid_bit_mask[VLAN_BIT_MASK_LEN];
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    VLAN_UNUSED_PARAM(has_all);
+    VLAN_UNUSED_PARAM(has_none);
+    VLAN_UNUSED_PARAM(has_add);
+    VLAN_UNUSED_PARAM(has_remove);
+    VLAN_UNUSED_PARAM(has_except);
+    VLAN_UNUSED_PARAM(v_vlan_list);
+    memset(vid_bit_mask, 0, sizeof(vid_bit_mask));
+    /* no switchport trunk allowed vlan - resets the list to the default list, which allows all VLANs */
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            memset(vid_bit_mask, 0x0, VLAN_BIT_MASK_LEN); /* This clears all bits */
+            if ((vlan_mgmt_port_allowed_vlans_set(topo_usid2isid(usid), uport2iport(uport), vid_bit_mask, VLAN_PORT_MODE_TRUNK)) 
+                    != VTSS_RC_OK) {
+                T_D("vlan_mgmt_port_allowed_vlans_set failed");
+                return ICLI_RC_ERROR;
+            } /* if ((vlan_mgmt_port_allowed_vlans_set(topo_usid2isid(usid), uport2iport(uport), vid_bit_mask)) != VTSS_RC_OK) */
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = vlan ethertype s-custom-port <0x0600-0xffff>
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+DOC_CMD_EXAMPLE = 
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_vlan_s_custom_port_etype_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+   HELP = Vlan commands
+   HELP = Ether type for Custom S-ports
+   HELP = Custom S-ports configuration
+   HELP = Ether type (Range: 0x0600-0xffff> 
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = etype
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+#if defined(VTSS_FEATURE_VLAN_PORT_V2)
+    if (vlan_mgmt_vlan_tpid_set(etype) != VTSS_RC_OK) {
+        ICLI_PRINTF("Unable to set EtherType\n");
+    }
+#else
+    (void)etype;
+#endif
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    /* Default EtherType */
+    etype = VLAN_DEFAULT_TPID;
+#if defined(VTSS_FEATURE_VLAN_PORT_V2)
+    if (vlan_mgmt_vlan_tpid_set(etype) != VTSS_RC_OK) {
+        ICLI_PRINTF("Unable to set EtherType\n");
+    }
+#else
+    (void)etype;
+#endif
+NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = show interface <port_type_list> [switchport [access | trunk | hybrid] ]
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the how interfaces command to display the administrative and operational status of all interfaces \
+                  or a specified interface.
+#DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = Use this command to display the switch port characteristics of all interfaces on that switch in the stack.
+DOC_CMD_EXAMPLE = This example shows viewing of output from the show interface command for an interface Gi1/0/1
+DOC_CMD_EXAMPLE = Switch(config-if)#show interface gigabitEthernet 1/1 switchport
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_vlan_interfaces_show
+PRIVILEGE = ICLI_PRIVILEGE_0
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+   HELP = Show running system information
+   HELP = Interface status
+   HELP = ports list
+   HELP = Show interface switchport information
+   HELP = Show access ports status
+   HELP = Show trunk ports status
+   HELP = Show hybrid ports status
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = in_port_list
+   CMD_VAR   = has_switchport
+   CMD_VAR   = has_access
+   CMD_VAR   = has_trunk
+   CMD_VAR   = has_hybrid
+
+VARIABLE_BEGIN
+    u32                         range_idx, cnt_idx;
+    vtss_usid_t                 usid;
+    vtss_port_no_t              uport;
+    vtss_vid_t                  vid;
+    i8                          buf[VLAN_BUF_SIZE], *vlan_buf;
+    vlan_port_mode_conf_t       pconf;
+    vlan_port_mode_t            mode = VLAN_PORT_MODE_ACCESS;
+    BOOL                        enable;
+    u8                          vlan_mask[VLAN_BIT_MASK_LEN];
+    vlan_port_conf_t            port_conf;
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_switchport) {
+        for (range_idx = 0; range_idx < in_port_list->cnt; range_idx++) {
+            usid = in_port_list->switch_range[range_idx].usid;
+            for (cnt_idx = 0; cnt_idx < in_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                uport = in_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+                if (has_access) {
+                    mode = VLAN_PORT_MODE_ACCESS;
+                } else if (has_trunk) {
+                    mode = VLAN_PORT_MODE_TRUNK;
+                } else if (has_hybrid) {
+                    mode = VLAN_PORT_MODE_HYBRID;
+                }
+                if ((vlan_mgmt_port_mode_get(topo_usid2isid(usid), uport2iport(uport), &pconf)) != VTSS_RC_OK) {
+                    ICLI_PRINTF("Failure getting port information\n");
+                    return FALSE;
+                }
+                if (has_access || has_trunk || has_hybrid) {
+                    if (mode != pconf.mode) {
+                        continue;
+                    }
+                }
+                ICLI_PRINTF("Name: %s\n", icli_port_info_txt(usid, uport, buf));
+                ICLI_PRINTF("Administrative mode: %s\n", vlan_port_mode_txt(pconf.mode));
+                if ((vlan_mgmt_port_access_vlan_get(topo_usid2isid(usid), uport2iport(uport), &vid)) == VTSS_RC_OK) {
+                    ICLI_PRINTF("Access Mode VLAN: %u\n", vid);
+                } /* if ((vlan_mgmt_port_access_vlan_get(topo_usid2isid(usid), uport2iport(uport), &vid)) == VTSS_RC_OK) */
+                if ((vlan_mgmt_port_native_vlan_get(topo_usid2isid(usid), uport2iport(uport), &vid, VLAN_PORT_MODE_TRUNK)) 
+                    == VTSS_RC_OK) {
+                    ICLI_PRINTF("Trunking Native Mode VLAN: %u\n", vid);
+                } /* if ((vlan_mgmt_port_native_vlan_get(topo_usid2isid(usid), uport2iport(uport), &vid)) == VTSS_RC_OK) */
+                if ((vlan_mgmt_native_vlan_tagging_get(topo_usid2isid(usid), uport2iport(uport), &enable)) == VTSS_RC_OK) {
+                    ICLI_PRINTF("Administrative Native VLAN tagging: %s\n", (enable)? "enabled" : "disabled");
+                } /* if ((vlan_mgmt_native_vlan_tagging_get(&enable)) == VTSS_RC_OK) */
+                if ((vlan_buf = (i8 *)malloc(VLAN_LIST_BUF_SIZE)) == NULL) {
+                    return FALSE;
+                }
+                if ((vlan_mgmt_port_allowed_vlans_get(topo_usid2isid(usid), uport2iport(uport), vlan_mask, 
+                    VLAN_PORT_MODE_TRUNK)) == VTSS_RC_OK) {
+                    ICLI_PRINTF("Trunking VLANs Enabled: %s\n", vlan_bit_mask_to_txt(vlan_mask, vlan_buf));
+                } /* if ((vlan_mgmt_port_allowed_vlans_get(topo_usid2isid(usid), uport2iport(uport), vlan_mask)) == VTSS_RC_OK) */
+                if ((vlan_mgmt_hybrid_port_conf_get(topo_usid2isid(usid), uport2iport(uport), &port_conf)) == VTSS_RC_OK) {
+                    ICLI_PRINTF("Hybrid port configuration\n");
+                    ICLI_PRINTF("-------------------------\n");
+                    ICLI_PRINTF("Port Type: %s\n", vlan_port_type_txt(port_conf.port_type));
+                    ICLI_PRINTF("Acceptable Frame Type: %s\n", vlan_frame_type_txt(port_conf.frame_type));
+                    ICLI_PRINTF("Ingress filter: %s\n", ((port_conf.ingress_filter) ? "Enabled" : "Disabled"));
+                    ICLI_PRINTF("Egress tagging: %s\n", vlan_static_tag_type_txt(port_conf.tx_tag_type));
+                    if ((vlan_mgmt_port_native_vlan_get(topo_usid2isid(usid), uport2iport(uport), &vid, VLAN_PORT_MODE_HYBRID)) 
+                         == VTSS_RC_OK) {
+                        ICLI_PRINTF("Hybrid Native Mode VLAN: %u\n", vid);
+                    } /* if ((vlan_mgmt_port_native_vlan_get(topo_usid2isid(usid), uport2iport(uport), &vid)) == VTSS_RC_OK) */
+                    if ((vlan_mgmt_port_allowed_vlans_get(topo_usid2isid(usid), uport2iport(uport), vlan_mask, 
+                         VLAN_PORT_MODE_HYBRID)) == VTSS_RC_OK) {
+                        ICLI_PRINTF("Hybrid VLANs Enabled: %s\n", vlan_bit_mask_to_txt(vlan_mask, vlan_buf));
+                    } /* if ((vlan_mgmt_port_allowed_vlans_get(topo_usid2isid(usid), uport2iport(uport), vlan_mask)) == VTSS_RC_OK) */
+                }
+                ICLI_PRINTF("\n");
+                free(vlan_buf);
+            } /* for (cnt_idx = 0; cnt_idx < in_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+        } /* for (range_idx = 0; range_idx < in_port_list->cnt; range_idx++) */
+    } /* if (has_switchport) */
+CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = show vlan [id <vlan_list> | name <word32> | brief]
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the show vlan command to view the VLAN configuration.
+#DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = To view the VLAN members by VLAN ID used id option. To view the VLAN members \
+                  by name use the name option.
+DOC_CMD_EXAMPLE = This example shows viewing of VLAN membership configuration by VLAN ID.
+DOC_CMD_EXAMPLE = Switch(config-if)#show vlan id 2
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = vlan_show
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+   HELP = Show running system information
+   HELP = VLAN status
+   HELP = VLAN status by VLAN id
+   HELP = VLAN IDs 1-4095
+   HELP = VLAN status by VLAN name
+   HELP = A VLAN name
+   HELP = VLAN summary information
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_id
+   CMD_VAR   = v_vlan_list
+   CMD_VAR   = has_name
+   CMD_VAR   = v_name
+   CMD_VAR   = has_brief
+
+VARIABLE_BEGIN
+    u32                         idx;
+    BOOL                        first;
+    vtss_vid_t                  vidx;
+    vlan_mgmt_vlan_name_conf_t  conf;
+VARIABLE_END
+
+CODE_BEGIN
+    VLAN_UNUSED_PARAM(has_brief); 
+    if (!has_id && !has_name) {
+        first = TRUE;
+        for (vidx = VLAN_TAG_MIN_VALID ; vidx <= VLAN_TAG_MAX_VALID; vidx++) {
+            vlan_conf_show(session_id, vidx, first);
+            if (first) {
+                first = FALSE;
+            }
+        }
+    } else {
+        if (has_id) {
+            if (!v_vlan_list) {
+                ICLI_PRINTF("%% Invalid operation.\n\n");
+                return FALSE;
+            }
+            first = TRUE;
+            for (idx = 0; idx < v_vlan_list->cnt; idx++) {
+                for (vidx = v_vlan_list->range[idx].min; vidx <= (v_vlan_list->range[idx].max); vidx++) {
+                    vlan_conf_show(session_id, vidx, first);
+                    if (first) {
+                        first = FALSE;
+                    }
+                }
+            }
+        }
+        if (has_name) {
+            if (v_name) {
+                strcpy(conf.vlan_name, v_name);
+            }
+            conf.name_valid = TRUE;
+            if (vlan_mgmt_vlan_name_get(0, &conf) == VTSS_RC_OK) {
+                vlan_conf_show(session_id, conf.vid, TRUE);
+            } else {
+                ICLI_PRINTF("Entry with VLAN name %s not found\n", v_name);
+            }
+        } /* if (has_name) */
+    }
+CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = name <word32>
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the name <word32> command to configure VLAN name.
+DOC_CMD_DEFAULT = The no form of this command will delete the VLAN name to VLAN mapping.
+DOC_CMD_USAGE   = You can enter up to 32 alphanumeric characters to name the VLAN. At least one alphabet must be present \
+                  in a VLAN name
+DOC_CMD_EXAMPLE = This example shows to configure VLAN name
+DOC_CMD_EXAMPLE = Switch(config-if)#name vlan100
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show vlan privileged EXEC command.
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_vlan_name_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+MODE_VAR = vlist
+
+CMD_MODE  = ICLI_CMD_MODE_CONFIG_VLAN
+
+   HELP = Ascii name of the VLAN
+   HELP = The ascii name for the VLAN
+
+   CMD_VAR   =
+   CMD_VAR   = vname
+
+VARIABLE_BEGIN
+    vlan_mgmt_vlan_name_conf_t  conf;
+    u32                         idx;
+    vtss_vid_t                  vidx;
+    vtss_rc                     rc;
+VARIABLE_END
+
+CODE_BEGIN
+    if (vlist->cnt > 0) {
+        if ((vlist->cnt > 1) || (((vlist->range[0].max) - (vlist->range[0].min)) > 1)) {
+            ICLI_PRINTF("Can't modify name for multiple VLANs\n");
+            return FALSE;
+        }
+    }
+    for (idx = 0; idx < vlist->cnt; idx++) {
+        for (vidx = vlist->range[idx].min; vidx <= vlist->range[idx].max; vidx++) {
+            memset(&conf, 0, sizeof(conf));
+            conf.vid = vidx;
+            if (vname) {
+                strcpy(conf.vlan_name, vname);
+            }
+            rc = vlan_mgmt_vlan_name_add(&conf, 0);
+            if (rc == VLAN_ERROR_VLAN_NAME_PREVIOUSLY_CONFIGURED) {
+                ICLI_PRINTF("Error: VLAN Name is already used for different VID\n");
+            } else if(rc == VLAN_ERROR_VLAN_NAME_TABLE_FULL) {
+                ICLI_PRINTF("Error: VLAN Name table Full. Only %d entries can be added\n", VLAN_NAME_MAX_CNT);
+            }
+        } /* for (vidx = vlist->range[idx].min; vidx <= vlist->range[idx].max; vidx++) */
+    } /* for (idx = 0; idx < vlist->cnt; idx++) */
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+    u32                         idx;
+    vtss_vid_t                  vidx;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    VLAN_UNUSED_PARAM(vname);
+    for (idx = 0; idx < vlist->cnt; idx++) {
+        for (vidx = vlist->range[idx].min; vidx <= vlist->range[idx].max; vidx++) {
+            if ((vlan_mgmt_vlan_name_del_by_vid(vidx)) != VTSS_RC_OK) {
+                ICLI_PRINTF("VLAN Name deletion failed.\n");
+            } /* if ((vlan_mgmt_vlan_name_del_by_vid(vidx)) != VTSS_RC_OK) */
+        } /* for (vidx = vlist->range[idx].min; vidx <= vlist->range[idx].max; vidx++) */
+    } /* for (idx = 0; idx < vlist->cnt; idx++) */
+NO_FORM_CODE_END
+CMD_END

@@ -1,0 +1,694 @@
+//
+// Vitesse Switch Software.
+//
+// Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+// Rights Reserved.
+//
+// Unpublished rights reserved under the copyright laws of the United States of
+// America, other countries and international treaties. Permission to use, copy,
+// store and modify, the software and its source code is granted. Permission to
+// integrate into other products, disclose, transmit and distribute the software
+// in an absolute machine readable format (e.g. HEX file) is also granted.  The
+// source code of the software may not be disclosed, transmitted or distributed
+// without the written permission of Vitesse. The software and its source code
+// may only be used in products utilizing the Vitesse switch products.
+//
+// This copyright notice must appear in any copy, modification, disclosure,
+// transmission or distribution of the software. Vitesse retains all ownership,
+// copyright, trade secret and proprietary rights in the software.
+//
+// THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+// INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_VCL)
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments.
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file.
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "icli_porting_util.h"
+#include "vcl_api.h"
+#include "mgmt_api.h"
+#include "misc_api.h"   //uport2iport(), iport2uport()
+#include "port_api.h"   //switch_iter_init(), port_iter_init()
+#if defined(VTSS_SWITCH_STACKABLE) && VTSS_SWITCH_STACKABLE
+#include "topo_api.h"   //topo_usid2isid(), topo_isid2usid()
+#else
+#include "standalone_api.h"
+#endif /* VTSS_SWITCH_STACKABLE */
+INCLUDE_END
+
+FUNCTION_BEGIN
+#define     VCL_BUF_SIZE        80
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+CMD_BEGIN
+COMMAND         = vlan protocol  { [eth2 {<0x600-0xffff>|arp|ip|ipx|at}] [snap {<0x0-0xffffff>|rfc_1042|snap_8021h} <0x0-0xffff>] [llc <0x0-0xff> <0x0-0xff>] }*1 group <word16>
+
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the vlan protocol command to add protocol to group mapping.
+DOC_CMD_DEFAULT = Use the no form of this command to remove the protocol to group mapping.
+DOC_CMD_USAGE   = This command can be used to configure any of Ethernet, SNAP or LLC protocols to group mapping.
+DOC_CMD_EXAMPLE = This example shows to configure a mapping of IP protocol to group.
+DOC_CMD_EXAMPLE = Switch(config-if)#vlan protocol Eth2 ip group g1
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show vlan protocol privileged EXEC command.
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_proto_vlan_group_conf
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+#MODE_VAR = vlist
+
+   HELP = Vlan commands
+   HELP = Protocol-based VLAN commands
+   HELP = Ethernet-based VLAN commands
+   HELP = Ether Type(Range: 0x600 - 0xFFFF)
+   HELP = Ether Type is ARP
+   HELP = Ether Type is IP
+   HELP = Ether Type is IPX
+   HELP = Ether Type is AppleTalk
+   HELP = SNAP-based VLAN group
+   HELP = SNAP OUI (Range 0x000000 - 0XFFFFFF)
+   HELP = SNAP OUI is rfc_1042
+   HELP = SNAP OUI is 8021h
+   HELP = PID (Range: 0x0 - 0xFFFF)
+   HELP = LLC-based VLAN group
+   HELP = DSAP (Range: 0x00 - 0xFF)
+   HELP = SSAP (Range: 0x00 - 0xFF)
+   #HELP = 
+   HELP = Protocol-based VLAN group commands
+   HELP = Group Name (Range: 1 - 16 characters)
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_eth2
+   CMD_VAR   = etype
+   CMD_VAR   = has_arp
+   CMD_VAR   = has_ip
+   CMD_VAR   = has_ipx
+   CMD_VAR   = has_at
+   CMD_VAR   = has_snap
+   CMD_VAR   = oui
+   CMD_VAR   = has_rfc_1042
+   CMD_VAR   = has_snap_8021h
+   CMD_VAR   = pid
+   CMD_VAR   = has_llc
+   CMD_VAR   = dsap
+   CMD_VAR   = ssap
+   #CMD_VAR   = 
+   CMD_VAR   = 
+   CMD_VAR   = grp_id
+
+VARIABLE_BEGIN
+    vcl_proto_vlan_proto_entry_t   proto_grp;
+    u8                             proto_cnt = 0;
+VARIABLE_END
+
+CODE_BEGIN
+    if (grp_id == NULL) {
+        ICLI_PRINTF("grp_id is NULL\n");
+        return FALSE;
+    }
+    if (has_eth2) {
+        proto_cnt++;
+    }
+    if (has_snap) {
+        proto_cnt++;
+    }
+    if (has_llc) {
+        proto_cnt++;
+    }
+    if (proto_cnt > 1) {
+        ICLI_PRINTF("Select only one protocol(eth2 or snap or llc) to create a group mapping\n");
+        return FALSE;
+    }
+    if (has_eth2) {
+        proto_grp.proto_encap_type = VCL_PROTO_ENCAP_ETH2;
+        if (has_arp) {
+            etype = ETHERTYPE_ARP;
+        } else if (has_ip) {
+            etype = ETHERTYPE_IP;
+        } else if (has_ipx) {
+            etype = ETHERTYPE_IPX;
+        } else if (has_at) {
+            etype = ETHERTYPE_AT;
+        }
+        proto_grp.proto.eth2_proto.eth_type = etype;
+    } else if (has_snap) {
+        proto_grp.proto_encap_type = VCL_PROTO_ENCAP_LLC_SNAP;
+        proto_grp.proto.llc_snap_proto.pid = pid;
+        if (has_rfc_1042) {
+            proto_grp.proto.llc_snap_proto.oui[0] = 0x0;
+            proto_grp.proto.llc_snap_proto.oui[1] = 0x0;
+            proto_grp.proto.llc_snap_proto.oui[2] = 0x0;
+        } else if (has_snap_8021h) {
+            proto_grp.proto.llc_snap_proto.oui[0] = 0x0;
+            proto_grp.proto.llc_snap_proto.oui[1] = 0x0;
+            proto_grp.proto.llc_snap_proto.oui[2] = 0xF8;
+        } else { /* valid OUI */
+            proto_grp.proto.llc_snap_proto.oui[0] = (oui >> 16) & 0xFF;
+            proto_grp.proto.llc_snap_proto.oui[1] = (oui >> 8) & 0xFF;
+            proto_grp.proto.llc_snap_proto.oui[2] = oui & 0xFF;
+        }
+        if ((proto_grp.proto.llc_snap_proto.oui[0] == 0) && 
+            (proto_grp.proto.llc_snap_proto.oui[1] == 0) &&
+            (proto_grp.proto.llc_snap_proto.oui[2] == 0)) {
+            if (pid < 0x600) {
+                ICLI_PRINTF("Invalid PID. IF OUI is zero, PID is in the range of Etype(0x600-0xFFFF)\n");
+                return FALSE;
+            }
+        }
+    } else if (has_llc) {
+        proto_grp.proto_encap_type = VCL_PROTO_ENCAP_LLC_OTHER;
+        proto_grp.proto.llc_other_proto.dsap = dsap;
+        proto_grp.proto.llc_other_proto.ssap = ssap;
+    } else {
+        ICLI_PRINTF("Select one of the protocols to create a group\n");
+        return FALSE;
+    }
+    //strcpy(proto_grp.group_id, (u8 *)grp_id);
+    memcpy(proto_grp.group_id, grp_id, MAX_GROUP_NAME_LEN);
+    if ((vcl_proto_vlan_mgmt_proto_add(&proto_grp, VCL_PROTO_VLAN_USER_STATIC)) != VTSS_RC_OK) {
+        ICLI_PRINTF("Adding Protocol to Group mapping Failed\n");
+    }
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+    vcl_proto_vlan_proto_entry_t   proto_grp;
+    u8                             proto_cnt = 0;
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    (void)grp_id;
+    if (has_eth2) {
+        proto_cnt++;
+    }
+    if (has_snap) {
+        proto_cnt++;
+    }
+    if (has_llc) {
+        proto_cnt++;
+    }
+    if (proto_cnt > 1) {
+        ICLI_PRINTF("Select only one protocol(eth2 or snap or llc) to delete a group mapping\n");
+        return FALSE;
+    }
+    if (has_eth2) {
+        proto_grp.proto_encap_type = VCL_PROTO_ENCAP_ETH2;
+        if (has_arp) {
+            etype = ETHERTYPE_ARP;
+        } else if (has_ip) {
+            etype = ETHERTYPE_IP;
+        } else if (has_ipx) {
+            etype = ETHERTYPE_IPX;
+        } else if (has_at) {
+            etype = ETHERTYPE_AT;
+        }
+        proto_grp.proto.eth2_proto.eth_type = etype;
+    } else if (has_snap) {
+        proto_grp.proto_encap_type = VCL_PROTO_ENCAP_LLC_SNAP;
+        proto_grp.proto.llc_snap_proto.pid = pid;
+        if (has_rfc_1042) {
+            proto_grp.proto.llc_snap_proto.oui[0] = 0x0;
+            proto_grp.proto.llc_snap_proto.oui[1] = 0x0;
+            proto_grp.proto.llc_snap_proto.oui[2] = 0x0;
+        } else if (has_snap_8021h) {
+            proto_grp.proto.llc_snap_proto.oui[0] = 0x0;
+            proto_grp.proto.llc_snap_proto.oui[1] = 0x0;
+            proto_grp.proto.llc_snap_proto.oui[2] = 0xF8;
+        } else { /* valid OUI */
+            proto_grp.proto.llc_snap_proto.oui[0] = (oui >> 16) & 0xFF;
+            proto_grp.proto.llc_snap_proto.oui[1] = (oui >> 8) & 0xFF;
+            proto_grp.proto.llc_snap_proto.oui[2] = oui & 0xFF;
+        }
+        if ((proto_grp.proto.llc_snap_proto.oui[0] == 0) && 
+            (proto_grp.proto.llc_snap_proto.oui[1] == 0) &&
+            (proto_grp.proto.llc_snap_proto.oui[2] == 0)) {
+            if (pid < 0x600) {
+                ICLI_PRINTF("Invalid PID. IF OUI is zero, PID is in the range of Etype(0x600-0xFFFF)\n");
+                return FALSE;
+            }
+        }
+    } else if (has_llc) {
+        proto_grp.proto_encap_type = VCL_PROTO_ENCAP_LLC_OTHER;
+        proto_grp.proto.llc_other_proto.dsap = dsap;
+        proto_grp.proto.llc_other_proto.ssap = ssap;
+    } else {
+        ICLI_PRINTF("Select one of the protocols to remove from a group\n");
+        return FALSE;
+    }
+    if ((vcl_proto_vlan_mgmt_proto_delete(proto_grp.proto_encap_type, &proto_grp.proto, VCL_PROTO_VLAN_USER_STATIC)) != VTSS_RC_OK) {
+        ICLI_PRINTF("Deleting Protocol to Group mapping Failed\n");
+    }
+NO_FORM_CODE_END
+
+CMD_END
+
+CMD_BEGIN
+COMMAND         = switchport vlan mac <mac_ucast> vlan <vlan_id>
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the switchport vlan mac command to associate a MAC address to VLAN ID.
+DOC_CMD_DEFAULT = Use the no form of this command to remove the MAC address to VLAN ID association.
+DOC_CMD_USAGE   = This command will add the ports to the MAC-based VLAN entry.
+DOC_CMD_EXAMPLE = This example shows to configure a association of MAC addr 00-00-00-00-00-11 to VLAN 3
+DOC_CMD_EXAMPLE = Switch(config-if)#switchport vlan mac 00-00-00-00-00-11 vlan 3
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show vlan mac privileged EXEC command.
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_mac_vlan_conf
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = mode_port_list
+
+   HELP = Set switching mode characteristics
+   HELP = VLAN commands
+   HELP = MAC-based VLAN commands
+   HELP = 48 bit unicast MAC address: xx:xx:xx:xx:xx:xx
+   HELP = VLAN ID (Range: 1-4095)
+   HELP = VLAN ID required for the group to VLAN mapping
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = mac_addr
+   CMD_VAR   = 
+   CMD_VAR   = vid
+
+VARIABLE_BEGIN
+    u32                                 range_idx, cnt_idx;
+    vtss_isid_t                         usid;
+    vtss_port_no_t                      uport;
+    vcl_mac_vlan_mgmt_entry_t           mac_vlan_entry;
+    vtss_rc                             rc;
+VARIABLE_END
+
+CODE_BEGIN
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        memset(&mac_vlan_entry, 0, sizeof(mac_vlan_entry));
+        /* Populate the mac_vlan_entry to pass it to VCL module */
+        memcpy(mac_vlan_entry.smac.addr, mac_addr.addr, sizeof(mac_addr.addr));
+        mac_vlan_entry.vid = vid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            mac_vlan_entry.ports[uport2iport(uport)] = 1;
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+        if ((rc = (vcl_mac_vlan_mgmt_mac_vlan_add(topo_usid2isid(usid), &mac_vlan_entry, VCL_MAC_VLAN_USER_STATIC))) != VTSS_RC_OK) {
+            if (rc == VCL_ERROR_ENTRY_WITH_DIFF_VLAN) {
+                ICLI_PRINTF("cli_cmd_vcl_macvlan_add: MAC-based VLAN entry is already configured with different VLAN ID\n");
+            } else {
+                ICLI_PRINTF("cli_cmd_vcl_macvlan_add: Error while adding MAC-based VLAN entry\n");
+            } /* else of if (rc == VCL_ERROR_ENTRY_WITH_DIFF_VLAN) */
+        } /* if ((rc = (vcl_mac_vlan_mgmt_mac_vlan_add(topo_usid2isid(usid), &mac_vlan_entry, VCL_MAC_VLAN_USER_STATIC))) != VTSS_RC_OK) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+    u32                                 range_idx, cnt_idx;
+    vtss_isid_t                         usid;
+    vtss_port_no_t                      uport;
+    vcl_mac_vlan_mgmt_entry_get_cfg_t   entry;
+    vcl_mac_vlan_mgmt_entry_t           mac_vlan_entry;
+    BOOL                                ports[VTSS_PORT_ARRAY_SIZE] = {0};
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        memset(&mac_vlan_entry, 0, sizeof(mac_vlan_entry));
+        memset(&entry, 0, sizeof(entry));
+        memcpy(mac_vlan_entry.smac.addr, mac_addr.addr, sizeof(mac_addr.addr));
+        mac_vlan_entry.vid = vid;
+        memcpy(entry.smac.addr, mac_addr.addr, sizeof(mac_addr.addr));
+        if ((vcl_mac_vlan_mgmt_mac_vlan_get(topo_usid2isid(usid),&entry, VCL_MAC_VLAN_USER_STATIC, FALSE, FALSE)) == VTSS_RC_OK) {
+            for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+                uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+                entry.ports[topo_usid2isid(usid) - 1][uport2iport(uport)] = 0;
+            } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+            memcpy(mac_vlan_entry.ports, entry.ports[topo_usid2isid(usid) - 1], sizeof(entry.ports[topo_usid2isid(usid) - 1]));
+            (void)vcl_mac_vlan_mgmt_mac_vlan_del(topo_usid2isid(usid), &mac_addr, VCL_MAC_VLAN_USER_STATIC);
+            if (memcmp(ports, entry.ports[topo_usid2isid(usid) - 1], sizeof(entry.ports[topo_usid2isid(usid) - 1]))) {
+                (void)vcl_mac_vlan_mgmt_mac_vlan_add(topo_usid2isid(usid), &mac_vlan_entry, VCL_MAC_VLAN_USER_STATIC);
+            } /* if (memcmp(ports, entry.ports[topo_usid2isid(usid) - 1], sizeof(entry.ports[topo_usid2isid(usid) - 1]))) */
+        } /* if ((vcl_mac_vlan_mgmt_mac_vlan_get(topo_usid2isid(usid),&entry, VCL_MAC_VLAN_USER_STATIC, FALSE, FALSE)) == VTSS_RC_OK) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+NO_FORM_CODE_END
+
+CMD_END
+
+
+CMD_BEGIN
+COMMAND         = switchport vlan protocol group <word16> vlan <vlan_id>
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the switchport vlan protocol group command to add group to vlan mapping.
+DOC_CMD_DEFAULT = Use the no form of this command to remove the group to vlan mapping.
+DOC_CMD_USAGE   = This command will add the ports to the protocol-based VLAN entry.
+DOC_CMD_EXAMPLE = This example shows to configure a mapping of group g1 to VLAN 2
+DOC_CMD_EXAMPLE = Switch(config-if)#switchport vlan protocol group g1 vlan 2
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show vlan protocol privileged EXEC command.
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_proto_vlan_vlan_conf
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = mode_port_list
+
+   HELP = Set switching mode characteristics
+   HELP = VLAN commands
+   HELP = Protocol-based VLAN commands
+   HELP = Protocol-based VLAN group commands 
+   HELP = Group Name (Range: 1 - 16 characters)
+   HELP = VLAN ID (Range: 1-4095)
+   HELP = VLAN ID required for the group to VLAN mapping
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = 
+   CMD_VAR   = grp_id
+   CMD_VAR   = 
+   CMD_VAR   = vid
+
+VARIABLE_BEGIN
+    vcl_proto_vlan_vlan_entry_t         grp_vlan;
+    u32                                 range_idx, cnt_idx;
+    vtss_isid_t                         usid;
+    vtss_port_no_t                      uport;
+VARIABLE_END
+
+CODE_BEGIN
+    if (grp_id == NULL) {
+        ICLI_PRINTF("grp_id is NULL\n");
+        return FALSE;
+    }
+    memset(&grp_vlan, 0, sizeof(grp_vlan));
+    //strcpy(grp_vlan.group_id, grp_id);
+    memcpy(grp_vlan.group_id, grp_id, MAX_GROUP_NAME_LEN);
+    grp_vlan.vid = vid;
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        #if 0
+        if ((vcl_proto_vlan_mgmt_group_entry_get_by_vlan(topo_usid2isid(usid), &grp_vlan, VCL_PROTO_VLAN_USER_STATIC, FALSE, FALSE)) 
+            != VTSS_RC_OK) {
+            memset(&grp_vlan, 0, sizeof(grp_vlan));
+            //strcpy(grp_vlan.group_id, grp_id);
+            memcpy(grp_vlan.group_id, grp_id, MAX_GROUP_NAME_LEN);
+            grp_vlan.vid = vid;
+        }
+        #endif
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            grp_vlan.ports[uport2iport(uport)] = 1;
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+        if ((vcl_proto_vlan_mgmt_group_entry_add(topo_usid2isid(usid), &grp_vlan, VCL_PROTO_VLAN_USER_STATIC)) != VTSS_RC_OK) {
+            ICLI_PRINTF("Adding Group to VLAN mapping Failed\n");
+        } /* if ((vcl_proto_vlan_mgmt_group_entry_add(topo_usid2isid(usid), &grp_vlan, VCL_PROTO_VLAN_USER_STATIC)) != VTSS_RC_OK) { */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+    vcl_proto_vlan_vlan_entry_t         grp_vlan;
+    u32                                 range_idx, cnt_idx;
+    vtss_isid_t                         usid;
+    vtss_port_no_t                      uport;
+    #if 0
+    BOOL                                ports[VTSS_PORT_ARRAY_SIZE] = {0};
+    #endif
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    if (grp_id == NULL) {
+        ICLI_PRINTF("grp_id is NULL\n");
+        return FALSE;
+    }
+    memset(&grp_vlan, 0, sizeof(grp_vlan));
+    //strcpy(grp_vlan.group_id, grp_id);
+    memcpy(grp_vlan.group_id, grp_id, MAX_GROUP_NAME_LEN);
+    grp_vlan.vid = vid;
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        #if 0
+        if ((vcl_proto_vlan_mgmt_group_entry_get_by_vlan(topo_usid2isid(usid), &grp_vlan, VCL_PROTO_VLAN_USER_STATIC, FALSE, FALSE)) 
+            != VTSS_RC_OK) {
+            ICLI_PRINTF("No such entry exists\n");
+            return FALSE;
+        }
+        #endif
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            grp_vlan.ports[uport2iport(uport)] = 1;
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+        if ((vcl_proto_vlan_mgmt_group_entry_delete(topo_usid2isid(usid), &grp_vlan, VCL_PROTO_VLAN_USER_STATIC)) != VTSS_RC_OK) {
+            ICLI_PRINTF("Deleting Group to VLAN mapping Failed\n");
+        }
+        #if 0
+        if (memcmp(ports, grp_vlan.ports, sizeof(grp_vlan.ports))) {
+            if ((vcl_proto_vlan_mgmt_group_entry_add(topo_usid2isid(usid), &grp_vlan, VCL_PROTO_VLAN_USER_STATIC)) != VTSS_RC_OK) {
+                ICLI_PRINTF("Adding Group to VLAN mapping Failed\n");
+            }
+        } else {
+            if ((vcl_proto_vlan_mgmt_group_entry_delete(topo_usid2isid(usid), &grp_vlan, VCL_PROTO_VLAN_USER_STATIC)) != VTSS_RC_OK) {
+                ICLI_PRINTF("Deleting Group to VLAN mapping Failed\n");
+            }
+        } /* else of if (memcmp(ports, grp_vlan.ports, sizeof(grp_vlan.ports))) */
+        #endif
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+NO_FORM_CODE_END
+
+CMD_END
+
+CMD_BEGIN
+COMMAND         = show vlan protocol { [eth2 {<0x600-0xffff>|arp|ip|ipx|at}] | [snap {<0x0-0xffffff>|rfc_1042|snap_8021h} <0x0-0xffff>] | [llc <0x0-0xff> <0x0-0xff>] }
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the switchport vlan protocol group command to add group to vlan mapping.
+DOC_CMD_DEFAULT = Use the no form of this command to remove the group to vlan mapping.
+DOC_CMD_USAGE   = This command will add the ports to the protocol-based VLAN entry.
+DOC_CMD_EXAMPLE = This example shows to configure a mapping of group g1 to VLAN 2
+DOC_CMD_EXAMPLE = Switch(config-if)#switchport vlan protocol group g1 vlan 2
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show vlan protocol privileged EXEC command.
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_proto_vlan_show
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+   HELP = Show running system information
+   HELP = VLAN status
+   HELP = Protocol-based VLAN status
+   HELP = Ethernet protocol based VLAN status
+   HELP = Ether Type(Range: 0x600 - 0xFFFF)
+   HELP = Ether Type is ARP
+   HELP = Ether Type is IP
+   HELP = Ether Type is IPX
+   HELP = Ether Type is AppleTalk
+   HELP = SNAP-based VLAN status
+   HELP = SNAP OUI (Range 0x000000 - 0XFFFFFF)
+   HELP = SNAP OUI is rfc_1042
+   HELP = SNAP OUI is 8021h
+   HELP = PID (Range: 0x0 - 0xFFFF)
+   HELP = LLC-based VLAN status
+   HELP = DSAP (Range: 0x00 - 0xFF)
+   HELP = SSAP (Range: 0x00 - 0xFF)
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = has_eth2
+   CMD_VAR   = etype
+   CMD_VAR   = has_arp
+   CMD_VAR   = has_ip
+   CMD_VAR   = has_ipx
+   CMD_VAR   = has_at
+   CMD_VAR   = has_snap
+   CMD_VAR   = oui
+   CMD_VAR   = has_rfc_1042
+   CMD_VAR   = has_snap_8021h
+   CMD_VAR   = pid
+   CMD_VAR   = has_llc
+   CMD_VAR   = dsap
+   CMD_VAR   = ssap
+
+VARIABLE_BEGIN
+    vcl_proto_vlan_proto_entry_t   proto_grp;
+    BOOL                           first_entry, next, first;
+    vcl_proto_vlan_vlan_entry_t    entry;
+    switch_iter_t                  sit;
+    port_iter_t                    pit;
+    char                           str_buf[VCL_BUF_SIZE], buf[VCL_BUF_SIZE + 40], *p;
+    u32                            port_cnt;
+    BOOL                           first_port, first_line, eol;
+VARIABLE_END
+
+CODE_BEGIN
+    if (has_eth2) {
+        proto_grp.proto_encap_type = VCL_PROTO_ENCAP_ETH2;
+        if (has_arp) {
+            etype = ETHERTYPE_ARP;
+        } else if (has_ip) {
+            etype = ETHERTYPE_IP;
+        } else if (has_ipx) {
+            etype = ETHERTYPE_IPX;
+        } else if (has_at) {
+            etype = ETHERTYPE_AT;
+        }
+        proto_grp.proto.eth2_proto.eth_type = etype;
+    } else if (has_snap) {
+        proto_grp.proto_encap_type = VCL_PROTO_ENCAP_LLC_SNAP;
+        proto_grp.proto.llc_snap_proto.pid = pid;
+        if (has_rfc_1042) {
+            proto_grp.proto.llc_snap_proto.oui[0] = 0x0;
+            proto_grp.proto.llc_snap_proto.oui[1] = 0x0;
+            proto_grp.proto.llc_snap_proto.oui[2] = 0x0;
+        } else if (has_snap_8021h) {
+            proto_grp.proto.llc_snap_proto.oui[0] = 0x0;
+            proto_grp.proto.llc_snap_proto.oui[1] = 0x0;
+            proto_grp.proto.llc_snap_proto.oui[2] = 0xF8;
+        } else { /* valid OUI */
+            proto_grp.proto.llc_snap_proto.oui[0] = (oui >> 16) & 0xFF;
+            proto_grp.proto.llc_snap_proto.oui[1] = (oui >> 8) & 0xFF;
+            proto_grp.proto.llc_snap_proto.oui[2] = oui & 0xFF;
+        }
+        if ((proto_grp.proto.llc_snap_proto.oui[0] == 0) && 
+            (proto_grp.proto.llc_snap_proto.oui[1] == 0) &&
+            (proto_grp.proto.llc_snap_proto.oui[2] == 0)) {
+            if (pid < 0x600) {
+                ICLI_PRINTF("Invalid PID. IF OUI is zero, PID is in the range of Etype(0x600-0xFFFF)\n");
+                return FALSE;
+            }
+        }
+    } else if (has_llc) {
+        proto_grp.proto_encap_type = VCL_PROTO_ENCAP_LLC_OTHER;
+        proto_grp.proto.llc_other_proto.dsap = dsap;
+        proto_grp.proto.llc_other_proto.ssap = ssap;
+    }
+    if (has_eth2 | has_snap | has_llc) {
+        if ((vcl_proto_vlan_mgmt_proto_get(&proto_grp, VCL_PROTO_VLAN_USER_STATIC, FALSE, FALSE)) == VTSS_RC_OK) {
+            ICLI_PRINTF("Protocol Type  Protocol (Value)          Group ID\n");
+            ICLI_PRINTF("-------------  ------------------------  --------\n");
+            if (proto_grp.proto_encap_type == VCL_PROTO_ENCAP_ETH2) {
+                ICLI_PRINTF("%-13s  ETYPE:0x%-4x              %s\n", vcl_proto_vlan_mgmt_proto_type_to_txt(proto_grp.proto_encap_type),
+                            proto_grp.proto.eth2_proto.eth_type, proto_grp.group_id);
+            } else if (proto_grp.proto_encap_type == VCL_PROTO_ENCAP_LLC_SNAP) {
+                ICLI_PRINTF("%-13s  OUI-%02x:%02x:%02x; PID:0x%-4x  %s\n", vcl_proto_vlan_mgmt_proto_type_to_txt(proto_grp.proto_encap_type),
+                            proto_grp.proto.llc_snap_proto.oui[0], proto_grp.proto.llc_snap_proto.oui[1],
+                            proto_grp.proto.llc_snap_proto.oui[2], proto_grp.proto.llc_snap_proto.pid, proto_grp.group_id);
+            } else {
+                ICLI_PRINTF("%-13s  DSAP:0x%-2x; SSAP:0x%-2x      %s\n",
+                            vcl_proto_vlan_mgmt_proto_type_to_txt(proto_grp.proto_encap_type), proto_grp.proto.llc_other_proto.dsap,
+                            proto_grp.proto.llc_other_proto.ssap, proto_grp.group_id);
+            }
+        } else {
+            ICLI_PRINTF("Entry not found\n");
+        }
+    } else {
+        first_entry = TRUE;
+        next = FALSE;
+        while (vcl_proto_vlan_mgmt_proto_get(&proto_grp, VCL_PROTO_VLAN_USER_STATIC, next, first_entry) == VTSS_RC_OK) {
+            if (first_entry == TRUE) {
+                ICLI_PRINTF("Protocol Type  Protocol (Value)          Group ID\n");
+                ICLI_PRINTF("-------------  ------------------------  --------\n");
+                first_entry = FALSE;
+            }
+            if (proto_grp.proto_encap_type == VCL_PROTO_ENCAP_ETH2) {
+                ICLI_PRINTF("%-13s  ETYPE:0x%-4x              %s\n", vcl_proto_vlan_mgmt_proto_type_to_txt(proto_grp.proto_encap_type),
+                            proto_grp.proto.eth2_proto.eth_type, proto_grp.group_id);
+            } else if (proto_grp.proto_encap_type == VCL_PROTO_ENCAP_LLC_SNAP) {
+                ICLI_PRINTF("%-13s  OUI-%02x:%02x:%02x; PID:0x%-4x  %s\n", vcl_proto_vlan_mgmt_proto_type_to_txt(proto_grp.proto_encap_type),
+                            proto_grp.proto.llc_snap_proto.oui[0], proto_grp.proto.llc_snap_proto.oui[1],
+                            proto_grp.proto.llc_snap_proto.oui[2], proto_grp.proto.llc_snap_proto.pid, proto_grp.group_id);
+            } else {
+                ICLI_PRINTF("%-13s  DSAP:0x%-2x; SSAP:0x%-2x      %s\n",
+                            vcl_proto_vlan_mgmt_proto_type_to_txt(proto_grp.proto_encap_type), proto_grp.proto.llc_other_proto.dsap,
+                            proto_grp.proto.llc_other_proto.ssap, proto_grp.group_id);
+            }
+            next = TRUE;
+        }
+        ICLI_PRINTF("\n");
+        (void)switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_USID);
+        while (switch_iter_getnext(&sit)) {
+            first_entry = TRUE;
+            next = FALSE;
+            first = TRUE;
+            while (vcl_proto_vlan_mgmt_group_entry_get(sit.isid, &entry, VCL_PROTO_VLAN_USER_STATIC, next, first) == VTSS_RC_OK) {
+                if (first_entry == TRUE) {
+                    ICLI_PRINTF("\nSwitch %d\n", sit.usid);
+                    ICLI_PRINTF("---------\n");
+                    ICLI_PRINTF("Group ID          VID   Ports\n");
+                    ICLI_PRINTF("----------------  ----  -----\n");
+                    first_entry = FALSE;
+                }
+                ICLI_PRINTF("%-16s  %-4u  ", entry.group_id, entry.vid);
+                port_cnt = 0;
+                p = &buf[0];
+                first_port = TRUE;
+                first_line = TRUE;
+                eol = FALSE;
+                (void) port_iter_init(&pit, NULL, sit.isid, PORT_ITER_SORT_ORDER_UPORT, PORT_ITER_FLAGS_NORMAL);
+                while (port_iter_getnext(&pit)) {
+                    if (entry.ports[pit.iport]) {
+                        port_cnt++;
+                        (void)icli_port_info_txt(sit.usid, pit.uport, str_buf);
+                        if (first_port == FALSE) {
+                            if (eol == TRUE) {
+                                ICLI_PRINTF(",\n");
+                                eol = FALSE;
+                            } else {
+                                p += sprintf(p, ",");
+                            }
+                        }
+                        p += sprintf(p, "%s", str_buf);
+                        first_port = FALSE;
+                        if ((port_cnt % 3) == 0) {
+                            if (first_line == TRUE) { 
+                                ICLI_PRINTF("%s", buf); 
+                                first_line = FALSE;
+                            } else {
+                                ICLI_PRINTF("%-22s  %s", "", buf);
+                            }
+                            eol = TRUE;
+                            p = &buf[0];
+                        }
+                    }
+                } /* while (port_iter_getnext(&pit)) */
+                if (port_cnt % 3) {
+                    if (port_cnt > 3) {
+                        ICLI_PRINTF("%-38s  %s\n", "", buf);
+                    } else {
+                        ICLI_PRINTF("%s\n", buf);
+                    }
+                }
+                ICLI_PRINTF("\n");
+                next = TRUE;
+                first = FALSE;
+            }
+        }
+    } /* else of (has_eht2 | has_snap | has_llc) */
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+
+CMD_END

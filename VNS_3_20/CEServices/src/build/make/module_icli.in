@@ -1,0 +1,163 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2010 Vitesse Semiconductor Corporation "Vitesse".
+# All Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Files Location
+ICLI_ENGINE_DIR      := $(DIR_APPL)/icli
+DIR_icli_base        := $(ICLI_ENGINE_DIR)/base
+DIR_icli_platform    := $(ICLI_ENGINE_DIR)/platform
+DIR_icli_porting     := $(ICLI_ENGINE_DIR)/platform/porting
+DIR_icli_script      := $(ICLI_ENGINE_DIR)/platform/script
+DIR_icli_cmdgen      := $(ICLI_ENGINE_DIR)/platform/cmd_gen
+
+ICLI_CMD_REG         := icli_cmd_reg
+ICLI_SCRIPT_IREG     := $(OBJ)/icli_cmd_ireg
+
+ICLI_CMD_REF         := cmd_ref
+ICLI_SCRIPT_HTM      := $(OBJ)/icli_cmd_htm
+ICLI_SCRIPT_TXT      := $(OBJ)/icli_cmd_txt
+
+ICLI_ENGINE_C_FILE   := icli.c icli_api.c icli_exec.c icli_parsing.c \
+                        icli_register.c icli_session.c icli_session_a.c \
+                        icli_session_c.c icli_session_z.c icli_session_util.c \
+                        icli_util.c icli_variable.c
+
+ICLI_PLATFORM_C_FILE := icli_console.c icli_start.c icli_conf.c \
+                        $(if $(MODULE_ICFG),icli_icfg.c)
+
+ICLI_PORTING_C_FILE  := icli_porting_xy.c icli_porting_util.c
+
+ICLI_SCRIPT_C_FILE   := icli_cmd_func.c
+
+# Include module lib objects
+
+# Module objects
+OBJECTS_icli_base     := $(addprefix icli_, $(ICLI_ENGINE_C_FILE:.c=.o))
+OBJECTS_icli_platform := $(addprefix icli_, $(ICLI_PLATFORM_C_FILE:.c=.o))
+OBJECTS_icli_porting  := $(addprefix icli_, $(ICLI_PORTING_C_FILE:.c=.o))
+OBJECTS_icli_script   := $(addprefix icli_, $(ICLI_SCRIPT_C_FILE:.c=.o))
+
+OBJECTS_icli_cmd_reg := $(addprefix icli_,  $(ICLI_CMD_REG).o )
+
+OBJECTS_icli_cmd_reg_c := $(ICLI_SCRIPT_GEN_DIR)/$(ICLI_CMD_REG).c
+
+OBJECTS_icli_cmd_reg_htm := $(ICLI_SCRIPT_GEN_DIR)/$(ICLI_CMD_REF).htm
+
+# Module objects (Module lib objects + Module core objects + Module platform objects)
+OBJECTS_icli = $(OBJECTS_icli_base) $(OBJECTS_icli_platform) $(OBJECTS_icli_porting) $(OBJECTS_icli_script) \
+               $(OBJECTS_icli_modules) $(OBJECTS_icli_cmd_reg)
+
+# Built-in ICLI
+$(eval $(call add_icli,$(foreach m, icli_config icli_config_line icli_config_vlan icli_exec icli_if_port icli_if_vlan icli_ipmc_profile icli_snmps_host icli_stp_aggr,$(DIR_icli_script)/$(m).icli)))
+
+# Compiler rules
+$(OBJECTS_icli_base): icli_%.o: $(DIR_icli_base)/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_icli_platform): icli_%.o: $(DIR_icli_platform)/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_icli_porting): icli_%.o: $(DIR_icli_porting)/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_icli_script): icli_%.o: $(DIR_icli_script)/%.c
+	$(call compile_c, $@, $<)
+
+ICLI_GEN_TOOL := $(ICLI_SCRIPT_IREG) $(ICLI_SCRIPT_HTM) $(ICLI_SCRIPT_TXT)
+ICLI_GEN_FILE := $(OBJECTS_icli_ireg) $(OBJECTS_icli_txt) $(OBJECTS_icli_htm)
+
+$(ICLI_GEN_FILE): $(OBJECTS_icli_modules)
+
+$(OBJECTS_icli_cmd_reg_c): $(ICLI_GEN_TOOL) $(ICLI_GEN_FILE)
+	$(call what,Generating: icli_cmd_reg.c)
+	$(Q)$(ICLI_SCRIPT_IREG) $(ICLI_SCRIPT_GEN_DIR) $(OBJECTS_icli_ireg)
+	$(call what,Generating: cmd_ref.htm)
+	$(Q)$(ICLI_SCRIPT_HTM)  $(ICLI_SCRIPT_GEN_DIR) $(OBJECTS_icli_htm)
+	$(call what,Generating: cmd_ref.txt)
+	$(Q)$(ICLI_SCRIPT_TXT)  $(ICLI_SCRIPT_GEN_DIR) $(OBJECTS_icli_txt)
+	$(Q)cp $(DIR_icli_base)/css/vtss.css $(OBJ)
+
+$(OBJECTS_icli_cmd_reg): $(OBJECTS_icli_cmd_reg_c)
+	$(call compile_c, $@, $<)
+
+# The dependenfies for the icli_cmd_gen tool
+ICLI_CMD_GEN_FILES := icli_cmd_gen.o icli_util.o icli_variable.o icli_porting_api.o
+icli_cmd_gen.o: %.o: $(DIR_icli_base)/%.c
+	$(Q)$(CC) -c -o $@ -D___LINUX___ -I$(DIR_icli_base) -I$(DIR_icli_porting) -I$(DIR_icli_platform)/cmd_gen $<
+icli_util.o icli_variable.o: %.o: $(DIR_icli_base)/%.c
+	$(Q)$(CC) -c -o $@ -D___LINUX___ -I$(DIR_icli_base) -I$(DIR_icli_porting) -I$(DIR_icli_platform)/cmd_gen $<
+icli_porting_api.o: %.o: $(DIR_icli_platform)/cmd_gen/%.c
+	$(Q)$(CC) -c -o $@ -D___LINUX___ -I$(DIR_icli_base) -I$(DIR_icli_porting) -I$(DIR_icli_platform)/cmd_gen $<
+$(ICLI_SCRIPT_CMD): $(ICLI_CMD_GEN_FILES)
+	$(call what,Tool build: icli_cmd_gen)
+	$(Q)$(CC) -o $@ $^ -lrt
+
+# The dependenfies for the icli_cmd_ireg tool
+ICLI_CMD_IREG_FILES := icli_cmd_ireg.o icli_util.o icli_variable.o icli_porting_api.o
+icli_cmd_ireg.o: %.o: $(DIR_icli_base)/%.c
+	$(Q)$(CC) -c -o $@ -D___LINUX___ -I$(DIR_icli_base) -I$(DIR_icli_porting) -I$(DIR_icli_platform)/cmd_gen $<
+$(ICLI_SCRIPT_IREG): $(ICLI_CMD_IREG_FILES)
+	$(call what,Tool build: icli_cmd_ireg)
+	$(Q)$(CC) -o $@ $^ -lrt
+
+# The dependenfies for the icli_cmd_htm tool
+ICLI_CMD_HTM_FILES := icli_cmd_htm.o icli_util.o icli_variable.o icli_porting_api.o
+icli_cmd_htm.o: %.o: $(DIR_icli_base)/%.c
+	$(Q)$(CC) -c -o $@ -D___LINUX___ -I$(DIR_icli_base) -I$(DIR_icli_porting) -I$(DIR_icli_platform)/cmd_gen $<
+$(ICLI_SCRIPT_HTM): $(ICLI_CMD_HTM_FILES)
+	$(call what,Tool build: icli_cmd_htm)
+	$(Q)$(CC) -o $@ $^ -lrt
+
+# The dependenfies for the icli_cmd_txt tool
+ICLI_CMD_TXT_FILES := icli_cmd_txt.o icli_util.o icli_variable.o icli_porting_api.o
+icli_cmd_txt.o: %.o: $(DIR_icli_base)/%.c
+	$(Q)$(CC) -c -o $@ -D___LINUX___ -I$(DIR_icli_base) -I$(DIR_icli_porting) -I$(DIR_icli_platform)/cmd_gen $<
+$(ICLI_SCRIPT_TXT): $(ICLI_CMD_TXT_FILES)
+	$(call what,Tool build: icli_cmd_txt)
+	$(Q)$(CC) -o $@ $^ -lrt
+
+# Include files
+INCLUDES += -I$(DIR_icli_base) -I$(DIR_icli_platform) -I$(DIR_icli_porting) -I$(DIR_icli_script) -I$(OBJ)
+
+# ICLI script
+DEFINES += -DICLI_CMD_REG
+
+# Lint files for C and H
+LINT_FILES_icli +=  $(addprefix $(DIR_icli_base)/,     $(ICLI_ENGINE_C_FILE))   \
+                    $(addprefix $(DIR_icli_platform)/, $(ICLI_PLATFORM_C_FILE)) \
+                    $(addprefix $(DIR_icli_porting)/,  $(ICLI_PORTING_C_FILE))  \
+                    $(addprefix $(DIR_icli_script)/,   $(ICLI_SCRIPT_C_FILE))
+
+# S/W coding style check for C and H
+VTSS_CODE_STYLE_CHK_FILES_icli +=   $(DIR_icli_base)/*.c     $(DIR_icli_base)/*.h     \
+                                    $(DIR_icli_platform)/*.c $(DIR_icli_platform)/*.h \
+                                    $(DIR_icli_porting)/*.c  $(DIR_icli_porting)/*.h  \
+                                    $(DIR_icli_script)/*.c   $(DIR_icli_script)/*.h
+
+# Tidy files for HTML
+TIDY_FILES_icli += $(OBJ)/cmd_ref.htm $(addprefix $(OBJ)/, $(OBJECTS_icli_htm))
+
+# JSlint files
+JSLINT_FILES_icli := $(TIDY_FILES_icli)

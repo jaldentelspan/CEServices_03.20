@@ -1,0 +1,166 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>DSCP Remarking Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_dscp_remarking.htm";
+
+var oTQueueingMode = ["Disabled","Enabled"];
+var oVQueueingMode = genArrayStr(0, 1);
+var oTWeight = ["Best Effort","CS1","CS2","CS3","CS4","CS5","CS6","CS7","Expedite Forward"];
+var oVWeight = [0,8,16,24,32,40,48,56,46];
+
+function addRow(index, frag, values) {
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var td;
+    //port_no
+    var portno = parseInt(values[0], 10);
+    addTextCell(tr, configPortName(portno, 0), "cr");
+
+    //mode, queue_mapping
+    td = addSelectCell(tr, oTQueueingMode, oVQueueingMode, parseInt(values[1], 10), "c", "mode_" + portno);
+    td = addSelectCell(tr, oTWeight, oVWeight, parseInt(values[2], 10), "c", "low_queue_mapping_" + portno);
+    td = addSelectCell(tr, oTWeight, oVWeight, parseInt(values[3], 10), "c", "normal_queue_mapping_" + portno);
+    td = addSelectCell(tr, oTWeight, oVWeight, parseInt(values[4], 10), "c", "medium_queue_mapping_" + portno);
+    td = addSelectCell(tr, oTWeight, oVWeight, parseInt(values[5], 10), "c", "high_queue_mapping_" + portno);
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function portIsFilter(portNo)
+{
+    if(configPortType >= 3 && (configPortName(portNo, 0) == "WAN" || configPortName(portNo, 0) == "WAN2" || configPortName(portNo, 0) == "EPON")) {
+        return true;
+    }
+    return false;
+}
+
+function processUpdate(req, ref)
+{
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (req.responseText) {
+        var dscpRemakingConfig = req.responseText.split("|");
+
+       // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+        for (var i = 0; i < dscpRemakingConfig.length; i++) {
+            if (dscpRemakingConfig[i]) {
+                var pval = dscpRemakingConfig[i].split("/");
+                if (portIsFilter(pval[0])) {
+                    continue;
+                }
+                addRow(i, frag, pval);
+            }
+        }
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    } else {
+        SpomHandleError();
+    }
+}
+
+function requestUpdate() {
+    // Format: [port_no]/[mode]/[low_queue_mapping]/[normal_queue_mapping]/[middle_queue_mapping]/[high_queue_mapping]|...
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/dscp_remarking"), processUpdate, 'classData');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>DSCP Remarking Configuration <span id="display_sid"></span></h1>
+
+<form name="dscpRemakingConfigForm" method="POST" action="/config/dscp_remarking">
+
+<table id="dscpRemakingConfig" summary="DSCP Remarking Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th rowspan=2>Port</th>
+   <th rowspan=2>DSCP Remarking Mode</th>
+   <th colspan=4>DSCP Queue Mapping</th>
+   </tr>
+   <tr class="config_header">
+   <th>Low</th>
+   <th>Normal</th>
+   <th>Medium</th>
+   <th>High</th>
+  </tr>
+ </thead>
+ <tbody id="classData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+
+<!-- IE caching bug -->
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

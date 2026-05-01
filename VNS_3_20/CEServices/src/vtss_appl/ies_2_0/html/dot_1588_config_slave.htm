@@ -1,0 +1,126 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>.1588 Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_dot_1588_config.htm";
+var currentMode, currentModeNum;
+
+
+function checkForm() {
+ 
+    if(currentModeNum == document.getElementById("dot1588Mode").value)
+    {
+        alert("The unit is already in the selected mode");
+        return false;
+    }
+    var r = confirm("Press \"OK\" to confirm to save changes");
+    if (r == true) {
+        return true; // User approved change
+    }
+    return false;
+}
+
+function processUpdate(req, ref) {
+    currentMode = req.responseText;
+    document.getElementById("status").innerHTML = currentMode;
+    switch(currentMode){
+        case "IEEE-1588 SLAVE":           
+            document.getElementById("dot1588Mode").value = "1"; 
+            currentModeNum = "1";
+            break;
+        case "DISABLED":            
+            document.getElementById("dot1588Mode").value = "2"; 
+            currentModeNum = "2";
+            break;
+        }
+        
+        
+}
+
+function requestUpdate() {
+
+    if(loadXMLDoc("/config/dot_1588_config", processUpdate, null)== null)
+    {
+        alert("loadXMLDoc Failed");        
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate()">
+
+<h1>.1588 Configuration</h1>
+
+<form method="POST" action="/config/dot_1588_config" onsubmit="return checkForm();">
+
+    
+    <table summary="1588 Mode Table" class="config">
+        <tr class="config">
+            <td class="param_label">Current Mode</td>
+            <td class="cl" id="status"></td>
+        </tr>
+        
+        
+        <tr class="config">
+            <td class="param_label">Mode</td>
+            <td>
+                <select id="dot1588Mode" name="dot1588Mode" >
+                    <option value="1">slave</option>
+                    <option value="2" selected>disable</option>
+                </select>
+            </td>
+        </tr>
+    </table>
+      
+<p>
+<input type="submit" value="Save">
+</p>
+
+</form>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

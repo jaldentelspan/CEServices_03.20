@@ -1,0 +1,1785 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+
+<html>
+
+<head>
+
+<title>Add or modify QCE</title>
+<link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+ 
+var help_page = "/help/help_qcl_v2_edit.htm";
+
+var noPorts = configNormalPortMax;
+var lastQceId = 0;
+var qceIdx = 0;
+var nextIdx = 0;
+var switch_sel = [];
+var anyStr = ["Any","Specific"];
+var oTsidArray = anyStr;
+var oVsidArray = genArrayInt(0,1);
+var oTFilter = ["Any","Specific"]; 
+var oVNormal = genArrayInt(0, 1);
+var oTKeyTag = ["Any","Untag","Tag"];
+var ovKeytag = genArrayInt(0,2);
+var oTProtocolFilter = ["Any","UDP","TCP","Other"];
+var oVProtocolFilter = genArrayInt(0,3);
+var clearAllTbl = ["qceData_Mac", "qceData_SNAP",
+                   "qceData_IPv4", "qceData_IPv6", "IPv4DSCPOption", 
+                   "IPv6DSCPOption", "v6TcpUdpfld", "v4TcpUdpfld", 
+                   "qcePortMemberTbl", "KeyCfgTbl", "ActionCfgTbl"];
+var oTDSCPChoice = ["Any", "Specific", "Range"];
+var oVDSCPChoice = genArrayInt(0,2);
+var hideTbl  = ["mac_parameters", "llc_parameters", "snap_parameters", "ipv4_parameters", "ipv6_parameters", "TcpUdp_parameters"];
+var oTKeyVID = ["Any","Specific","Range"];
+var oVKeyVID = genArrayInt(0,2);
+var oTKeyPCPSelect = ["Any", "0", "1", "2", "3", "4", "5", "6", "7", "0-1", "2-3", "4-5", "6-7","0-3","4-7"];
+var oVKeyPCPSelect = genArrayInt(0,14);
+var oTKeyDEISelect = ["Any","0", "1"];
+var oVKeyDEISelect = genArrayInt(0,2);
+var oTKeyFrametype = ["Any","Ethernet","LLC","SNAP","IPv4","IPv6"];
+var oVKeyFrametype = genArrayInt(0,5);
+var oTKeyDMACType = ["Any", "UC", "MC", "BC"];
+var oVKeyDMACType = genArrayInt(0,3);
+var oTKeyDSCPSpecific = configQosDscpNames;
+var oVKeyDSCPSpecific = genArrayInt(0,63);
+
+// All action values are offset by one. The conversion is done in the C-code on POST and in Javascript on GET
+var oTActionClass = ["Default", "0", "1", "2", "3", "4", "5", "6", "7"];
+var oVActionClass = genArrayInt(0,8);
+var oTActionDP;
+var oVActionDP;
+if (configArchJaguar_1) {
+    oTActionDP = ["Default", "0", "1", "2", "3"];
+    oVActionDP = genArrayInt(0,4);
+} else {
+    oTActionDP = ["Default", "0", "1"];
+    oVActionDP = genArrayInt(0,2);
+}
+var oTActionDSCP = ["Default"].concat(configQosDscpNames);
+var oVActionDSCP = genArrayInt(0,64);
+
+var pageArgs = searchArgs(window.location.search);
+var arg_qceConfigFlag = (pageArgs.qceConfigFlag) ? parseInt(pageArgs.qceConfigFlag, 10) : 0;
+var arg_qce_id = (pageArgs.qce_id) ? parseInt(pageArgs.qce_id, 10) : 0;
+
+function RngCheck (Handler, from, to) {
+    if (Handler.value < from || Handler.value > to || Handler.value === "") {
+        alert("Invalid input: Please enter value between "+from+" - " +to);
+        Handler.select();
+        return false;
+    } else {
+        return true;
+    }
+}
+
+function isEthType(str) {
+    var myReg;
+
+    if (!str) {
+        return false;
+    }
+
+    myReg = /^[A-Fa-f0-9]{1,4}$/;
+
+    var result = myReg.test(str);
+    if (result) {
+        var intFormat = parseInt(str, 16);
+        if (intFormat==0x800 || intFormat==0x86DD) {
+            alert("The value of 'Ethernet Type' should not be equal to 0x800(IPv4) or 0x86DD(IPv6)");
+            return false;
+        }
+        if (intFormat<0x600) {
+            return false;
+        }
+    }
+    return result;
+}
+
+function checkForm() {
+    var rtrnValue = true;
+    var sid_select = document.getElementById("portMemSIDSelect");
+    var i;
+    var vidHndler = document.getElementById("KeyVIDSelect");
+    var fld;
+    var selFilterIdx;
+    var chngToEthVal;
+    var ethFilter;
+
+    if (SpomStackPortCount() && (sid_select.value != -1)) {
+        for (i = 0; i < switch_sel.length; i++) {
+            if (switch_sel[i] == sid_select.value) {
+                break;
+            }
+        }
+        if (i == switch_sel.length) {
+            GiveAlert("Switch " + sid_select.value + " not present");
+            return false;
+        }
+    }
+
+    if (vidHndler.value ==  1) {//Specific
+        vidSpecHndler = document.getElementById("KeyVIDSpecific");
+        if (!isInt(vidSpecHndler.value)) {
+            GiveAlert("Invalid VLAN ID " + vidSpecHndler.value);
+            vidSpecHndler.select();
+            return false;
+        }
+        if(!isWithinRange("KeyVIDSpecific", 1, 4095, "'VLAN ID'")) {
+            vidSpecHndler.select();
+            return false;
+        }
+    } else {
+        if (vidHndler.value ==  2) {//Range
+            var vidRngHndler1 = document.getElementById("KeyVidStart");
+            var vidRngHndler2 = document.getElementById("KeyVidLast");
+            if (!isInt(vidRngHndler1.value)) {
+                GiveAlert("Invalid VLAN ID " + vidRngHndler1.value);
+                vidRngHndler1.select();
+                return false;
+            }
+            if(!isWithinRange("KeyVidStart", 1, 4095, "'VLAN ID'")) {
+                vidRngHndler1.select();
+                return false;
+            }
+            if (!isInt(vidRngHndler2.value)) {
+                GiveAlert("Invalid VLAN ID " + vidRngHndler2.value);
+                vidRngHndler2.select();
+                return false;
+            }
+            if(!isWithinRange("KeyVidLast", 1, 4095, "'VLAN ID'")) {
+                vidRngHndler2.select();
+                return false;
+            }
+            if (parseInt(vidRngHndler1.value, 10) >= parseInt(vidRngHndler2.value, 10)) {
+                alert("Starting value must be less than 'Last value' in range");
+                vidRngHndler1.select();
+                return false;
+            }
+        }
+    } 
+    var frmTypeIdx = document.getElementById("frame_type").selectedIndex;
+    if (frmTypeIdx == 1) {// i.e. frame type == Ethernet
+        ethFilter = document.getElementById("ether_type_filter").selectedIndex;
+        if (ethFilter == 1) {// ethFilter value is specific
+            fld = document.getElementById("ether_type");
+            if (!isEthType(fld.value)) {
+                GiveAlert("The format of 'Ethernet Type Value' is '0x600-0xFFFF'");
+                fld.select();
+                return false;
+            }
+        }
+    }
+    if (frmTypeIdx == 2) {// i.e. frame type == LLC 
+        selFilterIdx = document.getElementById("SSAPAddrSel").selectedIndex;
+        if (selFilterIdx == 1) {// value is specific
+            fld = document.getElementById("LLCSSAPVal");
+            chngToEthVal = "FF" + fld.value;
+            if (!isEthType(chngToEthVal)) {
+                GiveAlert("The format of 'SSAP Address Value' is '0x00-0xFF'");
+                fld.select();
+                return false;
+            }
+        }
+        selFilterIdx = document.getElementById("DSAPAddrSel").selectedIndex;
+        if (selFilterIdx == 1) {// value is specific
+            fld = document.getElementById("LLCDSAPVal");
+            chngToEthVal = "FF" + fld.value;
+            if (!isEthType(chngToEthVal)) {
+                GiveAlert("The format of 'DSAP Address Value' is '0x00-0xFF'");
+                fld.select();
+                return false;
+            }
+         }
+        selFilterIdx = document.getElementById("LLCCntrlSel").selectedIndex;
+        if (selFilterIdx == 1) {// value is specific
+            fld = document.getElementById("LLCControlVal");
+            chngToEthVal = "FF" + fld.value;
+            if (!isEthType(chngToEthVal)) {
+                GiveAlert("The format of 'Control Address Value' is '0x00-0xFF'");
+                fld.select();
+                return false;
+            }
+        }
+    }
+    if (frmTypeIdx == 3) {// i.e. frame type == SNAP 
+        ethFilter = document.getElementById("SNAP_Ether_type_filter").selectedIndex;
+        if (ethFilter == 1) {// ethFilter value is specific
+            fld = document.getElementById("ether_type");
+            if (!isEthType(fld.value)) {
+                GiveAlert("The format of 'Ethernet Type Value' is '0x600-0xFFFF'");
+                fld.select();
+                return false;
+            }
+        }
+    }
+    if (frmTypeIdx == 4 || frmTypeIdx == 5) {//i.e. frame type == IPv4 or 6
+            var frmTypeValue = (frmTypeIdx == 4)?"IPv4":"IPv6";
+            fld = document.getElementById("protocol_filter"+frmTypeValue);
+            if (fld.selectedIndex == 3) {// i.e. 'Other' option is selected
+                var otherProtoHndler = document.getElementById("KeyProtoNbr");
+                if (!isInt(otherProtoHndler.value)) {
+                    GiveAlert("Invalid Protocol Number: " + otherProtoHndler.value);
+                    otherProtoHndler.select();
+                    return false;
+                }
+                if(!isWithinRange("KeyProtoNbr", 0, 255, "'Protocol Number'")) {
+                    otherProtoHndler.select();
+                    return false;
+                }
+            }
+            if (fld.selectedIndex == 1 || fld.selectedIndex == 2) {
+                var spChoice = document.getElementById("keySportSelect").selectedIndex;
+                var dpChoice = document.getElementById("keyDportSelect").selectedIndex;
+                if (spChoice == 1) {//Specific
+                    var spSpecHndler = document.getElementById("keySportSpecValue");
+                    if (!isInt(spSpecHndler.value)) {
+                        GiveAlert("Invalid sport Number: " + spSpecHndler.value);
+                        spSpecHndler.select();
+                        return false;
+                    }
+                    rtrnValue = RngCheck(spSpecHndler, 0, 65535);
+                    if (rtrnValue === false) { return false; }
+                }
+                if (dpChoice == 1) {//Specific
+                    var dpSpecHndler = document.getElementById("keyDportSpecValue");
+                    if (!isInt(dpSpecHndler.value)) {
+                        GiveAlert("Invalid dport Number: " + dpSpecHndler.value);
+                        dpSpecHndler.select();
+                        return false;
+                    }
+                    rtrnValue = RngCheck(dpSpecHndler, 0, 65535);
+                    if (rtrnValue === false) { return false; }    
+                }
+                if (spChoice == 2) {//Range
+                    var spRngHndler1 = document.getElementById("keySportStart");    
+                    var spRngHndler2 = document.getElementById("keySportLast");
+                    if (!isInt(spRngHndler1.value)) {
+                        GiveAlert("Invalid sport value: " + spRngHndler1.value);
+                        spRngHndler1.select();
+                        return false;
+                    }
+                    rtrnValue = RngCheck(spRngHndler1, 0, 65535);
+                    if (rtrnValue === false) { return false; }
+                    if (!isInt(spRngHndler2.value)) {
+                        GiveAlert("Invalid sport value: " + spRngHndler2.value);
+                        spRngHndler2.select();
+                        return false;
+                    }
+                    rtrnValue = RngCheck(spRngHndler2, 0, 65535);
+                    if (rtrnValue === false) { return false; }
+                    //check whether low value < high value in range
+                    if (parseInt(spRngHndler1.value, 10) >= parseInt(spRngHndler2.value, 10)) {
+                        alert("Starting value must be less than 'Last value' in range");
+                        spRngHndler1.select();
+                        return false;
+                    }
+                }
+                if (dpChoice == 2) {//Range
+                    var dpRngHndler1 = document.getElementById("keyDportStart");    
+                    var dpRngHndler2 = document.getElementById("keyDportLast");
+                    if (!isInt(dpRngHndler1.value)) {
+                        GiveAlert("Invalid sport value: " + dpRngHndler1.value);
+                        dpRngHndler1.select();
+                        return false;
+                    }
+                    rtrnValue = RngCheck(dpRngHndler1, 0, 65535);
+                    if (rtrnValue === false) { return false; }
+                    if (!isInt(dpRngHndler2.value)) {
+                        GiveAlert("Invalid sport value: " + dpRngHndler2.value);
+                        dpRngHndler2.select();
+                        return false;
+                    }
+                    rtrnValue = RngCheck(dpRngHndler2, 0, 65535);
+                    if (rtrnValue === false) { return false; }
+                    //check whether low value < high value in range
+                    if (parseInt(dpRngHndler1.value, 10) >= parseInt(dpRngHndler2.value, 10)) {
+                        alert("Starting value must be less than 'Last value' in range");
+                        dpRngHndler1.select();
+                        return false;
+                    }
+                } 
+            }
+            
+            
+            //key -> dscp
+            fld = document.getElementById(frmTypeValue+"DSCPChoice");
+            if (parseInt(fld.selectedIndex, 10) == 2) {//range of values
+                var low = document.getElementById("keyDSCPRngStart").selectedIndex;
+                var high = document.getElementById("keyDSCPRngLast").selectedIndex;
+                if (parseInt(low, 10) >= parseInt(high, 10)) {
+                    alert("Invalid DSCP Range:" + oTKeyDSCPSpecific[low] + "-" + oTKeyDSCPSpecific[high]);
+                    return false;
+                }       
+            }
+            
+            //sip value check
+            fld = document.getElementById(frmTypeValue+"Addr");
+            if (fld) {
+                if (!isIpStr(frmTypeValue+"Addr", false, "'SIP Address'", 0)) {//allowing All type of addresses
+                 return false;
+                }
+            }
+            
+            // sip mask check
+            fld = document.getElementById("IPMaskValue");
+            if (fld) {
+                if (!isIpStr("IPMaskValue", true, "'Sender IP Mask'", 0)) {
+                return false;
+                }
+            }
+            
+    }
+    
+    // smac
+    var macSelect = document.getElementById("qceKeySMACSelect").selectedIndex;
+    if (macSelect) {
+        fld = document.getElementById("qceKeySMACValue");
+        if (fld) {
+            if (!isMacStr(fld.value+"-00-00-00")) {
+                GiveAlert("The format of 'SMAC OUI Value' is 'xx-xx-xx'", fld);
+                return false;
+            }
+        }    
+    }
+
+    var ActionCls = parseInt(document.getElementById("actionClasSel").selectedIndex, 10);
+    var ActionDP = parseInt(document.getElementById("actionDPSel").selectedIndex, 10);
+    var ActionDSCP = parseInt(document.getElementById("actionDSCPSel").selectedIndex, 10);
+   if ( !ActionCls && !ActionDP && !ActionDSCP) {
+       GiveAlert("At least one of the Action field must have non-default value!");
+       return false;
+   }
+
+    return true; // continue and submit the form now
+}//end of checkForm method
+ 
+function SpomSidSelectorUpdate(sid)
+{
+    // SID changed - Go back to list!
+    document.location.href = "qcl_v2.htm";
+}
+ 
+function qceCancel() {
+    document.location.href="qcl_v2.htm";
+} 
+ 
+function drpdwnEnDis(which) {
+    var ihave;
+    switch (which) {
+    case "Tag" :
+        ihave = document.getElementById("tagsel").selectedIndex;
+        if(ihave == 1 || ihave == 2) {
+            document.getElementById("tpidmenu").disabled = "";
+        } else {
+            document.getElementById("tpidmenu").disabled = "disabled";
+        }     
+        break;
+    case "smac" :
+        ihave = document.getElementById("smacmenu").selectedIndex;
+        if (ihave) {
+            document.getElementById("mactext").disabled = "disabled";
+        } else {
+            document.getElementById("mactext").disabled = "";
+        }
+        break;
+    case "dscpActionMenu" :
+        ihave = document.getElementById("dscpActionMenu").selectedIndex;
+        if (ihave) {
+            document.getElementById("dscpActionTxt").disabled = "";
+        } else {
+            document.getElementById("dscpActionTxt").disabled = "disabled";
+        }
+        break;
+    case "pcpActionMenu" :
+        ihave = document.getElementById("pcpActionMenu").selectedIndex;
+        if (ihave) {
+            document.getElementById("pcpActionTxt").disabled = "";
+        } else {
+            document.getElementById("pcpActionTxt").disabled = "disabled";
+        }
+        break;
+    default:
+        break;
+    } //END of switch - case
+}
+
+
+function tableDisplay(id, display) {
+    var elm = document.getElementById(id);
+    if (elm) {
+          elm.style.display = display;
+    }
+}
+ 
+function addSelectMenu(tr, td, oT, oV, value, style, name)
+{
+    var field = document.createElement('select');
+    field.id = field.name = name;
+    var x;
+    for (x=0; x < oT.length; x++) {
+        var optionItem = document.createElement('option');
+        optionItem.value = oV[x];
+        if(value == optionItem.value) {
+            optionItem.setAttribute("selected", true);
+            optionItem.setAttribute("defaultSelected", true);
+            optionItem.defaultSelected = true; // Needed for MSIE 8
+        }
+        optionItem.appendChild(document.createTextNode(oT[x]));
+        field.appendChild(optionItem);
+    }
+    addCell(tr, td, field);
+    return field;
+}
+
+
+function createOptTD (tr, tdDplyID, TxtLbl, ValueID, Value, size, maxsize, txtNodeLbl) {
+    var tdd = CreateTd("cl");
+    tdd.id=tdDplyID;
+    tdd.setAttribute("nowrap","nowrap");
+    tdd.style.display="none";
+
+    var labeltxt = document.createTextNode(TxtLbl + ": ");
+    tdd.appendChild(labeltxt);
+    var hex_header = document.createTextNode(txtNodeLbl);
+    tdd.appendChild(hex_header);
+    var input_value = document.createElement('input');
+    input_value.id = input_value.name = ValueID;
+    input_value.value = Value;
+    input_value.setAttribute("size", size);
+    input_value.setAttribute("maxLength", maxsize);
+    tdd.appendChild(input_value);
+
+    tr.appendChild(tdd);
+
+    var td = CreateTd("cl");
+    td.id = tdDplyID + "_empty";
+    tr.appendChild(td);
+}
+
+var changeFilter; // forward declaration
+ 
+//add rows to parameter tables based on value Frame Type menu
+function addRowQceConfigTbl(ftype, ref) {
+    var tbody = document.getElementById(ref);
+    var frag = document.createDocumentFragment();
+    var tr;
+    var td;
+    var tdd;
+
+    switch (ftype) {
+    case "IPv6" ://common code for IPv4 & IPv6
+    case "IPv4" :
+        tr = document.createElement("tr");
+        addTextCell(tr, "Protocol", "param_label");  
+        td = addSelectCell(tr, oTProtocolFilter, oVProtocolFilter, 0, "cl", "protocol_filter" + ftype);
+        td.onchange=changeFilter;
+        createOptTD (tr, "keyProtoOther", "Value", "KeyProtoNbr", "0", 3, 3, "");     
+
+        td = CreateTd("cl");
+        tr.appendChild(td);
+        frag.appendChild(tr);
+
+        tr =  document.createElement("tr");
+        if (ftype == "IPv4") {
+            td = addLabelTextCell(tr, "Source IP", "param_label");
+            td.setAttribute("nowrap","nowrap");
+        } else {
+            td = addLabelTextCell(tr, "Source IP(32 LSB)", "param_label");
+            td.setAttribute("nowrap","nowrap");
+        }
+
+        tdd = addSelectCell(tr, anyStr, oVsidArray, 0, "cl", ftype +"IPAddrSelect");
+        tdd.onchange=changeFilter;
+        frag.appendChild(tr);
+
+        createOptTD (tr, "IPAddrDply", "Value", ftype + "Addr", "0.0.0.0", 12, 15, "");            
+        frag.appendChild(tr);
+    
+        createOptTD (tr, "IPMaskDply", "Mask", "IPMaskValue", "0.0.0.0", 12, 15, "");       
+        frag.appendChild(tr);
+
+        if (ftype == "IPv4") {
+            tr = document.createElement("tr");
+            var txt = addLabelTextCell(tr, "IP Fragment", "param_label", ftype + "IPfragment");
+            txt.setAttribute("nowrap","nowrap");
+            var yesNoAny = ["Any", "Yes", "No"];
+            var oVyesNoAny = genArrayInt(0,2);
+            td = addSelectCell(tr, yesNoAny, oVyesNoAny,0, "cl", ftype + "IPfragMenu");
+            td = CreateTd("cl");
+            tr.appendChild(td);
+            td = CreateTd("cl");
+            tr.appendChild(td);
+        }
+        frag.appendChild(tr);
+            
+        tr = document.createElement("tr");
+        addTextCell(tr, "DSCP", "param_label");
+        td = addSelectCell(tr, oTDSCPChoice, oVDSCPChoice, 0, "cl", ftype + "DSCPChoice");
+        td.onchange=changeFilter;
+        frag.appendChild(tr);
+            
+        var DSCPOptTblBdy = document.getElementById(ftype+"DSCPOption");
+        var OptFrag = document.createDocumentFragment();
+            
+        tdd = CreateTd("cl");
+        tdd.id="keyDSCPSpecSelect";
+        tdd.setAttribute("nowrap","nowrap");
+        tdd.style.display="none";
+        addSelectMenu(tr, tdd, oTKeyDSCPSpecific, oVKeyDSCPSpecific, 0, "cl", "keyDSCPSpcValue");
+        frag.appendChild(tr);            
+
+        var tddd = CreateTd("cl");
+        tddd.id="keyDSCPRngSelect";
+        tddd.setAttribute("nowrap","nowrap");
+        tddd.style.display="none";
+        addSelectMenu(tr, tddd, oTKeyDSCPSpecific, oVKeyDSCPSpecific, 0, "cl", "keyDSCPRngStart");
+        var txtNode = document.createTextNode("-");
+        tddd.appendChild(txtNode);
+        addSelectMenu(tr, tddd, oTKeyDSCPSpecific, oVKeyDSCPSpecific, 0, "cl", "keyDSCPRngLast");
+
+        td = CreateTd("cl");
+        td.id="keyDSCPSpecSelect_empty";
+        tr.appendChild(td);
+
+        td = CreateTd("cl");
+        tr.appendChild(td);
+        frag.appendChild(tr);
+        break;
+    default:
+        alert("unexpected value" + ftype);       
+        break; 
+    }
+    // add the fragement to tbody at the end
+    tbody.appendChild(frag);
+}
+
+function clearTbles (tblArray) {
+    //Clear tables           
+    for (var i=0; i<tblArray.length; i++) {
+        var ref = tblArray[i];
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+    }
+}
+
+function changeFrameType() {
+    var newFrameType = document.getElementById("frame_type").selectedIndex;
+    var clearTbl = ["qceData_Mac", "qceData_SNAP", "qceData_IPv4",
+                    "qceData_IPv6", "IPv4DSCPOption", "IPv6DSCPOption",
+                    "v6TcpUdpfld", "v4TcpUdpfld", "LLCSSAP"];
+    var hideTbl;
+    var frag;
+    var tr;
+    var td;
+
+    clearTbles(clearTbl); //clear all the tables
+    switch (newFrameType) {
+    case  0://"Any"
+        hideTbl  = ["mac_parameters", "llc_parameters", "snap_parameters", "ipv4_parameters", "ipv6_parameters", "TcpUdp_parameters"];       
+        break;
+    case  1://"Ethernet"
+        document.getElementById("mac_parameters").style.display = "";
+        var mac_tbody = document.getElementById("qceData_Mac");
+        frag = document.createDocumentFragment();
+        tr = document.createElement("tr");
+        addTextCell(tr, "Ether Type", "param_label");
+        td = addSelectCell(tr, oTFilter, oVNormal, 0, "cl", "ether_type_filter");
+        td.onchange=changeFilter;
+        frag.appendChild(tr);
+        createOptTD (tr, "etherTypeDply", "Value", "ether_type", "FFFF", 4, 4,"0x");
+        frag.appendChild(tr);
+        mac_tbody.appendChild(frag);
+        hideTbl  = ["llc_parameters", "snap_parameters", "ipv4_parameters", "ipv6_parameters", "TcpUdp_parameters"];           
+        break;    
+    case  2://"LLC"
+        document.getElementById("llc_parameters").style.display = "";
+        hideTbl  = ["mac_parameters", "snap_parameters", "ipv4_parameters", "ipv6_parameters", "TcpUdp_parameters"];
+        //var LLCTbody = document.getElementById("qceData_LLC");
+        var LLCSsapTbody = document.getElementById("LLCSSAP");
+        var LLCDsapTbody = document.getElementById("LLCDSAP");
+        var LLCCntrlTbody = document.getElementById("LLCControl");
+        frag = document.createDocumentFragment();
+
+        tr = document.createElement("tr");
+        addTextCell(tr, "SSAP Address", "param_label");
+        td = addSelectCell(tr, oTFilter, oVNormal, 0, "cl", "SSAPAddrSel");
+        td.onchange=changeFilter;
+        frag.appendChild(tr);
+        LLCSsapTbody.appendChild(frag);
+
+        createOptTD (tr, "LLCSSAPDply", "Value", "LLCSSAPVal", "FF", 2, 2, "0x");            
+
+        frag.appendChild(tr);
+        LLCSsapTbody.appendChild(frag);
+
+        tr = document.createElement("tr");
+        addTextCell(tr, "DSAP Address", "param_label");
+        td = addSelectCell(tr, oTFilter, oVNormal, 0, "cl", "DSAPAddrSel");
+        td.onchange=changeFilter;
+        frag.appendChild(tr);
+        LLCSsapTbody.appendChild(frag);
+
+        createOptTD (tr, "LLCDSAPDply", "Value", "LLCDSAPVal", "FF", 2, 2, "0x");
+
+        frag.appendChild(tr);
+        LLCSsapTbody.appendChild(frag);
+
+        tr = document.createElement("tr");
+        addTextCell(tr, "Control", "param_label");
+        td = addSelectCell(tr, oTFilter, oVNormal, 0, "cl", "LLCCntrlSel");
+        td.onchange=changeFilter;
+        frag.appendChild(tr);
+        LLCSsapTbody.appendChild(frag);
+
+        createOptTD (tr, "LLCCntrlDply", "Value", "LLCControlVal", "FF", 2, 2, "0x");
+            
+        frag.appendChild(tr);
+        LLCSsapTbody.appendChild(frag);
+        break;
+    case  3://"SNAP"
+        document.getElementById("snap_parameters").style.display = "";
+        hideTbl  = ["mac_parameters", "llc_parameters", "ipv4_parameters", "ipv6_parameters", "TcpUdp_parameters"];
+        var SNAP_tbody = document.getElementById("qceData_SNAP");
+        frag = document.createDocumentFragment();
+        tr = document.createElement("tr");
+        addTextCell(tr, "PID", "param_label");
+        td = addSelectCell(tr, oTFilter, oVNormal, 0, "cl", "SNAP_Ether_type_filter");
+        td.onchange=changeFilter;
+        frag.appendChild(tr);
+
+        createOptTD (tr, "SNAPDply", "Value", "ether_type", "FFFF", 4, 4, "0x");
+
+        frag.appendChild(tr);
+        SNAP_tbody.appendChild(frag);
+        break;
+    case  4://"IPv4"
+        document.getElementById("ipv4_parameters").style.display = "";
+        hideTbl  = ["mac_parameters", "llc_parameters", "snap_parameters", "ipv6_parameters", "TcpUdp_parameters"];           
+        addRowQceConfigTbl("IPv4", "qceData_IPv4");
+        break;
+    case  5://"IPv6"
+        document.getElementById("ipv6_parameters").style.display = "";
+        hideTbl  = ["mac_parameters", "llc_parameters", "snap_parameters", "ipv4_parameters", "TcpUdp_parameters"];
+        addRowQceConfigTbl("IPv6", "qceData_IPv6");
+        break;
+    default:
+        alert ("Error: default" + newFrameType);
+        break;
+    } 
+ 
+    //Hide tables
+    for (var i=0; i<hideTbl.length; i++) {
+        tableDisplay(hideTbl[i], "none");
+    }
+} //End of changeFrameType function
+ 
+function specNRangeFilter (tr, frag, specFldID, specID, ranageFldID, rangeID1, rangeID2, fldLen){
+    //display this if Specific is selected
+    var tdd = CreateTd("cl");
+    tdd.id=specFldID;
+    tdd.setAttribute("nowrap","nowrap");
+    tdd.style.display="none";
+    var Txt = document.createTextNode("Value:");
+    tdd.appendChild(Txt);
+    var input_value = document.createElement('input');
+    input_value.id = input_value.name = specID;
+    input_value.setAttribute("size", fldLen);
+    input_value.setAttribute("maxLength", fldLen);
+    tdd.appendChild(input_value);
+    tr.appendChild(tdd);
+    var td = CreateTd("cl");
+    td.id=specFldID + "_empty";
+    tr.appendChild(td);
+    frag.appendChild(tr);
+    
+    //display this if Range is selected
+    td = CreateTd("cl");
+    td.id=ranageFldID;
+    td.style.display="none";
+    td.setAttribute("nowrap","nowrap");
+    td.align="left";
+    var rangeTxt = document.createTextNode("From:");
+    td.appendChild(rangeTxt);
+    input_value = document.createElement('input');
+    input_value.id = input_value.name = rangeID1;
+    input_value.setAttribute("size", fldLen);
+    input_value.setAttribute("maxLength", fldLen);
+    td.appendChild(input_value);
+    td.setAttribute("nowrap","nowrap");
+    var txt_to = document.createTextNode(" To ");
+    td.appendChild(txt_to);
+    input_value = document.createElement('input');
+    input_value.id = input_value.name = rangeID2;
+    input_value.setAttribute("size", fldLen);
+    input_value.setAttribute("maxLength", fldLen);
+    td.appendChild(input_value);
+    tr.appendChild(td);
+    frag.appendChild(tr);
+}
+ 
+function fillTcpUdpTbl(ref, ipVer) {
+    var frag = document.createDocumentFragment();
+    var tr = document.createElement("tr");
+    addTextCell(tr, "Sport", "param_label",3);
+    var sel = addSelectCell(tr,oTKeyVID,oVKeyVID,0,"cl","keySportSelect");
+    sel.onchange=changeFilter;
+    specNRangeFilter(tr,frag, "keySportSpecTd", "keySportSpecValue", "keySportRangeTd", "keySportStart", "keySportLast",5);
+    tr = document.createElement("tr");
+    addTextCell(tr, "Dport", "param_label",3);
+    sel = addSelectCell(tr,oTKeyVID,oVKeyVID,0,"cl","keyDportSelect");
+    sel.onchange=changeFilter;
+    specNRangeFilter(tr,frag, "keyDportSpecTd", "keyDportSpecValue", "keyDportRangeTd","keyDportStart","keyDportLast",5);
+    frag.appendChild(tr);
+    ref.appendChild(frag);
+}
+ 
+changeFilter = function changeFilter() {
+    var ipVer;
+    var tblIdsel;
+    if (this.id == "protocol_filterIPv4") {
+        ipVer = "IPv4";
+        tblIdsel = "v4TcpUdpfld";
+    } else { 
+        ipVer = "IPv6";
+        tblIdsel = "v6TcpUdpfld";
+    }
+    
+    switch (this.id) {
+    case "keyDportSelect" :
+        var ihave = document.getElementById(this.id).selectedIndex;
+        var tdd = document.getElementById("keyDportSpecTd");
+        var empty = document.getElementById("keyDportSpecTd_empty");
+        var specVFld = document.getElementById("keyDportSpecValue");
+        var rangeVFld1 = document.getElementById("keyDportStart");
+        var rangeVFld2 = document.getElementById("keyDportLast");
+        var td = document.getElementById("keyDportRangeTd");
+        if (ihave == 1) {// "Specific"
+            tdd.style.display="";
+            td.style.display="none";
+            if (empty) {
+                empty.style.display="none";
+            }
+            rangeVFld1.value = "";
+            rangeVFld2.value = "";                    
+        } else if (ihave == 2) {// Range
+            tdd.style.display="none";
+            td.style.display="";
+            if (empty) {
+                empty.style.display="none";
+            }
+            specVFld.value = "";
+        } else if (ihave === 0) {// Any
+            tdd.style.display="none";
+            td.style.display="none";
+            if (empty) {
+                empty.style.display="";
+            }
+            rangeVFld1.value = "";
+            rangeVFld2.value = "";
+            specVFld.value = "";                  
+        } else {
+            alert (ihave + " is unexpected value");                
+        }
+        break;
+    case "keySportSelect" :
+        ihave = document.getElementById(this.id).selectedIndex;
+        specVFld = document.getElementById("keySportSpecValue");
+        rangeVFld1 = document.getElementById("keySportStart");
+        rangeVFld2 = document.getElementById("keySportLast");
+        tdd = document.getElementById("keySportSpecTd");
+        td = document.getElementById("keySportRangeTd");
+        empty = document.getElementById("keySportSpecTd_empty");
+        if (ihave == 1) {//specific
+            tdd.style.display="";
+            td.style.display="none";
+            if (empty) {
+                empty.style.display="none";
+            }
+            rangeVFld1.value = "";
+            rangeVFld2.value = "";
+        } else if (ihave == 2) {//Range
+            tdd.style.display="none";
+            td.style.display="";
+            specVFld.value = "";
+            if (empty) {
+                empty.style.display="none";
+            }
+        } else if (ihave === 0) {//Any
+            tdd.style.display="none";
+            td.style.display="none";
+            if (empty) {
+                empty.style.display="";
+            }
+            rangeVFld1.value = "";
+            rangeVFld2.value = "";
+            specVFld.value = "";                  
+        } else {
+            alert (ihave + " is unexpected value");                
+        }
+        break;
+    case "qceKeyTag" :
+        ihave = document.getElementById(this.id).selectedIndex;
+        tdd = document.getElementById("keyVIDSpec");
+        td = document.getElementById("keyVIDRange");
+        var emptyvidtd = document.getElementById("keyVIDSpec_empty");
+        var selvid = document.getElementById("KeyVIDSelect");
+        var selpcp = document.getElementById("qceKeyPCPSelect");
+        var seldei = document.getElementById("qceKeyDEISelect");
+        if (ihave == 1) {//untagged
+            selvid.disabled=selpcp.disabled=seldei.disabled="disabled";
+            tdd.style.display="none";
+            td.style.display="none";
+            if (emptyvidtd) {
+                emptyvidtd.style.display="";
+            }
+            selvid.selectedIndex=selpcp.selectedIndex=seldei.selectedIndex=0;//change vid select back to any
+            document.getElementById("KeyVidStart").value = "";
+            document.getElementById("KeyVidLast").value = "";
+            document.getElementById("KeyVIDSpecific").value = "";
+        } else {// other than untagged
+            selvid.disabled = selpcp.disabled = seldei.disabled = "";
+        }
+        break;
+    case "KeyVIDSelect" :
+        ihave = document.getElementById(this.id).selectedIndex;
+        tdd = document.getElementById("keyVIDSpec");
+        td = document.getElementById("keyVIDRange");
+        emptyvidtd = document.getElementById("keyVIDSpec_empty");
+        if (ihave == 1) {//Specific
+            tdd.style.display="";
+            td.style.display="none";
+            if (emptyvidtd) {
+                emptyvidtd.style.display="none";
+            }
+            document.getElementById("KeyVidStart").value = "";
+            document.getElementById("KeyVidLast").value = "";
+        } else if (ihave == 2) {//Range
+            tdd.style.display="none";
+            if (emptyvidtd) {
+                emptyvidtd.style.display="none";
+            }
+            td.style.display="";
+            document.getElementById("KeyVIDSpecific").value = "";
+        } else if (ihave === 0) {//Any
+            tdd.style.display="none";
+            td.style.display="none";
+            if (emptyvidtd) {
+                emptyvidtd.style.display="";
+            }
+            document.getElementById("KeyVIDSpecific").value = "";
+            document.getElementById("KeyVidStart").value = "";
+            document.getElementById("KeyVidLast").value = "";
+        } else {
+            alert (ihave + " is unexpected value");                
+        }
+        break;
+    case "actionDSCPSel" :
+        ihave = document.getElementById(this.id).selectedIndex;
+        var tbody = document.getElementById("ActionDSCPSpeciVal");
+        if (ihave) {
+            var newChild = document.createElement("tr");
+            addTextCell(newChild, "DSCP Value", "param_label");
+            addSelectCell(newChild, oTActionDSCP, oVActionDSCP, "0", "cl", "ActionDSCPSpcValue");
+            tbody.appendChild(newChild);
+        } else {// for Specific DSCP value
+            clearChildNodes(tbody);
+        }
+        break;
+    case "qceKeySMACSelect" :
+        ihave = document.getElementById(this.id).selectedIndex;
+        if (ihave) {
+            document.getElementById("qceKeySMACDply").style.display="";
+            document.getElementById("qceKeySMACDply_empty").style.display="none";
+            document.getElementById("qceKeySMACValue").disabled="";
+        } else {// for Specific DSCP value
+            document.getElementById("qceKeySMACDply_empty").style.display="";
+            document.getElementById("qceKeySMACDply").style.display="none";
+            document.getElementById("qceKeySMACValue").disabled="disabled";
+        }
+        break;
+    case "SSAPAddrSel":
+    case "DSAPAddrSel":
+    case "LLCCntrlSel":
+    case "SNAP_Ether_type_filter":
+    case "ether_type_filter" :
+        var dplyFld = "abc";
+        var valueFld = "abc";
+        var defalutValue = "";
+        if (this.id == "SSAPAddrSel") {
+            dplyFld = "LLCSSAPDply";
+            valueFld = "LLCSSAPVal";
+            defalutValue = "FF";
+        } else if (this.id == "DSAPAddrSel") {
+            dplyFld = "LLCDSAPDply";
+            valueFld = "LLCDSAPVal";
+            defalutValue = "FF";
+        } else if (this.id == "LLCCntrlSel") {
+            dplyFld = "LLCCntrlDply";
+            valueFld = "LLCControlVal";
+            defalutValue = "FF";
+        } else if (this.id == "SNAP_Ether_type_filter") {
+            dplyFld = "SNAPDply";
+            valueFld = "ether_type";
+            defalutValue = "FFFF";
+        } else if (this.id == "ether_type_filter") {
+            dplyFld = "etherTypeDply";
+            valueFld = "ether_type";
+            defalutValue = "FFFF"; 
+        } else {
+            alert ("invalid case");
+        }
+        ihave = document.getElementById(this.id).selectedIndex;
+        empty = document.getElementById(dplyFld + "_empty");
+        if (ihave) {
+            document.getElementById(dplyFld).style.display = "";//specific
+            if (empty) {
+                empty.style.display = "none";
+            }
+        } else {
+            document.getElementById(dplyFld).style.display = "none";//Any
+            if (empty) {
+                empty.style.display = "";
+            }
+            document.getElementById(valueFld).value = defalutValue;//clear value
+        }
+        break;
+    case "IPv6IPAddrSelect" :
+    case "IPv4IPAddrSelect" :
+        ihave = document.getElementById(this.id).selectedIndex;
+        if (ihave) {
+            document.getElementById("IPAddrDply").style.display="";
+            document.getElementById("IPAddrDply_empty").style.display="none";
+            document.getElementById("IPMaskDply").style.display="";//exp
+            document.getElementById("IPMaskDply_empty").style.display="none";//exp
+        } else {// for Specific DSCP value
+            document.getElementById("IPAddrDply").style.display="none";
+            document.getElementById("IPAddrDply_empty").style.display="";
+            document.getElementById("IPMaskDply").style.display="none";//exp
+            document.getElementById("IPMaskDply_empty").style.display="";//exp
+        }
+        break;
+    case "protocol_filterIPv6" : //common code for both v4 & v6
+    case "protocol_filterIPv4" :
+        tbody = document.getElementById(tblIdsel);
+        var endis = document.getElementById(this.id).selectedIndex;
+        ihave = document.getElementById(this.id).value;
+        var dsply = document.getElementById("keyProtoOther");
+        var dsply_empty = document.getElementById("keyProtoOther_empty");
+        if (ihave == 3) { // Other
+            dsply.style.display = "";
+            dsply_empty.style.display = "none";
+        } else {
+            dsply.style.display = "none";
+            dsply_empty.style.display = "";
+        }
+        if (endis === 0 || endis ==  3) {
+            document.getElementById("TcpUdp_parameters").style.display = "none";
+            UpdateId("tcpUdpconf", "");
+            clearChildNodes(tbody);
+        } else {
+            document.getElementById("TcpUdp_parameters").style.display = "";
+            var hdTxt = (ihave == 1)?"UDP Parameters":"TCP Parameters";
+            clearChildNodes(tbody);
+            UpdateId("tcpUdpconf", hdTxt);
+            fillTcpUdpTbl(tbody,ipVer);
+        }
+        break;
+    case "IPv6DSCPChoice" :
+    case "IPv4DSCPChoice" :
+        ihave = document.getElementById(this.id).selectedIndex;
+        tdd = document.getElementById("keyDSCPSpecSelect");
+        td = document.getElementById("keyDSCPRngSelect");
+        empty = document.getElementById("keyDSCPSpecSelect_empty");
+        if (ihave == 1) {
+            tdd.style.display="";
+            td.style.display="none";
+            empty.style.display="none";
+            document.getElementById("keyDSCPRngStart").value = "";
+            document.getElementById("keyDSCPRngLast").value = "";
+            document.getElementById("keyDSCPSpcValue").value = 0;
+        } else if (ihave == 2) {
+            tdd.style.display="none";
+            td.style.display="";
+            empty.style.display="none";
+            document.getElementById("keyDSCPRngStart").value = 0;
+            document.getElementById("keyDSCPRngLast").value = 63;
+            document.getElementById("keyDSCPSpcValue").value = "";
+        } else if (ihave === 0) {
+            tdd.style.display="none";
+            td.style.display="none";
+            empty.style.display="";
+            document.getElementById("keyDSCPRngStart").value = "";
+            document.getElementById("keyDSCPRngLast").value = "";
+            document.getElementById("keyDSCPSpcValue").value = "";
+        } else {
+            alert (ihave + " is unexpected value");                
+        }
+        break;
+    default:
+        alert("invalid choice");
+        break;        
+    }
+};
+
+function genPortMemberTbl(curSid) {
+    var class_ext = (configNormalPortMax > 30) ? "no_padding" : ""; // Make it more narrow if we have 'many' ports
+    var tr;
+    var frag = document.createDocumentFragment();
+    var sid_present;
+    var i;
+    var oTSwitch;
+    var oVSwitch;
+    var tbody;
+
+    tr = document.createElement("tr");
+    if (SpomStackPortCount()) {
+        addTextCell(tr, "Switch", "param_label c");
+    }
+    addTextCell(tr, "Port Members", "param_label c", noPorts);
+    frag.appendChild(tr);
+
+    tr = document.createElement("tr");
+    if (SpomStackPortCount()) {//to arrange table cells
+        addTextCell(tr, "#", "param_label c");
+    }
+    for (i = 1; i <= noPorts; i++) {
+        addTextCell(tr, i, "param_label c " + class_ext);
+    }
+    frag.appendChild(tr);
+
+    tr = document.createElement("tr");
+    if (SpomStackPortCount()) {
+        sid_present = (curSid == -1); // "Any" switch is always present
+        oTSwitch = [];
+        oVSwitch = [];
+        oTSwitch.push("Any");
+        oVSwitch.push(-1);
+        for (i = 0; i < switch_sel.length; i++) {
+            oTSwitch.push("Switch " + switch_sel[i]);
+            oVSwitch.push(switch_sel[i]);
+            if (curSid == switch_sel[i]) {
+                sid_present = true;
+            }
+        }
+        if (!sid_present) { // Also show a not present switch
+            oTSwitch.push("Switch " + curSid + " (not present)");
+            oVSwitch.push(curSid);
+        }
+        addSelectCell(tr, oTSwitch, oVSwitch, curSid, "c", "portMemSIDSelect");
+    }
+    for (i = 1; i <= noPorts; i++) {
+        addCheckBoxCell(tr, 1, "c " + class_ext, "new_ckBox_" + i);
+    }
+    frag.appendChild(tr);
+
+    tbody = document.getElementById("qcePortMemberTbl");
+    clearChildNodes(tbody);
+    tbody.appendChild(frag);
+}
+
+function genKeyCfgTbl () {
+    var tbody = document.getElementById("KeyCfgTbl");
+    var frag = document.createDocumentFragment();  
+    var tr = document.createElement("tr");
+    var Tagtxt = addTextCell(tr, "Tag", "param_label");
+    var td = addSelectCell(tr, oTKeyTag, ovKeytag, 0, "cl", "qceKeyTag");
+    td.onchange=changeFilter;
+    td = CreateTd("cl");
+    tr.appendChild(td);
+    frag.appendChild(tr);
+    tr = document.createElement("tr");
+    addTextCell(tr, "VID", "param_label");
+    var vidmenu = addSelectCell(tr, oTKeyVID, oVKeyVID, "Any", "cl", "KeyVIDSelect");
+    vidmenu.onchange=changeFilter;
+    
+    //display this if Specific is selected
+    var tdd = CreateTd("cl");
+    tdd.id="keyVIDSpec";
+    tdd.setAttribute("nowrap","nowrap");
+    tdd.style.display="none";
+    var Txt = document.createTextNode("Value:");
+    tdd.appendChild(Txt);
+    var input_value = document.createElement('input');
+    input_value.id = input_value.name = "KeyVIDSpecific";
+    input_value.setAttribute("size", 4);
+    input_value.setAttribute("maxLength", 4);
+    tdd.appendChild(input_value);
+    tr.appendChild(tdd);
+    frag.appendChild(tr);
+    
+    //display this if Range is selected
+    td = CreateTd("cl");
+    td.id="keyVIDRange";
+    td.style.display="none";
+    td.setAttribute("nowrap","nowrap");
+    td.align="left";
+    var rangeTxt = document.createTextNode("From:");
+    td.appendChild(rangeTxt);
+    input_value = document.createElement('input');
+    input_value.id = input_value.name = "KeyVidStart";
+    input_value.setAttribute("size", 4);
+    input_value.setAttribute("maxLength", 4);
+    td.appendChild(input_value);
+    td.setAttribute("nowrap","nowrap");
+    var txt_to = document.createTextNode(" To ");
+    td.appendChild(txt_to);
+    input_value = document.createElement('input');
+    input_value.id = input_value.name = "KeyVidLast";
+    input_value.setAttribute("size", 4);
+    input_value.setAttribute("maxLength", 4);
+    td.appendChild(input_value);
+    tr.appendChild(td);
+    
+    //display empty td in case vid option any is selected
+    td = CreateTd("cl");
+    td.id = "keyVIDSpec_empty";
+    tr.appendChild(td);
+
+    frag.appendChild(tr);
+    
+    tr = document.createElement("tr");
+    addTextCell(tr, "PCP", "param_label");
+    td = addSelectCell(tr, oTKeyPCPSelect, oVKeyPCPSelect, 0, "cl", "qceKeyPCPSelect");
+    td = CreateTd("cl");
+    tr.appendChild(td);
+    frag.appendChild(tr);
+    
+    tr = document.createElement("tr");
+    addTextCell(tr, "DEI", "param_label");
+    td = addSelectCell(tr, oTKeyDEISelect, oVKeyDEISelect, 0, "cl", "qceKeyDEISelect");
+    td = CreateTd("cl");
+    tr.appendChild(td);
+    
+    frag.appendChild(tr);
+
+    tr = document.createElement("tr");
+    addTextCell(tr, "SMAC", "param_label");
+    tdd = addSelectCell(tr, anyStr, oVsidArray, 0, "cl", "qceKeySMACSelect");
+    tdd.onchange=changeFilter;
+    td = CreateTd("cl");
+    td.id="qceKeySMACDply";
+    td.style.display="none";
+    var hex_header = document.createTextNode("0x");
+    td.appendChild(hex_header);
+
+    input_value = document.createElement('input');
+    input_value.id = input_value.name = "qceKeySMACValue";
+    input_value.setAttribute("size", 8);
+    input_value.setAttribute("disabled", "disabled");
+    input_value.setAttribute("value", "00-00-00");
+    input_value.setAttribute("maxLength", 8);
+    td.appendChild(input_value);
+    td.setAttribute("nowrap","nowrap");
+    tr.appendChild(td);
+    td = CreateTd("cl");
+    td.id="qceKeySMACDply_empty";
+    tr.appendChild(td);
+    frag.appendChild(tr);
+ 
+    tr = document.createElement("tr");
+    td = addTextCell(tr, "DMAC Type", "param_label");
+    td.setAttribute("nowrap", "nowrap");
+    td = addSelectCell(tr, oTKeyDMACType, oVKeyDMACType, "Any", "cl", "qceKeyDMACTypeSelect");
+    td = CreateTd("cl");
+    tr.appendChild(td);
+    frag.appendChild(tr);    
+    tr = document.createElement("tr");
+    td = addTextCell(tr, "Frame Type", "param_label");
+    td = addSelectCell(tr, oTKeyFrametype, oVKeyFrametype, "Any", "cl", "frame_type");
+    td.onchange=changeFrameType;
+    td = CreateTd("cl");
+    tr.appendChild(td);
+    frag.appendChild(tr);    
+    tbody.appendChild(frag);
+}
+ 
+function genActionCfgTbl () {
+    var tbody = document.getElementById("ActionCfgTbl");
+    var frag = document.createDocumentFragment();
+    var tr = document.createElement("tr");
+    var ClsTxt = addTextCell(tr, "Class", "param_label");
+    ClsTxt.setAttribute("width", 58);  
+    var td = addSelectCell(tr, oTActionClass, oVActionClass, 1, "cl", "actionClasSel");
+    frag.appendChild(tr);
+    tr = document.createElement("tr");
+    addTextCell(tr, "DPL", "param_label");  
+    td = addSelectCell(tr, oTActionDP, oVActionDP, 0, "cl", "actionDPSel");
+    frag.appendChild(tr);
+    tr = document.createElement("tr");
+    addTextCell(tr, "DSCP", "param_label");  
+    td = addSelectCell(tr, oTActionDSCP, oVActionDSCP, 0, "cl", "actionDSCPSel");
+    frag.appendChild(tr);
+    tbody.appendChild(frag);   
+}
+ 
+var processUpdate; // forward declaration
+var prev_req = "";
+ 
+function requestUpdate() {
+    switch (arg_qceConfigFlag) {
+    case 3:
+        UpdateIdValue("qce_id", arg_qce_id);
+        UpdateIdValue("next_qce_id", 0);
+        loadXMLDoc("/config/qcl_v2?qceConfigFlag=3&qce_id=" + arg_qce_id, processUpdate, null);
+        break;
+    case 4:
+        UpdateIdValue("qce_id", 0);
+        UpdateIdValue("next_qce_id", arg_qce_id);
+        loadXMLDoc("/config/qcl_v2?qceConfigFlag=4&qce_id=" + arg_qce_id, processUpdate, null);
+        break;
+    default:
+        document.location.href = "qcl_v2.htm";
+        break;
+    }
+}
+
+function setTxtFlds (selectMenuID, specFldID, startFldID, lastFldID, lowV, highV, specDplyTD, rngDplyTD) {
+    var empty_spec;
+
+    if (lowV == -1 && highV == -1) {
+        //do nothing
+    } else if (highV == -1) {//Specifc Sport value
+        document.getElementById(selectMenuID).selectedIndex = 1;
+        var tdd = document.getElementById(specDplyTD);
+        tdd.style.display="";
+        empty_spec = document.getElementById(specDplyTD + "_empty");
+        if (empty_spec) {
+            empty_spec.style.display="none";
+        }
+        document.getElementById(specFldID).value = lowV;    
+    } else if (parseInt(lowV, 10) < parseInt(highV, 10)) {//Range
+        document.getElementById(selectMenuID).selectedIndex = 2;
+        var td = document.getElementById(rngDplyTD);
+        td.style.display="";
+        empty_spec = document.getElementById(specDplyTD + "_empty");
+        if (empty_spec) {
+            empty_spec.style.display="none";
+        }
+        var empty_rng = document.getElementById(rngDplyTD + "_empty");
+        if (empty_rng) {
+            empty_rng.style.display="none";
+        }
+        document.getElementById(startFldID).value = lowV;
+        document.getElementById(lastFldID).value = highV;
+    } else {
+        alert("Error: low value can't be more than sport high value");
+    }
+}
+ 
+processUpdate = function processUpdate (req, ref) {
+    var data;
+    var qce_info;
+    var frame_info;
+    var sid_next;
+    var tbody;
+    var hdTxt;
+
+/* Format:
+ * <qce_info>;<frame_info>
+ *
+ * qce_info        :== <sid_next>/<port_list>/<tag>/<vid>/<pcp>/<dei>/<smac>/<dmac_type>/<act_class>/<act_dpl>/<act_dscp>
+ *   sid_next      :== <usid_list>,<usid>,<next_qce_id>
+ *     usid_list   :== <usid l>#<usid m>#<usid n> // List of present (active) switches in usid order.
+ *     usid        :== 1..16 or -1 for all switches
+ *     next_qce_id :== 0..256
+ *   port_list     :== list of disabled uports separated by ','. Empty list ~ All ports enabled 
+ *   tag           :== 0: Any, 1: Untag, 2: Tag
+ *   vid           :== <vid_low>,<vid_high>
+ *     vid_low     :== -1 or 1..4095  // -1: Any
+ *     vid_high    :== -1 or 1..4095  // -1: Use vid_low as specific, else high range.
+ *   pcp           :== <pcp_low>,<pcp_high>
+ *     pcp_low     :== -1..7   // -1 is Any
+ *     pcp_high    :== -1..7    // Not used if pcp_low == -1. If pcp_low != pcp_high then it is a range, else use pcp_low.
+ *   dei           :== -1: Any , else dei value
+ *   smac          :== String  // "Any" or "xx-xx-xx-xx-xx-xx"
+ *   dmac_type     :== 0..3    // One of qos_qce_dmac_type_t
+ *   act_class     :== -1..7   // -1 is no action, else classify to selected value
+ *   act_dpl       :== -1..3   // -1 is no action, else classify to selected value
+ *   act_dscp      :== -1..63  // -1 is no action, else classify to selected value
+ *
+ * frame_info      :== <frame_type>/<type_any> or <type_eth> or <type_llc> or <type_snap> or <type_ipv4> or <type_ipv6>
+ *   frame_type    :== 0..5    // One of vtss_qce_type_t
+ *   type_any      :== String "Any"
+ *   type_eth      :== <eth_spec>/<eth_val>
+ *     eth_spec    :== 0 or 1 where 0 is Any and 1 is use eth_val
+ *     eth_val     :== 0 or 0600..ffff - value in hex (without 0x prepended)
+ *   type_llc      :== <ssap_spec>/<dsap_spec>/<ctrl_spec>/<ssap_val>/<dsap_val>/<ctrl_val>
+ *     ssap_spec   :== -1 for Any, else value in decimal
+ *     dsap_spec   :== -1 for Any, else value in decimal
+ *     ctrl_spec   :== -1 for Any, else value in decimal
+ *     ssap_val    :== 0 or value in hex (without 0x prepended)
+ *     dsap_val    :== 0 or value in hex (without 0x prepended)
+ *     ctrl_val    :== 0 or value in hex (without 0x prepended)
+ *   type_snap     :== <snap_spec>/<snap_hbyte>/<snap_lbyte>
+ *     snap_spec   :== 0 or 1 where 0 is Any and 1 is use snap_hbyte and snap_lbyte
+ *     snap_hbyte  :== 00..ff - value in hex (without 0x prepended)
+ *     snap_lbyte  :== 00..ff - value in hex (without 0x prepended)
+ *   type_ipv4     :== <proto>/<sip>/<ip_frag>/<dscp_low>/<dscp_high>[/<sport_low>/<sport_high>/<dport_low>/<dport_high>]
+ *     proto       :== -1 for Any, else value in decimal
+ *     sip         :== <ip>,<mask>
+ *       ip        :== String // "Any" or "x.y.z.w"
+ *       mask      :== String // "x.y.z.w"
+ *     ip_frag     :== 0: Any, 1: No, 2: Yes
+ *     dscp_low    :== -1..63 // -1 if Any
+ *     dscp_high   :== -1..63 // -1: Use dscp_low as specific, else high range.
+ *     sport_low   :== -1..65535 // -1 if Any                                         Only present if proto is TCP or UDP!
+ *     sport_high  :== -1..65535 // -1: Use sport_low as specific, else high range.   Only present if proto is TCP or UDP!
+ *     dport_low   :== -1..65535 // -1 if Any                                         Only present if proto is TCP or UDP!
+ *     dport_high  :== -1..65535 // -1: Use dport_low as specific, else high range.   Only present if proto is TCP or UDP!
+ *   type_ipv6     :== <proto>/<sip>/<dscp_low>/<dscp_high>[/<sport_low>/<sport_high>/<dport_low>/<dport_high>]
+ *     proto       :== -1 for Any, else value in decimal
+ *     sip         :== <ip>,<mask>
+ *       ip        :== String // "Any" or "x.y.z.w"
+ *       mask      :== String // "x.y.z.w"
+ *     dscp_low    :== -1..63 // -1 if Any
+ *     dscp_high   :== -1..63 // -1: Use dscp_low as specific, else high range.
+ *     sport_low   :== -1..65535 // -1 if Any                                         Only present if proto is TCP or UDP!
+ *     sport_high  :== -1..65535 // -1: Use sport_low as specific, else high range.   Only present if proto is TCP or UDP!
+ *     dport_low   :== -1..65535 // -1 if Any                                         Only present if proto is TCP or UDP!
+ *     dport_high  :== -1..65535 // -1: Use dport_low as specific, else high range.   Only present if proto is TCP or UDP!
+ */
+    if (req.responseText) {
+        /* take a backup of req object */
+        prev_req = req;
+
+        data       = req.responseText.split(";");
+        qce_info   = data[0].split("/");
+        sid_next   = qce_info[0].split(",");
+        switch_sel = sid_next[0].split("#");
+    
+        //update sid
+        genPortMemberTbl(sid_next[1]);
+        genKeyCfgTbl();
+        genActionCfgTbl();
+        changeFrameType();
+   
+        if (arg_qceConfigFlag == 4) { // <Insert> or <Add to Last> - Nothing more to do
+            return;
+        }
+
+        frame_info = data[1].split("/");
+
+        //update next_qce_id
+        UpdateIdValue("next_qce_id", parseInt(sid_next[2], 10));
+
+        //update checked ports list. Note that this list might be empty and that it contains DISABLED ports
+        if (qce_info[1] !== "") {
+            var port_list = qce_info[1].split(",");
+            var i;
+            for (i = 0; i < port_list.length; i++) {
+                document.getElementById("new_ckBox_" + port_list[i]).checked = 0;
+            }
+        }
+        //update key -> tag field
+        if (qce_info[2] == 1) {//Untag
+            document.getElementById("qceKeyTag").selectedIndex = 1;
+            //gray out vid,pcp & dei selection menu
+            document.getElementById("KeyVIDSelect").disabled="disabled";
+            document.getElementById("qceKeyPCPSelect").disabled="disabled";
+            document.getElementById("qceKeyDEISelect").disabled="disabled";
+        }
+        if (qce_info[2] == 2) {//tag
+            document.getElementById("qceKeyTag").selectedIndex = 2;
+        } 
+        //update key -> fields
+        var vidValues = qce_info[3].split(",");
+        setTxtFlds ("KeyVIDSelect","KeyVIDSpecific","KeyVidStart","KeyVidLast",vidValues[0],vidValues[1],"keyVIDSpec","keyVIDRange");
+    
+        var pcpsplitAry = qce_info[4].split(",");
+        var diffLowHigh = parseInt(pcpsplitAry[1], 10) - parseInt(pcpsplitAry[0], 10);
+        var fld = document.getElementById("qceKeyPCPSelect");
+        if (pcpsplitAry[0] == -1 && pcpsplitAry[1] == -1) {
+            //ignore any case
+        } else if (pcpsplitAry[0] != -1 && diffLowHigh === 0) {
+            fld.selectedIndex = (parseInt(pcpsplitAry[0], 10) + 1);
+        } else if (diffLowHigh == 1){
+            var selIdx = 0;
+            switch (parseInt(pcpsplitAry[0], 10)) {
+            case 0:
+                selIdx = 9;  
+                break;
+            case 2:
+                selIdx = 10;
+                break;
+            case 4:
+                selIdx = 11;
+                break;
+            case 6:
+                selIdx = 12;
+                break;
+            default:
+                break;
+            }
+            fld.selectedIndex = selIdx; 
+        } else {
+            fld.selectedIndex = ((parseInt(pcpsplitAry[0], 10) === 0) ? 13 : 14);
+        }
+    
+        //update Key -> DEI field
+        if (qce_info[5] != -1) {
+            document.getElementById("qceKeyDEISelect").selectedIndex = (parseInt(qce_info[5], 10) + 1);
+        }
+        //update Key -> smac
+        if (qce_info[6] != "Any") {
+            document.getElementById("qceKeySMACDply").style.display="";
+            document.getElementById("qceKeySMACDply_empty").style.display="none";
+            document.getElementById("qceKeySMACValue").disabled="";
+            document.getElementById("qceKeySMACSelect").selectedIndex = 1;
+            var ouiStr = qce_info[6].split("-");
+            var oui = ouiStr[0]+"-"+ouiStr[1]+"-"+ouiStr[2];
+            document.getElementById("qceKeySMACValue").value = oui;
+        }
+        //update Key -> dmac type
+        document.getElementById("qceKeyDMACTypeSelect").selectedIndex = qce_info[7];
+        //update Action -> class
+        if (qce_info[8] != -1) {
+            document.getElementById("actionClasSel").selectedIndex = (parseInt(qce_info[8], 10) + 1);
+        }
+        //update Action -> DP
+        if (qce_info[9] != -1) {
+            document.getElementById("actionDPSel").selectedIndex = (parseInt(qce_info[9], 10) + 1);
+        }
+        //update Action -> DSCP
+        if (qce_info[10] != -1) {
+            document.getElementById("actionDSCPSel").selectedIndex = (parseInt(qce_info[10], 10) + 1);
+        }
+        //update Key -> frame type field
+        var frame_type_handle =  document.getElementById("frame_type");
+        if (parseInt(frame_info[0], 10) === 0) {
+            frame_type_handle.selectedIndex = 1;//frame type is Ethernet
+            frame_type_handle.value = 1;
+        } else if (parseInt(frame_info[0], 10) == 1) {
+            frame_type_handle.selectedIndex = 0;//frame type is Any
+            frame_type_handle.value = 0;
+        } else {
+            frame_type_handle.selectedIndex = parseInt(frame_info[0], 10);
+            frame_type_handle.value = parseInt(frame_info[0], 10);
+        }
+        var frameType = document.getElementById("frame_type").selectedIndex;
+        switch (frameType) {
+        case 0://Any    
+            break;
+        case 1://Ethernet
+            //make ethernet parameter table visible
+            changeFrameType();
+            if (parseInt(frame_info[1], 10)) {//Ethernet Type
+                document.getElementById("ether_type_filter").selectedIndex = 1;
+                document.getElementById("etherTypeDply").style.display = "";
+                document.getElementById("ether_type").value = frame_info[2].toUpperCase();
+            }
+            break;
+        case 2://LLC
+            changeFrameType();
+            var empty = document.getElementById("LLCSSAPDply_empty");
+            if (frame_info[1] != -1) {//ssap field
+                document.getElementById("SSAPAddrSel").selectedIndex = 1;
+                document.getElementById("LLCSSAPDply").style.display = "";//display value
+                if (empty) {
+                    empty.style.display = "none";
+                }
+                document.getElementById("LLCSSAPVal").value = frame_info[4].toUpperCase();
+            }
+            empty = document.getElementById("LLCDSAPDply_empty");
+            if (frame_info[2] != -1) {//dsap field
+                document.getElementById("DSAPAddrSel").selectedIndex = 1;
+                document.getElementById("LLCDSAPDply").style.display = "";//display valu
+                if (empty) {
+                    empty.style.display = "none";
+                }
+                document.getElementById("LLCDSAPVal").value = frame_info[5].toUpperCase();
+            }
+            empty = document.getElementById("LLCCntrlDply_empty");
+            if  (frame_info[3] != -1) {//control field
+                document.getElementById("LLCCntrlSel").selectedIndex = 1;
+                document.getElementById("LLCCntrlDply").style.display = "";//display valu
+                if (empty) {
+                    empty.style.display = "none";
+                }
+                document.getElementById("LLCControlVal").value = frame_info[6].toUpperCase();
+            }
+            break;
+        case 3://SNAP
+            changeFrameType();
+            if (parseInt(frame_info[1], 10)) {//SNAP Ethernet Type
+                document.getElementById("SNAP_Ether_type_filter").selectedIndex = 1;
+                document.getElementById("SNAPDply").style.display = "";
+                document.getElementById("ether_type").value = (frame_info[2] +""+ frame_info[3]).toUpperCase();
+            }
+            break;
+        case 4://IPv4
+            changeFrameType();     
+            if (frame_info[1] != -1) {
+                fld = document.getElementById("protocol_filterIPv4");
+                if (frame_info[1] == 17 || frame_info[1] == 6) {
+                    fld.selectedIndex = (frame_info[1] == 6)?2:1;//UDP or TCP
+                    tbody = document.getElementById("v4TcpUdpfld");
+                    tbody.style.display = "";
+                    hdTxt = (fld.selectedIndex == 1)?"UDP Parameters":"TCP Parameters";
+                    document.getElementById("TcpUdp_parameters").style.display = "";
+                    UpdateId("tcpUdpconf", hdTxt);
+                    fillTcpUdpTbl(tbody,"IPv4");
+            
+                    //sport low idx - 6/high idx - 7
+                    setTxtFlds("keySportSelect","keySportSpecValue","keySportStart","keySportLast",frame_info[6],frame_info[7],"keySportSpecTd","keySportRangeTd");
+            
+                    //dport low idx - 8/high idx - 9
+                    setTxtFlds("keyDportSelect","keyDportSpecValue","keyDportStart","keyDportLast",frame_info[8],frame_info[9],"keyDportSpecTd","keyDportRangeTd");
+            
+                } else {//Other
+                    document.getElementById("keyProtoOther").style.display = "";
+                    document.getElementById("keyProtoOther_empty").style.display = "none";
+                    document.getElementById("protocol_filterIPv4").selectedIndex = 3;//Other
+                    document.getElementById("KeyProtoNbr").value = frame_info[1];
+                }
+            }
+            //update ipv4 -> sip
+            /* Format-> frame_info[2] == [sip],[sip mask] */
+            var sipMaskAry =  frame_info[2].split(",");
+            if (sipMaskAry[0] != "Any") {
+                document.getElementById("IPv4IPAddrSelect").selectedIndex = 1;
+                document.getElementById("IPAddrDply").style.display="";
+                document.getElementById("IPAddrDply_empty").style.display="none";
+                document.getElementById("IPMaskDply").style.display="";
+                document.getElementById("IPMaskDply_empty").style.display="none";
+                document.getElementById("IPMaskValue").value = sipMaskAry[1];
+                document.getElementById("IPv4Addr").value = sipMaskAry[0];
+            }
+            //update ipv4 -> ip fragment
+            if (frame_info[3] == 1) {//No
+                document.getElementById("IPv4IPfragMenu").selectedIndex = 2;
+            }
+            if (frame_info[3] == 2) {//Yes
+                document.getElementById("IPv4IPfragMenu").selectedIndex = 1;
+            }
+            //update dscp (low & high) value
+            setTxtFlds("IPv4DSCPChoice","keyDSCPSpcValue","keyDSCPRngStart","keyDSCPRngLast",frame_info[4],frame_info[5],"keyDSCPSpecSelect","keyDSCPRngSelect");
+            break;
+        case 5://IPv6
+            changeFrameType();
+            if (frame_info[1] != -1) {
+                fld = document.getElementById("protocol_filterIPv6");
+                if (frame_info[1] == 6 || frame_info[1] == 17) {
+                    fld.selectedIndex = (frame_info[1] == 6)?2:1;//UDP or TCP
+                    tbody = document.getElementById("v6TcpUdpfld");
+                    tbody.style.display = "";
+                    hdTxt = (fld.selectedIndex == 1)?"UDP Parameters":"TCP Parameters";
+                    document.getElementById("TcpUdp_parameters").style.display = "";
+                    UpdateId("tcpUdpconf", hdTxt);
+                    fillTcpUdpTbl(tbody,"IPv6");
+            
+                    //sport low idx - 6/high idx - 7
+                    setTxtFlds("keySportSelect","keySportSpecValue","keySportStart","keySportLast",frame_info[6],frame_info[7],"keySportSpecTd","keySportRangeTd");
+                    
+                    //dport low idx - 8/high idx - 9
+                    setTxtFlds("keyDportSelect","keyDportSpecValue","keyDportStart","keyDportLast",frame_info[8],frame_info[9],"keyDportSpecTd","keyDportRangeTd");
+                } else {//Other
+                    document.getElementById("keyProtoOther").style.display = "";
+                    document.getElementById("protocol_filterIPv6").selectedIndex = 3;//Other
+                    document.getElementById("KeyProtoNbr").value = frame_info[1];
+                }
+            }
+          
+            //ipv6 -> sip address value
+            if (frame_info[2] != "Any") {
+                document.getElementById("IPv6IPAddrSelect").selectedIndex = 1;
+                document.getElementById("IPAddrDply").style.display="";
+                document.getElementById("IPMaskDply").style.display="";
+                document.getElementById("IPMaskValue").value = frame_info[3];
+                document.getElementById("IPv6Addr").value = frame_info[2];
+            }
+            //update dscp (low & high) value
+            setTxtFlds("IPv6DSCPChoice","keyDSCPSpcValue","keyDSCPRngStart","keyDSCPRngLast",frame_info[4],frame_info[5],"keyDSCPSpecSelect","keyDSCPRngSelect");
+            break;
+        default:
+            alert("invalid frame type value");
+            break;    
+        }
+    } else {
+        //alert("you are in else of req.responseText");
+        genPortMemberTbl(-1);
+        genKeyCfgTbl();
+        genActionCfgTbl();
+        changeFrameType();
+    }
+};//End of process update function
+
+function qceSubmit () {
+    if (!checkForm()) {
+        return;
+    }
+    document.getElementById("buttons").style.visibility = "hidden";
+    document.qceConfigForm.submit();
+}
+
+function ResetButton (ele) {
+    clearTbles(clearAllTbl);
+    if (prev_req !== ""){
+        processUpdate(prev_req, "NULL");
+    } else {
+        ele.form.reset();
+    }
+}
+ 
+function qceReset () {
+    clearTbles(clearAllTbl);
+    requestUpdate(); 
+}
+ 
+ </script>
+
+</head>
+
+<body class="content" onload="qceReset();">
+<form name="qceConfigForm" method="POST" action="/config/qcl_v2">
+<h1>QCE Configuration</h1>
+<table summary="QCE member ports - QCE Configuration" class="config">
+    <tbody id="qcePortMemberTbl">
+    </tbody>
+</table>
+<br />
+
+<table summary="parent table of key, Action , configuration tables">
+<tr><td width="400" valign="top">
+        <br />
+        <h1>Key Parameters</h1>
+        <table summary="Key table - QCE Configuration" class="config">
+            <tbody id="KeyCfgTbl"></tbody>
+        </table>    
+    </td>
+    <td width="50"></td>
+    <td valign="top">
+        <br />
+        <h1>Action Parameters</h1>
+        <table summary="Action table - QCE Configuration" class="config">
+            <tbody id="ActionCfgTbl"></tbody>
+        </table>    
+    </td>
+</tr>
+<tr><td valign="top">
+        <h1>&nbsp;</h1>
+        <div id="mac_parameters">
+
+        <h1>MAC Parameters</h1>
+        <table summary="QCE Configuration - MAC Parameters" class="display">
+            <tbody id="qceData_Mac">
+            </tbody>
+        </table>
+        </div>
+
+        <div id="llc_parameters">
+
+        <h1>LLC Parameters</h1>
+        <table summary="SSAP Address paremeter - LLC configuration" class="config">
+            <tbody id="LLCSSAP"></tbody>
+        </table>
+        </div>
+        
+        <div id="snap_parameters">
+
+        <h1>SNAP Parameters</h1>
+        <table summary="QCE Configuration - SNAP Parameters" class="config">
+            <tbody id="qceData_SNAP">
+            </tbody>
+        </table>
+        </div>
+
+        <div id="ipv4_parameters">
+
+        <h1>IPv4 Parameters</h1>
+        <table summary="QCE Configuration - IPv4 Parameters" class="config">
+            <tbody id="qceData_IPv4">
+            </tbody>
+        </table>
+        <table summary="v6QCE DSCP Range|Specific values" class="config">
+            <tbody id="IPv4DSCPOption">
+            </tbody>
+        </table>
+        </div>
+
+        <div id="ipv6_parameters">
+
+        <h1>IPv6 Parameters</h1>
+        <table summary="QCE Configuration - IPv6 Parameters" class="config">
+            <tbody id="qceData_IPv6">
+            </tbody>
+        </table>
+        <table summary="v6QCE DSCP Range|Specific values" class="config">
+            <tbody id="IPv6DSCPOption">
+            </tbody>
+        </table>
+        
+        </div>
+                
+    </td>
+    <td width="50"></td>
+    <td valign="top">
+        <h1>&nbsp;</h1>
+        <div id="TcpUdp_parameters">
+        <h1 id="tcpUdpconf"> </h1>
+        <table summary="TCP/UDP fields - IPv4 Parameters" class="config">
+            <tbody id="v4TcpUdpfld">
+            </tbody>
+        </table>
+        <table summary="TCP/UDP fields - IPv6 Parameters" class="config">
+            <tbody id="v6TcpUdpfld">
+            </tbody>
+        </table>
+        </div>
+    </td>
+</tr>
+</table>
+<p id="buttons">
+<input type="hidden" id="qce_id" name="qce_id">
+<input type="hidden" id="next_qce_id" name="next_qce_id">
+<input type="hidden" id="submit_sid" name="sid" value="-1">
+<input type="button" value="Save" onclick="qceSubmit();">
+<input type="button" value="Reset" onclick="ResetButton(this);">
+<input type="button" value="Cancel" onclick="qceCancel();">
+</p>
+
+</form>
+
+</body>
+
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

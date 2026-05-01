@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QCL Wizard - TOS</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_qcl_wizard_tos.htm";
+
+var oTPort  = genArrayInt(configPortMin, configNormalPortMax);
+var oVPort  = genArrayStr(configPortMin, configNormalPortMax);
+var oTPriority = ["Low","Normal","Medium","High"];
+var oVPriority = genArrayInt(1, oTPriority.length);
+var oTQCEType = ["Ethernet Type","VLAN ID","TCP/UDP Port","DSCP","ToS","Tag Priority"];
+
+var singleQceConfigData;
+
+function qceSubmit() {
+    document.getElementById("buttons").style.visibility = "hidden";
+    document.qceConfigForm.submit();
+}
+
+function changeQceType() {
+    var values = singleQceConfigData.split("/");
+    
+    var frag = document.createDocumentFragment();
+    var newQceType = parseInt(values[3], 10);
+    
+    //qcl_id
+    tr = document.createElement("tr");
+    addTextCell(tr, "QCL ID", "param_label");
+    var td = addSelectCell(tr, oTPort, oVPort, 1, "cl", "qcl_id");
+    frag.appendChild(tr);
+    
+    for (var i = 0; i <= 7; i++) {
+        tr = document.createElement("tr");
+        addTextCell(tr, "ToS Precedence " + i + " Class", "param_label");
+        addSelectCell(tr, oTPriority, oVPriority, parseInt(values[4 + i], 10), "cl", "traffic_class" + i);
+        frag.appendChild(tr);
+    }
+    
+    var tbody = document.getElementById("qceData");
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+function requestUpdate() {
+    // Format: [qcl_id]/[qce_id]/[next_qce_id]/[qce_type]/[type_value_filed]|...,
+    // [type_value_filed]
+    // - Ethernet Type [eth_type]/[class]
+    // - VLAN ID       [vid]/[class]
+    // - TCP/UDP Port  [port_low]/[port_high]/[class]
+    // - DSCP          [dscp]/[class]
+    // - ToS           [class0]/[class1]/[class2]/[class3]/[class4]/[class5]/[class6]/[class7]
+    // - Tag Priority  [class0]/[class1]/[class2]/[class3]/[class4]/[class5]/[class6]/[class7]
+    
+    singleQceConfigData = "1/0/0/4/1/1/1/1/1/1/1/1";
+    changeQceType();
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form name="qceConfigForm" method="POST" action="/config/qcl_wizard_tos">
+
+<h1>Set up ToS Precedence Mapping</h1> 
+<h2>Set up the traffic class mapping to the precedence part of ToS (3 bits) when receiving IPv4/IPv6 packets.</h2>
+<p>&nbsp;</p>
+
+<table summary="QCE Configuration" class="config">
+    <tbody id="qceData">
+    </tbody>
+</table>
+
+<p>&nbsp;</p> 
+<hr>
+<p id="buttons">
+<input type="button" value="Cancel Wizard" onclick="document.location.href='qcl_wizard.htm';">
+&nbsp;&nbsp;&nbsp;&nbsp;
+<input type="button" value="< Back" onclick="history.back();">
+<input type="button" value="Next >" onclick="qceSubmit();">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

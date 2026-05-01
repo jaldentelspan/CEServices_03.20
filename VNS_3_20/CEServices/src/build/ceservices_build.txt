@@ -1,0 +1,570 @@
+make -C /raid5/home/jalden/TelspanDataProjectsInternal/iES_12/Development/Software/CEServices/VNS_3_20/CEServices/src/build/../build/obj -f /raid5/home/jalden/TelspanDataProjectsInternal/iES_12/Development/Software/CEServices/VNS_3_20/CEServices/src/build/../build/make/compile.mk all
+make[1]: Entering directory '/raid5/home/jalden/TelspanDataProjectsInternal/iES_12/Development/Software/CEServices/VNS_3_20/CEServices/src/build/obj'
+/raid5/home/jalden/TelspanDataProjectsInternal/iES_12/Development/Software/CEServices/VNS_3_20/CEServices/src/build/../build/make/module_ptp.in:71: PTP core sources unavailable, assuming binary form only libptp_ies_2_0_ref.a
+Compiling ../../vtss_appl/access_mgmt/access_mgmt.c
+Compiling ../../vtss_appl/access_mgmt/access_mgmt_cli.c
+Compiling ../../vtss_appl/access_mgmt/access_mgmt_web.c
+Compiling ../../vtss_appl/access_mgmt/access_mgmt_xml.c
+Compiling ../../vtss_appl/access_mgmt/access_mgmt_icfg.c
+Compiling ../../vtss_appl/acl/acl.c
+Compiling ../../vtss_appl/acl/acl_cli.c
+Compiling ../../vtss_appl/acl/acl_web.c
+Compiling ../../vtss_appl/acl/acl_xml.c
+Compiling ../../vtss_appl/acl/acl_icfg.c
+Compiling ../../vtss_appl/aggr/aggr.c
+Compiling ../../vtss_appl/aggr/aggr_cli.c
+Compiling ../../vtss_appl/aggr/aggr_icfg.c
+Compiling ../../vtss_appl/aggr/aggr_web.c
+Compiling ../../vtss_appl/aggr/aggr_xml.c
+Compiling ../../vtss_appl/arp_inspection/arp_inspection.c
+Compiling ../../vtss_appl/arp_inspection/arp_inspection_cli.c
+Compiling ../../vtss_appl/arp_inspection/arp_inspection_web.c
+Compiling ../../vtss_appl/arp_inspection/arp_inspection_xml.c
+Compiling ../../vtss_appl/arp_inspection/arp_inspection_icfg.c
+Compiling ../../vtss_appl/auth/vtss_auth.c
+Compiling ../../vtss_appl/auth/vtss_auth_cli.c
+Compiling ../../vtss_appl/auth/vtss_auth_web.c
+Compiling ../../vtss_appl/auth/vtss_auth_xml.c
+Compiling ../../vtss_appl/auth/vtss_auth_icfg.c
+Compiling ../../vtss_appl/board/led.c
+Compiling ../../vtss_appl/board/led_vns.c
+Compiling ../../vtss_appl/board/interrupt_vns.c
+Compiling ../../vtss_appl/board/interrupt.c
+Compiling ../../vtss_appl/board/interrupt_dev.c
+Compiling ../../vtss_appl/lldp/base/cdp/cdp_analyse.c
+Compiling ../../vtss_appl/lldp/base/cdp/cdp_bist.c
+Compiling ../../vtss_appl/cli/cli.c
+Compiling ../../vtss_appl/cli/cli_cli.c
+Compiling ../../vtss_appl/cli/cli_grp_help.c
+Compiling ../../vtss_appl/cli/cli_telnet.c
+In file included from ../../vtss_appl/cli/cli_grp_help.c:34:
+../../vtss_appl/ies_2_0/vns_types.h:44:1: warning: "HIDE_IRIG_INPUTS" redefined
+../../vtss_appl/ies_2_0/vns_types.h:8:1: warning: this is the location of the previous definition
+Compiling ../../vtss_appl/conf/ies_board_conf.c
+Compiling ../../vtss_appl/conf/conf.c
+Compiling ../../vtss_appl/conf/conf_cli.c
+Compiling ../../vtss_appl/conf_xml/conf_xml.c
+Compiling ../../vtss_appl/conf_xml/conf_xml_cli.c
+Compiling ../../vtss_appl/conf_xml/conf_xml_web.c
+Compiling ../../vtss_appl/daylight_saving/daylight_saving.c
+Compiling ../../vtss_appl/daylight_saving/daylight_saving_web.c
+Compiling ../../vtss_appl/daylight_saving/daylight_saving_xml.c
+Compiling ../../vtss_appl/daylight_saving/daylight_saving_cli.c
+Compiling ../../vtss_appl/daylight_saving/daylight_saving_icfg.c
+Compiling ../../vtss_appl/dhcp_client/dhcp_client_c.c
+Compiling ../../vtss_appl/dhcp_client/dhcp_client.cxx
+Compiling ../../vtss_appl/dhcp_client/types.cxx
+Compiling ../../vtss_appl/dhcp_helper/dhcp_helper.c
+Compiling ../../vtss_appl/dhcp_helper/dhcp_helper_cli.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/alloc.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/bpf.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/comapi.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/conflex.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/ctrace.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/discover.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/dispatch.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/dlpi.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/ethernet.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/execute.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/fddi.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/inet.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/lpf.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/memory.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/nit.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/options.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/packet.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/parse.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/print.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/raw.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/resolv.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/socket.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/tables.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/tr.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/tree.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/upf.c
+Compiling ../../vtss_appl/dhcp_relay/base/common/heap.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/protocol.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/buffer.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/alloc.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/result.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/connection.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/errwarn.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/listener.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/dispatch.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/generic.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/support.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/handle.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/message.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/convert.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/hash.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/auth.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/inet_addr.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/array.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/trace.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/mrtrace.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/toisc.c
+Compiling ../../vtss_appl/dhcp_relay/base/omapip/iscprint.c
+Compiling ../../vtss_appl/dhcp_relay/base/dst/dst_support.c
+Compiling ../../vtss_appl/dhcp_relay/base/dst/dst_api.c
+Compiling ../../vtss_appl/dhcp_relay/base/dst/hmac_link.c
+Compiling ../../vtss_appl/dhcp_relay/base/dst/md5_dgst.c
+Compiling ../../vtss_appl/dhcp_relay/base/dst/base64.c
+Compiling ../../vtss_appl/dhcp_relay/base/dst/prandom.c
+Compiling ../../vtss_appl/dhcp_relay/base/relay/dhcrelay.c
+Compiling ../../vtss_appl/dhcp_relay/platform/dhcp_relay.c
+Compiling ../../vtss_appl/dhcp_relay/platform/dhcp_relay_cli.c
+Compiling ../../vtss_appl/dhcp_relay/platform/dhcp_relay_web.c
+Compiling ../../vtss_appl/dhcp_relay/platform/dhcp_relay_xml.c
+Compiling ../../vtss_appl/dhcp_relay/platform/dhcp_relay_icfg.c
+Compiling ../../vtss_appl/dhcp_snooping/dhcp_snooping.c
+Compiling ../../vtss_appl/dhcp_snooping/dhcp_snooping_cli.c
+Compiling ../../vtss_appl/dhcp_snooping/dhcp_snooping_web.c
+Compiling ../../vtss_appl/dhcp_snooping/dhcp_snooping_xml.c
+Compiling ../../vtss_appl/dhcp_snooping/dhcp_snooping_icfg.c
+Compiling ../../vtss_appl/dns/ip_dns.c
+Compiling ../../vtss_appl/dns/vtss_dns.c
+Compiling ../../vtss_appl/dns/dns_web.c
+Compiling ../../vtss_appl/dns/ip_dns_icfg.c
+Compiling ../../vtss_appl/nas/platform/dot1x.c
+Compiling ../../vtss_appl/nas/platform/dot1x_cli.c
+Compiling ../../vtss_appl/nas/platform/dot1x_web.c
+Compiling ../../vtss_appl/nas/platform/dot1x_xml.c
+Compiling ../../vtss_appl/nas/base/common/nas.c
+Compiling ../../vtss_appl/nas/base/auth/auth.c
+Compiling ../../vtss_appl/nas/base/auth/auth_sm.c
+Compiling ../../vtss_appl/nas/platform/dot1x_acct.c
+Compiling ../../vtss_appl/green_ethernet/eee/eee.c
+Compiling ../../vtss_appl/green_ethernet/eee/eee_lu26.c
+Compiling ../../vtss_appl/green_ethernet/eee/eee_xml.c
+Compiling ../../vtss_appl/eps/platform/eps.c
+Compiling ../../vtss_appl/eps/platform/eps_cli.c
+Compiling ../../vtss_appl/eps/platform/eps_web.c
+Compiling ../../vtss_appl/eps/base/vtss_eps.c
+Compiling ../../vtss_appl/erps/platform/erps.c
+Compiling ../../vtss_appl/erps/platform/erps_cli.c
+Compiling ../../vtss_appl/erps/platform/erps_web.c
+Compiling ../../vtss_appl/erps/base/vtss_erps.c
+Compiling ../../vtss_appl/eth_link_oam/platform/eth_link_oam.c
+Compiling ../../vtss_appl/eth_link_oam/platform/eth_link_oam_cli.c
+Compiling ../../vtss_appl/eth_link_oam/platform/eth_link_oam_web.c
+Compiling ../../vtss_appl/eth_link_oam/base/vtss_eth_link_oam_client.c
+Compiling ../../vtss_appl/eth_link_oam/base/vtss_eth_link_oam.c
+Compiling ../../vtss_appl/eth_link_oam/base/control/vtss_eth_link_oam_control.c
+Compiling ../../vtss_appl/evc/evc.c
+Compiling ../../vtss_appl/evc/evc_cli.c
+Compiling ../../vtss_appl/evc/evc_example.c
+Compiling ../../vtss_appl/evc/evc_web.c
+Compiling ../../vtss_appl/firmware/firmware.c
+Compiling ../../vtss_appl/firmware/firmware_cmn.c
+Compiling ../../vtss_appl/firmware/simage.c
+Compiling ../../vtss_appl/firmware/firmware_cli.c
+../../vtss_appl/firmware/firmware_cli.c: In function ‘cli_cmd_load_file’:
+../../vtss_appl/firmware/firmware_cli.c:179: warning: unused variable ‘result’
+../../vtss_appl/firmware/firmware_cli.c:153: warning: unused variable ‘firmware_req’
+../../vtss_appl/firmware/firmware_cli.c: At top level:
+../../vtss_appl/firmware/firmware_cli.c:148: warning: ‘cli_cmd_load_file’ defined but not used
+Compiling ../../vtss_appl/firmware/firmware_web.c
+Compiling ../../vtss_appl/https/vtss_https.c
+Compiling ../../vtss_appl/https/vtss_https_cli.c
+Compiling ../../vtss_appl/https/vtss_https_web.c
+Compiling ../../vtss_appl/https/vtss_https_xml.c
+Compiling ../../vtss_appl/https/vtss_https_icfg.c
+Compiling ../../vtss_appl/icfg/icfg.c
+Compiling ../../vtss_appl/icfg/icfg_api.c
+Compiling ../../vtss_appl/icli/base/icli.c
+Compiling ../../vtss_appl/icli/base/icli_api.c
+Compiling ../../vtss_appl/icli/base/icli_exec.c
+Compiling ../../vtss_appl/icli/base/icli_parsing.c
+Compiling ../../vtss_appl/icli/base/icli_register.c
+Compiling ../../vtss_appl/icli/base/icli_session.c
+Compiling ../../vtss_appl/icli/base/icli_session_a.c
+Compiling ../../vtss_appl/icli/base/icli_session_c.c
+Compiling ../../vtss_appl/icli/base/icli_session_z.c
+Compiling ../../vtss_appl/icli/base/icli_session_util.c
+Compiling ../../vtss_appl/icli/base/icli_util.c
+Compiling ../../vtss_appl/icli/base/icli_variable.c
+Compiling ../../vtss_appl/icli/platform/icli_console.c
+Compiling ../../vtss_appl/icli/platform/icli_start.c
+Compiling ../../vtss_appl/icli/platform/icli_conf.c
+Compiling ../../vtss_appl/icli/platform/icli_icfg.c
+Compiling ../../vtss_appl/icli/platform/porting/icli_porting_xy.c
+Compiling ../../vtss_appl/icli/platform/porting/icli_porting_util.c
+Compiling ../../vtss_appl/icli/platform/script/icli_cmd_func.c
+Compiling ../../vtss_appl/ies_2_0/vns_strings.c
+Compiling ../../vtss_appl/ies_2_0/vns_fpga.c
+Compiling ../../vtss_appl/ies_2_0/vns_fpga_cli.c
+Compiling ../../vtss_appl/ies_2_0/vns_fpga_web.c
+Compiling ../../vtss_appl/ies_2_0/vns_fpga_xml.c
+In file included from ../../vtss_appl/ies_2_0/vns_strings.c:9:
+../../vtss_appl/ies_2_0/vns_types.h:44:1: warning: "HIDE_IRIG_INPUTS" redefined
+../../vtss_appl/ies_2_0/vns_types.h:8:1: warning: this is the location of the previous definition
+Compiling ../../vtss_appl/ies_2_0/interface/ies_fpga_led.c
+In file included from ../../vtss_appl/ies_2_0/vns_fpga_api.h:12,
+                 from ../../vtss_appl/ies_2_0/vns_fpga.c:12:
+../../vtss_appl/ies_2_0/vns_types.h:44:1: warning: "HIDE_IRIG_INPUTS" redefined
+../../vtss_appl/ies_2_0/vns_types.h:8:1: warning: this is the location of the previous definition
+In file included from ../../vtss_appl/ies_2_0/interface/drivers/tsd_manual_inc_time_regs.h:11,
+                 from ../../vtss_appl/ies_2_0/interface/drivers/tsd_manual_inc_time.h:15,
+                 from ../../vtss_appl/ies_2_0/interface/time_input.h:14,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_api.h:19,
+                 from ../../vtss_appl/ies_2_0/vns_fpga.c:12:
+../../vtss_appl/ies_2_0/interface/drivers/io.h:24:1: warning: multi-line comment
+../../vtss_appl/ies_2_0/interface/drivers/io.h:26:1: warning: multi-line comment
+In file included from ../../vtss_appl/ies_2_0/vns_fpga_api.h:19,
+                 from ../../vtss_appl/ies_2_0/vns_fpga.c:12:
+../../vtss_appl/ies_2_0/interface/time_input.h:142: warning: function declaration isn’t a prototype
+In file included from ../../vtss_appl/ies_2_0/vns_fpga_api.h:20,
+                 from ../../vtss_appl/ies_2_0/vns_fpga.c:12:
+../../vtss_appl/ies_2_0/interface/ies_fpga_led.h:77: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/interface/ies_fpga_led.h:81: warning: function declaration isn’t a prototype
+In file included from ../../vtss_appl/ies_2_0/vns_fpga.c:12:
+../../vtss_appl/ies_2_0/vns_fpga_api.h:25: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:27: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:28: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:29: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:40: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:58: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:77: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:82: warning: function declaration isn’t a prototype
+In file included from ../../vtss_appl/ies_2_0/vns_fpga_api.h:12,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_cli.c:12:
+../../vtss_appl/ies_2_0/vns_types.h:44:1: warning: "HIDE_IRIG_INPUTS" redefined
+../../vtss_appl/ies_2_0/vns_types.h:8:1: warning: this is the location of the previous definition
+In file included from ../../vtss_appl/ies_2_0/interface/drivers/tsd_manual_inc_time_regs.h:11,
+                 from ../../vtss_appl/ies_2_0/interface/drivers/tsd_manual_inc_time.h:15,
+                 from ../../vtss_appl/ies_2_0/interface/time_input.h:14,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_api.h:19,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_cli.c:12:
+../../vtss_appl/ies_2_0/interface/drivers/io.h:24:1: warning: multi-line comment
+../../vtss_appl/ies_2_0/interface/drivers/io.h:26:1: warning: multi-line comment
+In file included from ../../vtss_appl/ies_2_0/vns_fpga_api.h:19,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_cli.c:12:
+../../vtss_appl/ies_2_0/interface/time_input.h:142: warning: function declaration isn’t a prototype
+In file included from ../../vtss_appl/ies_2_0/vns_fpga_api.h:20,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_cli.c:12:
+../../vtss_appl/ies_2_0/interface/ies_fpga_led.h:77: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/interface/ies_fpga_led.h:81: warning: function declaration isn’t a prototype
+In file included from ../../vtss_appl/ies_2_0/vns_fpga_cli.c:12:
+../../vtss_appl/ies_2_0/vns_fpga_api.h:25: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:27: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:28: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:29: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:40: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:58: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:77: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:82: warning: function declaration isn’t a prototype
+In file included from ../../vtss_appl/ies_2_0/interface/drivers/tsd_pll_reconfig_regs.h:10,
+                 from ../../vtss_appl/ies_2_0/interface/drivers/tsd_pll_reconfig.h:14,
+                 from ../../vtss_appl/ies_2_0/vns_fpga.c:345:
+../../vtss_appl/ies_2_0/interface/drivers/io.h:24:1: warning: multi-line comment
+../../vtss_appl/ies_2_0/interface/drivers/io.h:26:1: warning: multi-line comment
+../../vtss_appl/ies_2_0/vns_fpga.c:377:5: warning: "_NEW_PCM_MODULE_" is not defined
+../../vtss_appl/ies_2_0/vns_fpga.c:405:5: warning: "_NEW_PCM_MODULE_" is not defined
+In file included from ../../vtss_appl/ies_2_0/interface/drivers/tsd_pll_reconfig_regs.h:10,
+                 from ../../vtss_appl/ies_2_0/interface/drivers/tsd_pll_reconfig.h:14,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_cli.c:40:
+../../vtss_appl/ies_2_0/interface/drivers/io.h:24:1: warning: multi-line comment
+../../vtss_appl/ies_2_0/interface/drivers/io.h:26:1: warning: multi-line comment
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘activate_epe_decoder’:
+../../vtss_appl/ies_2_0/vns_fpga.c:423: warning: assignment discards qualifiers from pointer target type
+In file included from ../../vtss_appl/ies_2_0/vns_fpga_api.h:12,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_xml.c:35:
+../../vtss_appl/ies_2_0/vns_types.h:44:1: warning: "HIDE_IRIG_INPUTS" redefined
+../../vtss_appl/ies_2_0/vns_types.h:8:1: warning: this is the location of the previous definition
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘activate_epe_encoder’:
+../../vtss_appl/ies_2_0/vns_fpga.c:479: warning: assignment discards qualifiers from pointer target type
+In file included from ../../vtss_appl/ies_2_0/interface/drivers/tsd_manual_inc_time_regs.h:11,
+                 from ../../vtss_appl/ies_2_0/interface/drivers/tsd_manual_inc_time.h:15,
+                 from ../../vtss_appl/ies_2_0/interface/time_input.h:14,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_api.h:19,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_xml.c:35:
+../../vtss_appl/ies_2_0/interface/drivers/io.h:24:1: warning: multi-line comment
+../../vtss_appl/ies_2_0/interface/drivers/io.h:26:1: warning: multi-line comment
+../../vtss_appl/ies_2_0/vns_fpga.c:830:5: warning: "DEBUG_NOISY" is not defined
+../../vtss_appl/ies_2_0/vns_fpga.c:911:5: warning: "DEBUG_NOISY" is not defined
+../../vtss_appl/ies_2_0/vns_fpga.c:949:5: warning: "DEBUG_NOISY" is not defined
+Compiling ../../vtss_appl/ies_2_0/interface/fw_image_validate.c
+In file included from ../../vtss_appl/ies_2_0/vns_fpga_api.h:12,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_web.c:30:
+../../vtss_appl/ies_2_0/vns_types.h:44:1: warning: "HIDE_IRIG_INPUTS" redefined
+../../vtss_appl/ies_2_0/vns_types.h:8:1: warning: this is the location of the previous definition
+In file included from ../../vtss_appl/ies_2_0/vns_fpga_api.h:19,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_xml.c:35:
+../../vtss_appl/ies_2_0/interface/time_input.h:142: warning: function declaration isn’t a prototype
+In file included from ../../vtss_appl/ies_2_0/interface/drivers/tsd_shift_reg_led_regs.h:11,
+                 from ../../vtss_appl/ies_2_0/interface/drivers/tsd_shift_reg_led.h:14,
+                 from ../../vtss_appl/ies_2_0/interface/ies_fpga_led.c:9:
+../../vtss_appl/ies_2_0/interface/drivers/io.h:24:1: warning: In file included from ../../vtss_appl/ies_2_0/vns_fpga_api.h:20,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_xml.c:35:
+../../vtss_appl/ies_2_0/interface/ies_fpga_led.h:77: warning: function declaration isn’t a prototypemulti-line comment
+
+../../vtss_appl/ies_2_0/interface/drivers/io.h:26:1: warning: multi-line comment
+../../vtss_appl/ies_2_0/interface/ies_fpga_led.h:81: warning: function declaration isn’t a prototype
+In file included from ../../vtss_appl/ies_2_0/vns_fpga_xml.c:35:
+../../vtss_appl/ies_2_0/vns_fpga_api.h:25: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:27: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:28: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:29: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:40: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: In function ‘debug_decoder_reg’:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:201: warning: implicit declaration of function ‘debug_decoder’
+../../vtss_appl/ies_2_0/vns_fpga_api.h:58: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: In function ‘debug_encoder_reg’:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:206: warning: implicit declaration of function ‘debug_encoder’
+../../vtss_appl/ies_2_0/vns_fpga_api.h:77: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:82: warning: function declaration isn’t a prototype
+In file included from ../../vtss_appl/ies_2_0/interface/ies_fpga_led.c:10:
+../../vtss_appl/ies_2_0/interface/ies_fpga_led.h:77: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/interface/ies_fpga_led.h:81: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: In function ‘GetGPSAntennaBias’:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:268: warning: passing argument 1 of ‘Get_TimeInConfig’ from incompatible pointer type
+../../vtss_appl/ies_2_0/vns_fpga.c: At top level:
+../../vtss_appl/ies_2_0/vns_fpga.c:1352: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘set_external_1pps_input’:
+../../vtss_appl/ies_2_0/vns_fpga.c:1354: warning: unused variable ‘retval’
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘Get_TimeInSource’:
+../../vtss_appl/ies_2_0/vns_fpga.c:1368: warning: unused variable ‘val’
+../../vtss_appl/ies_2_0/vns_fpga.c: At top level:
+../../vtss_appl/ies_2_0/vns_fpga.c:1403: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga.c:1410: warning: function declaration isn’t a prototype
+In file included from ../../vtss_appl/ies_2_0/interface/drivers/tsd_manual_inc_time_regs.h:11,
+                 from ../../vtss_appl/ies_2_0/interface/drivers/tsd_manual_inc_time.h:15,
+                 from ../../vtss_appl/ies_2_0/interface/time_input.h:14,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_api.h:19,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_web.c:30:
+../../vtss_appl/ies_2_0/interface/drivers/io.h:24:1: warning: multi-line comment
+../../vtss_appl/ies_2_0/interface/drivers/io.h:26:1: warning: multi-line comment
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘set_disable_time_input’:../../vtss_appl/ies_2_0/interface/ies_fpga_led.c:154: warning: function declaration isn’t a prototype
+
+../../vtss_appl/ies_2_0/vns_fpga.c:1412: warning: unused variable ‘retval’
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘set_irig_dc_input’:
+../../vtss_appl/ies_2_0/vns_fpga.c:1446: warning: unused variable ‘retval’
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘set_irig_am_input’:
+../../vtss_appl/ies_2_0/vns_fpga.c:1460: warning: unused variable ‘retval’
+../../vtss_appl/ies_2_0/interface/ies_fpga_led.c:211: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘set_gps_input’:
+../../vtss_appl/ies_2_0/vns_fpga.c:1474: warning: unused variable ‘retval’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: In function ‘FPGA_dot_config_cmd’:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:662: warning: passing argument 1 of ‘Get_TimeInConfig’ from incompatible pointer type
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘set_time_input_config’:
+../../vtss_appl/ies_2_0/vns_fpga.c:1502: warning: unused variable ‘time_in’
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘Get_TimeInConfig’:
+../../vtss_appl/ies_2_0/vns_fpga.c:1705: warning: unused variable ‘src’
+../../vtss_appl/ies_2_0/vns_fpga.c:1704: warning: unused variable ‘chid’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: In function ‘FPGA_dot_info_cmd’:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:764: warning: implicit declaration of function ‘get_board_revision’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: In function ‘FPGA_dot_gps_cmd’:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:811: warning: passing argument 1 of ‘Get_TimeInConfig’ from incompatible pointer type
+In file included from ../../vtss_appl/ies_2_0/vns_fpga_api.h:19,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_web.c:30:
+../../vtss_appl/ies_2_0/interface/time_input.h:142: warning: function declaration isn’t a prototype
+In file included from ../../vtss_appl/ies_2_0/vns_fpga_api.h:20,
+                 from ../../vtss_appl/ies_2_0/vns_fpga_web.c:30:
+../../vtss_appl/ies_2_0/interface/ies_fpga_led.h:77: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/interface/ies_fpga_led.h:81: warning: function declaration isn’t a prototype
+In file included from ../../vtss_appl/ies_2_0/vns_fpga_web.c:30:
+../../vtss_appl/ies_2_0/vns_fpga_api.h:25: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:27: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:28: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:29: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:40: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:58: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:77: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_api.h:82: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘Get_TimeOutTimeCode’:
+../../vtss_appl/ies_2_0/vns_fpga.c:1923: warning: unused variable ‘base’
+../../vtss_appl/ies_2_0/vns_fpga.c:1922: warning: unused variable ‘val’
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘Get_Ttl1ppsMode’:
+../../vtss_appl/ies_2_0/vns_fpga.c:2004: warning: passing argument 2 of ‘tsd_tx_irig_core_get_dc_1pps’ from incompatible pointer type
+../../vtss_appl/ies_2_0/vns_fpga.c:2003: warning: unused variable ‘val’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: In function ‘FPGA_dot_ies_12_help_cmd’:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:1078: warning: zero-length printf format string
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:1124: warning: format ‘%LX’ expects type ‘long long unsigned int’, but argument 2 has type ‘uint32_t’
+../../vtss_appl/ies_2_0/vns_fpga.c: At top level:
+../../vtss_appl/ies_2_0/vns_fpga.c:2082: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga.c:2091: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: In function ‘FPGA_dot_time_in_cmd’:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:1385: warning: unused variable ‘gps_config’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:1384: warning: unused variable ‘fw_version_minor’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:1384: warning: unused variable ‘fw_version_major’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: In function ‘FPGA_dot_time_in_cmd_org’:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:1435: warning: passing argument 1 of ‘Get_TimeInConfig’ from incompatible pointer type
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:1432: warning: unused variable ‘fw_version_minor’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:1432: warning: unused variable ‘fw_version_major’
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘_set_led_discrete_registers’:
+../../vtss_appl/ies_2_0/vns_fpga.c:2331: warning: statement with no effect
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: In function ‘cli_cmd_epe_port’:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2466: warning: implicit declaration of function ‘cli_cmd_epe_internal’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2468: warning: implicit declaration of function ‘cli_cmd_epe_internal_get’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2462: warning: unused variable ‘epe_conf’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: In function ‘cli_cmd_epe_debug’:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2677: warning: unused variable ‘epe_conf’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: In function ‘FPGA_dot_led_test’:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2709: warning: implicit declaration of function ‘sleep’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2694: warning: unused variable ‘val’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2693: warning: unused variable ‘start_led’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2692: warning: unused variable ‘shft’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2692: warning: unused variable ‘port’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2691: warning: unused variable ‘color’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2684: warning: unused variable ‘fpga_req’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: At top level:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2721: warning: conflicting types for ‘cli_cmd_epe_internal_get’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2468: warning: previous implicit declaration of ‘cli_cmd_epe_internal_get’ was here
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2770: warning: conflicting types for ‘cli_cmd_epe_internal’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2466: warning: previous implicit declaration of ‘cli_cmd_epe_internal’ was here
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: In function ‘cli_cmd_epe_port_org’:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2850: warning: implicit declaration of function ‘is_epe_license_acitive’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:2970: warning: implicit declaration of function ‘get_vns_fpga_epe_conf’
+../../vtss_appl/ies_2_0/vns_fpga.c:3159:5: warning: "DEBUG_NOISY" is not defined
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: In function ‘cli_cmd_board_id_revision’:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:3138: warning: implicit declaration of function ‘set_board_revision’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: In function ‘cli_epe_port_dis’:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:3365: warning: unused variable ‘fpga_req’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:3363: warning: unused variable ‘value’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c: At top level:
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:3788: error: redefinition of ‘_cli_cmd_tab_cli_cmd_epe_port’
+../../vtss_appl/ies_2_0/vns_fpga_cli.c:3788: error: previous definition of ‘_cli_cmd_tab_cli_cmd_epe_port’ was here
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘Get_TimeIn_Time’:
+../../vtss_appl/ies_2_0/vns_fpga.c:3583: warning: unused variable ‘tday_bcd’
+../../vtss_appl/ies_2_0/vns_fpga.c:3583: warning: unused variable ‘year_bcd’
+../../vtss_appl/ies_2_0/vns_fpga.c:3583: warning: unused variable ‘day_bcd’
+../../vtss_appl/ies_2_0/vns_fpga.c:3583: warning: unused variable ‘hour_bcd’
+../../vtss_appl/ies_2_0/vns_fpga.c:3583: warning: unused variable ‘min_bcd’
+../../vtss_appl/ies_2_0/vns_fpga.c:3583: warning: unused variable ‘sec_bcd’
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘modify_input_time’:
+../../vtss_appl/ies_2_0/vns_fpga.c:3684: warning: implicit declaration of function ‘Time_t_2_Vns_bcd_time’
+/raid5/home/jalden/TelspanDataProjectsInternal/iES_12/Development/Software/CEServices/VNS_3_20/CEServices/src/build/../build/make/module_ies_2_0.in:80: recipe for target 'vns_fpga_cli.o' failed
+make[1]: *** [vns_fpga_cli.o] Error 1
+make[1]: *** Waiting for unfinished jobs....
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘led_thread’:
+../../vtss_appl/ies_2_0/vns_fpga.c:3986: warning: assignment makes integer from pointer without a cast
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘set_quick_reference_variables’:../../vtss_appl/ies_2_0/vns_fpga_web.c: In function ‘handler_dot_1588_config’:
+
+../../vtss_appl/ies_2_0/vns_fpga.c:4071: warning: passing argument 1 of ‘Get_FPGAFirmwareVersionMinor’ from incompatible pointer type
+../../vtss_appl/ies_2_0/vns_fpga_web.c:1817: warning: assignment discards qualifiers from pointer target type
+../../vtss_appl/ies_2_0/vns_fpga.c:4071: warning: passing argument 1 of ‘Get_FPGAFirmwareVersionMajor’ from incompatible pointer type
+../../vtss_appl/ies_2_0/vns_fpga.c: At top level:
+../../vtss_appl/ies_2_0/vns_fpga.c:4152: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘vns_fpga_timer_ptp_disable’:
+../../vtss_appl/ies_2_0/vns_fpga.c:4194: warning: format ‘%u’ expects type ‘unsigned int’, but argument 8 has type ‘long int’
+../../vtss_appl/ies_2_0/vns_fpga.c:4197: warning: format ‘%u’ expects type ‘unsigned int’, but argument 8 has type ‘long int’
+../../vtss_appl/ies_2_0/vns_fpga.c:4205: warning: format ‘%u’ expects type ‘unsigned int’, but argument 8 has type ‘long int’
+../../vtss_appl/ies_2_0/vns_fpga.c:4208: warning: format ‘%u’ expects type ‘unsigned int’, but argument 8 has type ‘long int’
+../../vtss_appl/ies_2_0/vns_fpga.c:4172: warning: unused variable ‘rtc’
+../../vtss_appl/ies_2_0/vns_fpga_web.c: In function ‘handler_dot_fpga_epe_decoder_config’:
+../../vtss_appl/ies_2_0/vns_fpga_web.c:2086: warning: assignment discards qualifiers from pointer target type
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘vns_fpga_timer_slave’:
+../../vtss_appl/ies_2_0/vns_fpga.c:4298: warning: format ‘%u’ expects type ‘unsigned int’, but argument 8 has type ‘long int’
+../../vtss_appl/ies_2_0/vns_fpga.c:4301: warning: format ‘%u’ expects type ‘unsigned int’, but argument 8 has type ‘long int’
+../../vtss_appl/ies_2_0/vns_fpga.c:4229: warning: unused variable ‘time_in_health’
+../../vtss_appl/ies_2_0/vns_fpga.c:4223: warning: unused variable ‘t’
+../../vtss_appl/ies_2_0/vns_fpga.c:4222: warning: unused variable ‘gtime’
+../../vtss_appl/ies_2_0/vns_fpga_web.c:2294: warning: unused variable ‘isid’
+../../vtss_appl/ies_2_0/vns_fpga_web.c:2012: warning: unused variable ‘form_name’
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘vns_fpga_timer_master’:
+../../vtss_appl/ies_2_0/vns_fpga.c:4324: warning: unused variable ‘rtc’
+../../vtss_appl/ies_2_0/vns_fpga.c:4312: warning: unused variable ‘prevSec’
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘vns_fpga_timer_handle_1pps’:
+../../vtss_appl/ies_2_0/vns_fpga.c:4413: warning: format ‘%u’ expects type ‘unsigned int’, but argument 7 has type ‘long int’
+../../vtss_appl/ies_2_0/vns_fpga_web.c: In function ‘handler_dot_fpga_epe_encoder_config’:
+../../vtss_appl/ies_2_0/vns_fpga_web.c:2460: warning: assignment discards qualifiers from pointer target type
+../../vtss_appl/ies_2_0/vns_fpga_web.c:2665: warning: unused variable ‘isid’
+../../vtss_appl/ies_2_0/vns_fpga_web.c:2386: warning: unused variable ‘form_name’
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘handle_slave_state’:
+../../vtss_appl/ies_2_0/vns_fpga.c:4560: warning: unused variable ‘bcd_t’
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘handle_master_state’:
+../../vtss_appl/ies_2_0/vns_fpga.c:4632: warning: unused variable ‘rtc’
+../../vtss_appl/ies_2_0/vns_fpga.c:4631: warning: unused variable ‘fpga_irq’
+../../vtss_appl/ies_2_0/vns_fpga.c:4623: warning: unused variable ‘t’
+../../vtss_appl/ies_2_0/vns_fpga.c:4622: warning: unused variable ‘gtime’
+../../vtss_appl/ies_2_0/vns_fpga.c:4733:5: warning: "_MAPS_PROJECT_FUNCTIONALITY_" is not defined
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘vns_fpga_timer_cb’:
+../../vtss_appl/ies_2_0/vns_fpga.c:4795: warning: unused variable ‘time_out_enabled’
+../../vtss_appl/ies_2_0/vns_fpga.c:4794: warning: unused variable ‘bcd_t’
+../../vtss_appl/ies_2_0/vns_fpga.c:4792: warning: unused variable ‘time_in_health’
+../../vtss_appl/ies_2_0/vns_fpga.c:4791: warning: unused variable ‘mode’
+../../vtss_appl/ies_2_0/vns_fpga.c:4790: warning: unused variable ‘clock_slave_bs’
+../../vtss_appl/ies_2_0/vns_fpga.c:4789: warning: unused variable ‘clock_bs’
+../../vtss_appl/ies_2_0/vns_fpga.c:4786: warning: unused variable ‘t’
+../../vtss_appl/ies_2_0/vns_fpga.c:4785: warning: unused variable ‘gtime’
+../../vtss_appl/ies_2_0/vns_fpga.c:4782: warning: unused variable ‘prevSec’
+../../vtss_appl/ies_2_0/vns_fpga.c:4781: warning: unused variable ‘now’
+../../vtss_appl/ies_2_0/vns_fpga.c:4780: warning: unused variable ‘retval’
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘vns_fpga_timer_cb_org’:
+../../vtss_appl/ies_2_0/vns_fpga.c:4921: warning: format ‘%u’ expects type ‘unsigned int’, but argument 7 has type ‘long int’
+../../vtss_appl/ies_2_0/vns_fpga.c:5082: warning: format ‘%u’ expects type ‘unsigned int’, but argument 8 has type ‘long int’
+../../vtss_appl/ies_2_0/vns_fpga.c:5085: warning: format ‘%u’ expects type ‘unsigned int’, but argument 8 has type ‘long int’
+../../vtss_appl/ies_2_0/vns_fpga.c:5114: warning: format ‘%u’ expects type ‘unsigned int’, but argument 8 has type ‘long int’
+../../vtss_appl/ies_2_0/vns_fpga.c:5117: warning: format ‘%u’ expects type ‘unsigned int’, but argument 8 has type ‘long int’
+../../vtss_appl/ies_2_0/vns_fpga.c:5125: warning: format ‘%u’ expects type ‘unsigned int’, but argument 8 has type ‘long int’
+../../vtss_appl/ies_2_0/vns_fpga.c:5128: warning: format ‘%u’ expects type ‘unsigned int’, but argument 8 has type ‘long int’
+../../vtss_appl/ies_2_0/vns_fpga.c:5630:5: warning: "DEBUG_NOISY" is not defined
+../../vtss_appl/ies_2_0/vns_fpga.c:5642:5: warning: "DEBUG_NOISY" is not defined
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘GetTimeInHealthReg’:
+../../vtss_appl/ies_2_0/vns_fpga.c:5660: warning: format ‘%08lX’ expects type ‘long unsigned int’, but argument 7 has type ‘uint32_t’
+../../vtss_appl/ies_2_0/vns_fpga.c:5666: warning: format ‘%08lX’ expects type ‘long unsigned int’, but argument 7 has type ‘uint32_t’
+../../vtss_appl/ies_2_0/vns_fpga.c:5672: warning: format ‘%08lX’ expects type ‘long unsigned int’, but argument 7 has type ‘uint32_t’
+../../vtss_appl/ies_2_0/vns_fpga.c:5678: warning: format ‘%08lX’ expects type ‘long unsigned int’, but argument 7 has type ‘uint32_t’
+../../vtss_appl/ies_2_0/vns_fpga.c:5686: warning: format ‘%08lX’ expects type ‘long unsigned int’, but argument 7 has type ‘uint32_t’
+../../vtss_appl/ies_2_0/vns_fpga.c: At top level:
+../../vtss_appl/ies_2_0/vns_fpga.c:5851: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘_send_i2c_buffer’:
+../../vtss_appl/ies_2_0/vns_fpga.c:6013: warning: unused variable ‘set_data’
+../../vtss_appl/ies_2_0/vns_fpga.c:6012: warning: unused variable ‘full_word’
+../../vtss_appl/ies_2_0/vns_fpga.c:6011: warning: unused variable ‘file’
+../../vtss_appl/ies_2_0/vns_fpga.c: At top level:
+../../vtss_appl/ies_2_0/vns_fpga.c:6091: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘UpdateVNSFPGAFirmware’:
+../../vtss_appl/ies_2_0/vns_fpga.c:6169: warning: return makes pointer from integer without a cast
+../../vtss_appl/ies_2_0/vns_fpga.c:6177: warning: return makes pointer from integer without a cast
+../../vtss_appl/ies_2_0/vns_fpga.c:6194: warning: return makes pointer from integer without a cast
+../../vtss_appl/ies_2_0/vns_fpga.c:6198: warning: return makes pointer from integer without a cast
+../../vtss_appl/ies_2_0/vns_fpga.c:6205: warning: return makes pointer from integer without a cast
+../../vtss_appl/ies_2_0/vns_fpga.c:6213: warning: return makes pointer from integer without a cast
+../../vtss_appl/ies_2_0/vns_fpga.c:6232: warning: ‘return’ with no value, in function returning non-void
+../../vtss_appl/ies_2_0/vns_fpga.c:6120: warning: unused variable ‘checksum’
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘is_fpga_header_match’:
+../../vtss_appl/ies_2_0/vns_fpga.c:6578: warning: passing argument 1 of ‘Get_FPGAFirmwareVersionMajor’ from incompatible pointer type
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘_pll_set_freq’:
+../../vtss_appl/ies_2_0/vns_fpga.c:6732: warning: integer overflow in expression
+../../vtss_appl/ies_2_0/vns_fpga.c: At top level:
+../../vtss_appl/ies_2_0/vns_fpga.c:7337: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘init_time_input_subsystem’:
+../../vtss_appl/ies_2_0/vns_fpga.c:7346: warning: unused variable ‘irigRxCalDelay’
+../../vtss_appl/ies_2_0/vns_fpga.c:7342: warning: unused variable ‘leapsec_read’
+../../vtss_appl/ies_2_0/vns_fpga.c:7340: warning: unused variable ‘health’
+../../vtss_appl/ies_2_0/vns_fpga.c:7339: warning: unused variable ‘src’
+../../vtss_appl/ies_2_0/vns_fpga.c: At top level:
+../../vtss_appl/ies_2_0/vns_fpga.c:7449: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga.c:7521: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘Get_CurrentTimeInSource’:
+../../vtss_appl/ies_2_0/vns_fpga.c:7539: warning: unused variable ‘clockinst’
+../../vtss_appl/ies_2_0/vns_fpga.c:7537: warning: unused variable ‘val’
+../../vtss_appl/ies_2_0/vns_fpga.c: At top level:
+../../vtss_appl/ies_2_0/vns_fpga.c:7622: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga.c:7626: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘debug_encoder’:
+../../vtss_appl/ies_2_0/vns_fpga.c:7627: warning: implicit declaration of function ‘tsd_ch7_enc_debug_print’
+../../vtss_appl/ies_2_0/vns_fpga.c:7628: warning: implicit declaration of function ‘tsd_hdlc_enc_debug_print’
+../../vtss_appl/ies_2_0/vns_fpga.c: At top level:
+../../vtss_appl/ies_2_0/vns_fpga.c:7631: warning: function declaration isn’t a prototype
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘debug_decoder’:
+../../vtss_appl/ies_2_0/vns_fpga.c:7632: warning: implicit declaration of function ‘tsd_ch7_dec_debug_print’
+../../vtss_appl/ies_2_0/vns_fpga.c:7633: warning: implicit declaration of function ‘tsd_hdlc_dec_debug_print’
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘activate_epe_encoder’:
+../../vtss_appl/ies_2_0/vns_fpga.c:525: warning: control reaches end of non-void function
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘activate_epe_decoder’:
+../../vtss_appl/ies_2_0/vns_fpga.c:470: warning: control reaches end of non-void function
+../../vtss_appl/ies_2_0/vns_fpga.c: At top level:
+../../vtss_appl/ies_2_0/vns_fpga.c:5469: warning: ‘init_debug_timer’ defined but not used
+../../vtss_appl/ies_2_0/vns_fpga.c:2354: warning: ‘ies_8_update_time_lock_status’ defined but not used
+../../vtss_appl/ies_2_0/vns_fpga.c:2780: warning: ‘_setledsanddiscretes_old’ defined but not used
+../../vtss_appl/ies_2_0/vns_fpga.c:3957: warning: ‘fpga_update_pthread_stack’ defined but not used
+../../vtss_appl/ies_2_0/vns_fpga.c:4778: warning: ‘vns_fpga_timer_cb’ defined but not used
+../../vtss_appl/ies_2_0/vns_fpga.c:4869: warning: ‘vns_fpga_timer_cb_org’ defined but not used
+../../vtss_appl/ies_2_0/vns_fpga.c: In function ‘vns_fpga_conf_read’:
+../../vtss_appl/ies_2_0/vns_fpga.c:3321: warning: array subscript is above array bounds
+../../vtss_appl/ies_2_0/vns_fpga.c:3322: warning: array subscript is above array bounds
+make[1]: Leaving directory '/raid5/home/jalden/TelspanDataProjectsInternal/iES_12/Development/Software/CEServices/VNS_3_20/CEServices/src/build/obj'
+Makefile:44: recipe for target 'all' failed
+make: *** [all] Error 2

@@ -1,0 +1,437 @@
+//
+// Vitesse Switch Software.
+//
+// Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+// Rights Reserved.
+//
+// Unpublished rights reserved under the copyright laws of the United States of
+// America, other countries and international treaties. Permission to use, copy,
+// store and modify, the software and its source code is granted. Permission to
+// integrate into other products, disclose, transmit and distribute the software
+// in an absolute machine readable format (e.g. HEX file) is also granted.  The
+// source code of the software may not be disclosed, transmitted or distributed
+// without the written permission of Vitesse. The software and its source code
+// may only be used in products utilizing the Vitesse switch products.
+//
+// This copyright notice must appear in any copy, modification, disclosure,
+// transmission or distribution of the software. Vitesse retains all ownership,
+// copyright, trade secret and proprietary rights in the software.
+//
+// THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+// INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_PVLAN)
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments.
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file.
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "icli_porting_util.h"
+#include "pvlan_api.h"
+#include "mgmt_api.h"
+#include "misc_api.h"   //uport2iport(), iport2uport()
+#include "port_api.h"   //switch_iter_init(), port_iter_init()
+#if defined(VTSS_SWITCH_STACKABLE) && VTSS_SWITCH_STACKABLE
+#include "topo_api.h"   //topo_usid2isid(), topo_isid2usid()
+#else
+#include "standalone_api.h"
+#endif /* VTSS_SWITCH_STACKABLE */
+INCLUDE_END
+
+FUNCTION_BEGIN
+
+#define     PVLAN_BUF_SIZE          80
+#define     PVLAN_UNUSED_PARAM(x)   ((void)x)
+
+char *bool_txt(BOOL enabled)
+{
+    return (enabled ? "Enabled " : "Disabled");
+}
+
+#if defined(PVLAN_SRC_MASK_ENA)
+static BOOL is_pvlan_present(icli_range_t *pvlan_list, u32 pvlan_id)
+{
+    u32      idx, id;
+
+    for (idx = 0; idx < pvlan_list->u.ur.cnt; idx++) {
+        for (id = pvlan_list->u.ur.range[idx].min; id <= (pvlan_list->u.ur.range[idx].max); id++) {
+            if (id == pvlan_id) {
+                return TRUE;
+            }
+        } /* for (id = pvlan_list->u.ur.range[idx].min; id <= (pvlan_list->u.ur.range[idx].max); id++) */
+    } /* for (idx = 0; idx < pvlan_list->u.ur.cnt; idx++) */
+
+    return FALSE;
+}
+
+static void pvlan_conf_show(i32 session_id, icli_range_t *pvlan_list, BOOL pvlan_found)
+{
+    switch_iter_t               sit;
+    port_iter_t                 pit;
+    BOOL                        first = TRUE;
+    u32                         pvlan_id;
+    pvlan_mgmt_entry_t          conf;
+    char                        str_buf[PVLAN_BUF_SIZE], buf[PVLAN_BUF_SIZE + 40], *p;
+    u32                         port_cnt;
+    BOOL                        first_port, first_line, eol;
+
+    (void)switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_USID);
+    while (switch_iter_getnext(&sit)) {
+        first = TRUE;
+        for (pvlan_id = VTSS_PVLAN_NO_START; pvlan_id < VTSS_PVLAN_NO_END; pvlan_id++) {
+            if ((pvlan_found == TRUE) && (is_pvlan_present(pvlan_list, pvlan_id + 1) == FALSE)) {
+                continue;
+            }
+            if ((pvlan_mgmt_pvlan_get(sit.isid, pvlan_id, &conf, 0)) == VTSS_OK) {
+                if (first == TRUE) {
+                    ICLI_PRINTF("Switch %d\n", sit.usid);
+                    ICLI_PRINTF("---------\n");
+                    ICLI_PRINTF("%s  %s\n", "PVLAN ID", "Ports");
+                    ICLI_PRINTF("--------  -----------------------------------------------------------------------------\n");
+                    first = FALSE;
+                } /* if (first == TRUE) */
+                ICLI_PRINTF("%-8lu  ", pvlan_id + 1);
+                port_cnt = 0;
+                p = &buf[0];
+                first_port = TRUE;
+                first_line = TRUE;
+                eol = FALSE;
+                (void) port_iter_init(&pit, NULL, sit.isid, PORT_ITER_SORT_ORDER_UPORT, PORT_ITER_FLAGS_NORMAL);
+                while (port_iter_getnext(&pit)) {
+                    if (conf.ports[pit.iport]) {
+                        port_cnt++;
+                        (void)icli_port_info_txt(sit.usid, pit.uport, str_buf);
+                        if (first_port == FALSE) {
+                            if (eol == TRUE) {
+                                ICLI_PRINTF(",\n");
+                                eol = FALSE;
+                            } else {
+                                p += sprintf(p, ",");
+                            }
+                        }
+                        p += sprintf(p, "%s", str_buf);
+                        first_port = FALSE;
+                        if ((port_cnt % 3) == 0) {
+                            if (first_line == TRUE) {
+                                ICLI_PRINTF("%s", buf);
+                                first_line = FALSE;
+                            } else {
+                                ICLI_PRINTF("%-8s  %s", "", buf);
+                            }
+                            eol = TRUE;
+                            p = &buf[0];
+                        }
+                    }
+                } /* while (port_iter_getnext(&pit)) */
+                if (port_cnt % 3) {
+                    if (port_cnt > 3) {
+                        ICLI_PRINTF("%-8s  %s\n", "", buf);
+                    } else {
+                        ICLI_PRINTF("%s\n", buf);
+                    }
+                }
+                ICLI_PRINTF("\n");
+            } /* if ((pvlan_mgmt_pvlan_get(sit.isid, pvlan_id, &conf, 0)) == VTSS_OK) */
+        } /* for (pvlan_id = VTSS_PVLAN_NO_START; pvlan_id < VTSS_PVLAN_NO_END; pvlan_id++) */
+    } /* while (switch_iter_getnext(&sit)) */
+}
+#endif
+
+static void pvlan_isolation_conf_show(i32 session_id)
+{
+    switch_iter_t               sit;
+    port_iter_t                 pit;
+    BOOL                        member[VTSS_PORT_ARRAY_SIZE];
+    char                        str_buf[PVLAN_BUF_SIZE];
+
+    (void)switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_USID);
+    while (switch_iter_getnext(&sit)) {
+        if ((pvlan_mgmt_isolate_conf_get(sit.isid, member)) != VTSS_OK) {
+            continue;
+        }
+        ICLI_PRINTF("Unit: %u\n", sit.usid);
+        ICLI_PRINTF("----- --\n");
+        (void) port_iter_init(&pit, NULL, sit.isid, PORT_ITER_SORT_ORDER_IPORT, PORT_ITER_FLAGS_NORMAL);
+        while (port_iter_getnext(&pit)) {
+            if (pit.first) {
+                ICLI_PRINTF("%-32s  %s\n", "Port", "Isolation");
+                ICLI_PRINTF("%-32s  %s\n", "--------------------------------", "---------");
+            }
+            ICLI_PRINTF("%-32s  %s\n", icli_port_info_txt(sit.usid, pit.uport, str_buf), bool_txt(member[pit.iport]));
+        } /* while (port_iter_getnext(&pit)) */
+    } /* while (switch_iter_getnext(&sit)) */
+}
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+CMD_BEGIN
+COMMAND         = pvlan { [add|remove] <range_list> }
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the pvlan add or remove command to add or remove a port from a PVLAN.
+DOC_CMD_DEFAULT = Use the no form of this command to remove port from a PVLAN.
+DOC_CMD_USAGE   = add keyword is used to add port into PVLAN and remove will remove the port from a PVLAN.
+DOC_CMD_EXAMPLE = This example shows to add a port in to PVLAN 2.
+DOC_CMD_EXAMPLE = Switch(config-if)#pvlan add 2
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show pvlan privileged EXEC command.
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_pvlan_membership_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = mode_port_list
+
+IF_FLAG   = defined(PVLAN_SRC_MASK_ENA)
+
+   HELP = Private VLAN
+   HELP = adds PVLANs to current list
+   HELP = removes PVLANs from current list
+   HELP = list of PVLANs. Range is from 1 to number of ports.
+
+   CMD_VAR   =
+   CMD_VAR   = has_add
+   CMD_VAR   = has_remove
+   CMD_VAR   = pvlan_list
+
+VARIABLE_BEGIN
+   u32                   range_idx, cnt_idx;
+   u32                   idx, pvlan_id, zero_based_pvlan_id;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+   pvlan_mgmt_entry_t    conf;
+   BOOL                  empty_ports[VTSS_PORT_ARRAY_SIZE];
+VARIABLE_END
+
+CODE_BEGIN
+    for (idx = 0; idx < pvlan_list->u.ur.cnt; idx++) {
+        for (pvlan_id = pvlan_list->u.ur.range[idx].min; pvlan_id <= (pvlan_list->u.ur.range[idx].max); pvlan_id++) {
+            if (pvlan_id > VTSS_PORTS) {
+                T_E("Invalid PVLAN detected");
+                return FALSE;
+            } /* if (pvlan_id > VTSS_PORTS) */
+        } /* for (pvlan_id = pvlan_list->u.ur.range[idx].min; pvlan_id <= (pvlan_list->u.ur.range[idx].max); pvlan_id++) */
+    } /* for (idx = 0; idx < pvlan_list->u.ur.cnt; idx++) */
+    memset(empty_ports, 0, sizeof(empty_ports));
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            for (idx = 0; idx < pvlan_list->u.ur.cnt; idx++) {
+                for (pvlan_id = pvlan_list->u.ur.range[idx].min; pvlan_id <= (pvlan_list->u.ur.range[idx].max); pvlan_id++) {
+                    memset(&conf, 0, sizeof(conf));
+                    zero_based_pvlan_id = pvlan_id - 1;
+                    if (has_add || has_remove) {
+                        if ((pvlan_mgmt_pvlan_get(topo_usid2isid(usid), zero_based_pvlan_id, &conf, 0)) != VTSS_RC_OK) {
+                            T_D("pvlan_mgmt_pvlan_get failed");
+                        } /* if ((pvlan_mgmt_pvlan_get(topo_usid2isid(usid), zero_based_pvlan_id, &conf, 0)) != VTSS_RC_OK) */
+                    } /* if (has_add || has_remove) */
+                    if (has_remove) {
+                        conf.ports[uport2iport(uport)] = 0;
+                    } else {
+                        conf.ports[uport2iport(uport)] = 1;
+                    } /* else of if (has_remove) */
+                    conf.privatevid = zero_based_pvlan_id;
+                    if (memcmp(conf.ports, empty_ports, sizeof(empty_ports))) {
+                        if ((pvlan_mgmt_pvlan_add(topo_usid2isid(usid), &conf)) != VTSS_RC_OK) {
+                            T_D("pvlan_mgmt_pvlan_add failed");
+                        } /* if ((pvlan_mgmt_pvlan_add(topo_usid2isid(usid), &conf)) != VTSS_RC_OK) */
+                    } else {
+                        if ((pvlan_mgmt_pvlan_del(zero_based_pvlan_id)) != VTSS_RC_OK) {
+                            T_D("pvlan_mgmt_pvlan_del failed");
+                        } /* if ((pvlan_mgmt_pvlan_del(zero_based_pvlan_id)) != VTSS_RC_OK) */
+                    } /* else of if (memcmp(conf.ports, empty_ports, sizeof(empty_ports))) */
+                } /* for (pvlan_id = pvlan_list->range[idx].min; pvlan_id <= (pvlan_list->range[idx].max); pvlan_id++) */
+            } /* for (idx = 0; idx < pvlan_list->u.ur.cnt; idx++) */
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+   u32                   range_idx, cnt_idx;
+   u32                   idx, pvlan_id, zero_based_pvlan_id;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+   pvlan_mgmt_entry_t    conf;
+   BOOL                  empty_ports[VTSS_PORT_ARRAY_SIZE];
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    PVLAN_UNUSED_PARAM(has_add);
+    PVLAN_UNUSED_PARAM(has_remove);
+    for (idx = 0; idx < pvlan_list->u.ur.cnt; idx++) {
+        for (pvlan_id = pvlan_list->u.ur.range[idx].min; pvlan_id <= (pvlan_list->u.ur.range[idx].max); pvlan_id++) {
+            if (pvlan_id > VTSS_PORTS) {
+                T_E("Invalid PVLAN detected");
+                return FALSE;
+            } /* if (pvlan_id > VTSS_PORTS) */
+        } /* for (pvlan_id = pvlan_list->u.ur.range[idx].min; pvlan_id <= (pvlan_list->u.ur.range[idx].max); pvlan_id++) */
+    } /* for (idx = 0; idx < pvlan_list->u.ur.cnt; idx++) */
+    memset(empty_ports, 0, sizeof(empty_ports));
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            for (idx = 0; idx < pvlan_list->u.ur.cnt; idx++) {
+                for (pvlan_id = pvlan_list->u.ur.range[idx].min; pvlan_id <= (pvlan_list->u.ur.range[idx].max); pvlan_id++) {
+                    memset(&conf, 0, sizeof(conf));
+                    zero_based_pvlan_id = pvlan_id - 1;
+                    if ((pvlan_mgmt_pvlan_get(topo_usid2isid(usid), zero_based_pvlan_id, &conf, 0)) != VTSS_RC_OK) {
+                        T_D("pvlan_mgmt_pvlan_get failed");
+                    } /* if ((pvlan_mgmt_pvlan_get(topo_usid2isid(usid), zero_based_pvlan_id, &conf, 0)) != VTSS_RC_OK) */
+                    conf.ports[uport2iport(uport)] = 0;
+                    conf.privatevid = zero_based_pvlan_id;
+                    if (memcmp(conf.ports, empty_ports, sizeof(empty_ports))) {
+                        if ((pvlan_mgmt_pvlan_add(topo_usid2isid(usid), &conf)) != VTSS_RC_OK) {
+                            T_D("pvlan_mgmt_pvlan_add failed");
+                        } /* if ((pvlan_mgmt_pvlan_add(topo_usid2isid(usid), &conf)) != VTSS_RC_OK) */
+                    } else {
+                        if ((pvlan_mgmt_pvlan_del(zero_based_pvlan_id)) != VTSS_RC_OK) {
+                            T_D("pvlan_mgmt_pvlan_del failed");
+                        } /* if ((pvlan_mgmt_pvlan_del(zero_based_pvlan_id)) != VTSS_RC_OK) */
+                    } /* else of if (memcmp(conf.ports, empty_ports, sizeof(empty_ports))) */
+                } /* for (pvlan_id = pvlan_list->range[idx].min; pvlan_id <= (pvlan_list->range[idx].max); pvlan_id++) */
+            } /* for (idx = 0; idx < pvlan_list->u.ur.cnt; idx++) */
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+NO_FORM_CODE_END
+
+CMD_END
+
+CMD_BEGIN
+COMMAND         = pvlan isolation
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the pvlan isolation command to add the port into an isolation group.
+DOC_CMD_DEFAULT = Use the no form of this command to remove port from an isolation group.
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = This example shows to add a port in to isolation group.
+DOC_CMD_EXAMPLE = Switch(config-if)#pvlan isolation
+DOC_CMD_EXAMPLE = You can verify your settings by entering the show pvlan privileged EXEC command.
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = icli_pvlan_isolation_set
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = mode_port_list
+
+   HELP = Private VLAN
+   HELP = Port isolation
+
+   CMD_VAR   =
+   CMD_VAR   = 
+
+VARIABLE_BEGIN
+   u32                   range_idx, cnt_idx;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+   BOOL                  member[VTSS_PORT_ARRAY_SIZE];
+VARIABLE_END
+
+CODE_BEGIN
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            memset(member, 0, sizeof(member));
+            if ((pvlan_mgmt_isolate_conf_get(topo_usid2isid(usid), member)) != VTSS_RC_OK) {
+                T_D("pvlan_mgmt_isolate_conf_get failed");
+                return FALSE;
+            } /* if ((pvlan_mgmt_isolate_conf_get(topo_usid2isid(usid), member)) != VTSS_RC_OK) */
+            member[uport2iport(uport)] = 1;
+            if ((pvlan_mgmt_isolate_conf_set(topo_usid2isid(usid), member)) != VTSS_RC_OK) {
+                T_D("pvlan_mgmt_isolate_conf_set failed");
+            } /* if ((pvlan_mgmt_isolate_conf_set(topo_usid2isid(usid), member)) != VTSS_RC_OK) */
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+CODE_END
+
+NO_FORM_VARIABLE_BEGIN
+   u32                   range_idx, cnt_idx;
+   vtss_isid_t           usid;
+   vtss_port_no_t        uport;
+   BOOL                  member[VTSS_PORT_ARRAY_SIZE];
+NO_FORM_VARIABLE_END
+
+NO_FORM_CODE_BEGIN
+    for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) {
+        usid = mode_port_list->switch_range[range_idx].usid;
+        for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) {
+            uport = mode_port_list->switch_range[range_idx].begin_uport + cnt_idx;
+            memset(member, 0, sizeof(member));
+            if ((pvlan_mgmt_isolate_conf_get(topo_usid2isid(usid), member)) != VTSS_RC_OK) {
+                T_D("pvlan_mgmt_isolate_conf_get failed");
+                return FALSE;
+            } /* if ((pvlan_mgmt_isolate_conf_get(topo_usid2isid(usid), member)) != VTSS_RC_OK) */
+            member[uport2iport(uport)] = 0;
+            if ((pvlan_mgmt_isolate_conf_set(topo_usid2isid(usid), member)) != VTSS_RC_OK) {
+                T_D("pvlan_mgmt_isolate_conf_set failed");
+            } /* if ((pvlan_mgmt_isolate_conf_set(topo_usid2isid(usid), member)) != VTSS_RC_OK) */
+        } /* for (cnt_idx = 0; cnt_idx < mode_port_list->switch_range[range_idx].port_cnt; cnt_idx++) */
+    } /* for (range_idx = 0; range_idx < mode_port_list->cnt; range_idx++) */
+NO_FORM_CODE_END
+CMD_END
+
+CMD_BEGIN
+COMMAND         = show pvlan [<range_list>]
+# /* ------------------------------------------------------------------------------------------------------------------------
+DOC_CMD_DESC    = Use the show pvlan command to view the PVLAN configuration.
+#DOC_CMD_DEFAULT =
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = This example shows viewing of PVLAN membership configuration of PVLAN 2.
+DOC_CMD_EXAMPLE = Switch(config-if)#show pvlan 2
+# --------------------------------------------------------------------------------------------------------------------------*/
+
+FUNC_NAME = pvlan_show
+PRIVILEGE = ICLI_PRIVILEGE_13
+
+CMD_MODE  = ICLI_CMD_MODE_EXEC
+
+   HELP = Show PVLAN configuration
+   HELP = PVLAN status
+   HELP = PVLAN status by PVLAN id
+
+   CMD_VAR   =
+   CMD_VAR   =
+   CMD_VAR   = pvlan_list
+
+VARIABLE_BEGIN
+    u32                         idx, pvlan_id;
+    BOOL                        pvlan_found = FALSE;
+VARIABLE_END
+
+CODE_BEGIN
+    if (pvlan_list == NULL) {
+        return FALSE;
+    }
+    for (idx = 0; idx < pvlan_list->u.ur.cnt; idx++) {
+        for (pvlan_id = pvlan_list->u.ur.range[idx].min; pvlan_id <= (pvlan_list->u.ur.range[idx].max); pvlan_id++) {
+            if (pvlan_id > VTSS_PORTS) {
+                T_E("Invalid PVLAN detected");
+                return FALSE;
+            } /* if (pvlan_id > VTSS_PORTS) */
+            pvlan_found = TRUE;
+        } /* for (pvlan_id = pvlan_list->u.ur.range[idx].min; pvlan_id <= (pvlan_list->u.ur.range[idx].max); pvlan_id++) */
+    } /* for (idx = 0; idx < pvlan_list->cnt; idx++) */
+    pvlan_isolation_conf_show(session_id);
+#if defined(PVLAN_SRC_MASK_ENA)
+    pvlan_conf_show(session_id, pvlan_list, pvlan_found);
+#else
+    PVLAN_UNUSED_PARAM(pvlan_found);
+#endif
+CODE_END
+CMD_END

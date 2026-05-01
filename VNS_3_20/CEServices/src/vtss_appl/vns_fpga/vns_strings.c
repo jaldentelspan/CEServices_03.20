@@ -1,0 +1,151 @@
+/*
+ * vns_strings.c
+ *
+ *  Created on: Oct 2, 2015
+ *      Author: eric
+ */
+
+#include "vtss_api.h"
+#include "vns_types.h"
+
+const char * VNS_ERROR_CODE_STR[]     = {
+	[VNS_ERROR_INVALID_COMMAND]   = "Invalid Command",
+	[VNS_ERROR_INVALID_PARAMETER] = "Invalid Parameter",
+	[VNS_ERROR_INVALID_MODE]      = "Invalid Mode",
+	[VNS_ERROR_NO_MEDIA]          = "No Media",
+	[VNS_ERROR_MEDIA_FULL]        = "Media Full",
+	[VNS_ERROR_COMMAND_FAILED]    = "Command Failed",
+};
+
+const char * vns_status_name[] = {
+	[VNS_STATE_FAIL]       = "FAIL",
+	[VNS_STATE_IDLE]       = "IDLE",
+	[VNS_STATE_BIT]        = "BIT",
+	[VNS_STATE_BUSY]       = "BUSY",
+	[VNS_STATE_ERROR]      = "ERROR",
+	// ADD NEW STATE NAMES ABOVE THIS LINE
+	[VNS_STATE_UNKNOWN]    = "UNKNOWN"
+};
+
+const char * vns_di_setting_name[] = {
+	// ADD NEW SETTING NAME ABOVE THIS LINE
+	[DI_SETTING_DISABLED] = "DISABLED"
+};
+
+const char * vns_do_setting_name[] = {
+	[DO_SETTING_P1_ACTIVITY]   = "PORT 1 ACTIVITY",
+	[DO_SETTING_P2_ACTIVITY]   = "PORT 2 ACTIVITY",
+	[DO_SETTING_P3_ACTIVITY]   = "PORT 3 ACTIVITY",
+	[DO_SETTING_P4_ACTIVITY]   = "PORT 4 ACTIVITY",
+	[DO_SETTING_P5_ACTIVITY]   = "PORT 5 ACTIVITY",
+	[DO_SETTING_P6_ACTIVITY]   = "PORT 6 ACTIVITY",
+	[DO_SETTING_P7_ACTIVITY]   = "PORT 7 ACTIVITY",
+	[DO_SETTING_P8_ACTIVITY]   = "PORT 8 ACTIVITY",
+	[DO_SETTING_P9_ACTIVITY]   = "PORT 9 ACTIVITY",
+	[DO_SETTING_P10_ACTIVITY]  = "PORT 10 ACTVITY",
+	[DO_SETTING_P11_ACTIVITY]  = "PORT 11 ACTIVITY",
+	[DO_SETTING_P12_ACTIVITY]  = "PORT 12 ACTIVITY",
+	[DO_SETTING_P1_LINK]       = "PORT 1 LINK",
+	[DO_SETTING_P2_LINK]       = "PORT 2 LINK",
+	[DO_SETTING_P3_LINK]       = "PORT 3 LINK",
+	[DO_SETTING_P4_LINK]       = "PORT 4 LINK",
+	[DO_SETTING_P5_LINK]       = "PORT 5 LINK",
+	[DO_SETTING_P6_LINK]       = "PORT 6 LINK",
+	[DO_SETTING_P7_LINK]       = "PORT 7 LINK",
+	[DO_SETTING_P8_LINK]       = "PORT 8 LINK",
+	[DO_SETTING_P9_LINK]       = "PORT 9 LINK",
+	[DO_SETTING_P10_LINK]      = "PORT 10 LINK",
+	[DO_SETTING_P11_LINK]      = "PORT 11 LINK",
+	[DO_SETTING_P12_LINK]      = "PORT 12 LINK",
+	[DO_SETTING_TIME_LOCK]     = "TIME LOCK",
+	[DO_SETTING_1588_LOCK]     = "IEEE-1588 LOCK",
+	[DO_SETTING_GPS_LOCK]      = "GPS LOCK",
+	[DO_SETTING_SWITCH_ERROR]  = "SWITCH ERROR",
+	[DO_SETTING_FPGA_ERROR]    = "FPGA ERROR",
+	[DO_SETTING_USER]          = "USER CONTROL",
+	// ADD NEW SETTING NAME ABOVE THIS LINE
+	[DO_SETTING_DISABLED]      = "DISABLED"
+};
+
+/* TIME_IN_SRC_ENUM_STR is for communication with webpage */
+const char * TIME_IN_SRC_ENUM_STR[] = {
+	[TIME_INPUT_SRC_IRIG_B]   = "TIME_SRC_IRIG_B",
+	[TIME_INPUT_SRC_IRIG_A]   = "TIME_SRC_IRIG_A",
+	[TIME_INPUT_SRC_IRIG_G]   = "TIME_SRC_IRIG_G",
+	[TIME_INPUT_SRC_1588]     = "TIME_SRC_1588",
+	[TIME_INPUT_SRC_GPS0]     = "TIME_SRC_GPS0",
+	[TIME_INPUT_SRC_GPS3]     = "TIME_SRC_GPS3",
+	[TIME_INPUT_SRC_GPS5]     = "TIME_SRC_GPS5",
+	[TIME_INPUT_SRC_INTERNAL] = "TIME_INPUT_SRC_INTERNAL",
+	[TIME_INPUT_SRC_1PPS]     = "TIME_SRC_1PPS",
+	[TIME_INPUT_SRC_DISABLED] = "TIME_SRC_DISABLED"
+};
+
+const char * TIME_IN_SRC_VOLTAGE_STR[]    = {
+	[TIME_INPUT_SRC_IRIG_B]   = "",
+	[TIME_INPUT_SRC_IRIG_A]   = "",
+	[TIME_INPUT_SRC_IRIG_G]   = "",
+	[TIME_INPUT_SRC_1588]     = "",
+	[TIME_INPUT_SRC_GPS0]     = "0 Volts",
+	[TIME_INPUT_SRC_GPS3]     = "3.3 Volts",
+	[TIME_INPUT_SRC_GPS5]     = "5 Volts",
+	[TIME_INPUT_SRC_1PPS]     = "",
+
+	[TIME_INPUT_SRC_DISABLED] = ""
+};
+const char * TIME_IN_SRC_STR[]    = {
+	[TIME_INPUT_SRC_IRIG_B]   = "IRIG-B",
+	[TIME_INPUT_SRC_IRIG_A]   = "IRIG-A",
+	[TIME_INPUT_SRC_IRIG_G]   = "IRIG-G",
+	[TIME_INPUT_SRC_1588]     = "IEEE-1588",
+	[TIME_INPUT_SRC_GPS0]     = "GPS",
+	[TIME_INPUT_SRC_GPS3]     = "GPS",
+	[TIME_INPUT_SRC_GPS5]     = "GPS",
+	[TIME_INPUT_SRC_1PPS]     = "1PPS",
+
+	[TIME_INPUT_SRC_DISABLED] = "DISABLED"
+};
+
+const char * GPS_DC_BIAS_STR[] = {
+	[DC_BIAS_0]            = "0 Volts",
+	[DC_BIAS_3_3]          = "3.3 Volts",
+	[DC_BIAS_5]            = "5 Volts"
+};
+
+const char * TIME_IN_SIGNAL_STR[]  = {
+	[TIME_INPUT_TYPE_DC]       = "DC",
+	[TIME_INPUT_TYPE_RESERVED] = "RESERVED",
+	[TIME_INPUT_TYPE_LOOPBACK] = "LOOPBACK",
+	[TIME_INPUT_TYPE_AM]       = "AM"
+};
+
+const char * TIME_OUT_TYPE_STR[]    = {
+	[TIME_OUTPUT_TYPE_IRIG_B]   = "IRIG-B",
+	[TIME_OUTPUT_TYPE_IRIG_A]   = "IRIG-A",
+	[TIME_OUTPUT_TYPE_IRIG_G]   = "IRIG-G",
+	[TIME_OUTPUT_TYPE_DISABLED] = "DISABLED"
+};
+
+const char * IEEE_1588_TYPE_STR[] = {
+	[IEEE_1588_DISABLED]      = "DISABLED",
+	[RESERVED1]               = "RESERVED",
+	[IEEE_1588_SLAVE]         = "IEEE-1588 SLAVE",
+	[IEEE_1588_MASTER]        = "IEEE-1588 MASTER"
+};
+
+const char * TIME_OUTPUT_MODE_STR[] = {
+    [TIME_OUTPUT_MODE_RESERVED0]    = "RESERVED",
+    [TIME_OUTPUT_MODE_TCG]          = "TCG",
+    [TIME_OUTPUT_MODE_RESERVED2]    = "RESERVED",
+    [TIME_OUTPUT_MODE_TEST]         = "TEST-DEBUG"
+};
+ 
+const char * VNS_EPE_MODE_STR[] = {
+    [ VNS_EPE_DISABLE ]         = "DISABLED",
+    [ VNS_EPE_HDLC ]            = "Encode HDLC",
+    [ VNS_EPE_CH7_15 ]          = "Encode CH7-15",
+    [ VNS_EPE_DECODE_HDLC ]     = "Decode HDLC",
+    [ VNS_EPE_DECODE_CH7_15 ]   = "Decode CH7-15",
+    [ VNS_EPE_END ]             = "INVALID"
+};
+

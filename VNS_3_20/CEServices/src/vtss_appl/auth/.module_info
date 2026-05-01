@@ -1,0 +1,6 @@
+---
+directory: vtss_appl/auth
+license: VTSS
+maintainer: Joergen Andreasen
+name: Authentication
+source: Vitesse

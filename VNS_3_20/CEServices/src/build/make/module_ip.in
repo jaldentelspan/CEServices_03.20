@@ -1,0 +1,66 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+# Files Location
+DIR_ip := $(DIR_APPL)/ip
+
+# Module objects
+OBJECTS_ip := ip.o ip_stack_glue.o ip_rl.o ping.o ip_cli_sysctl.o \
+  $(if $(MODULE_VCLI),ip_cli.o)                    \
+  $(if $(MODULE_WEB),ip_web.o)                    \
+  $(if $(MODULE_CONF_XML),ip_xml.o)               \
+  $(if $(MODULE_ICFG),vtss_sntp_icfg.o)
+
+# Built-in ICLI
+$(eval $(call add_icli,$(foreach m, sntp,$(DIR_ip)/$(m).icli)))
+
+# Compiler rules
+$(OBJECTS_ip): %.o: $(DIR_ip)/%.c
+	$(call compile_c, $@, $<, -D_KERNEL=1)
+
+# Include files
+INCLUDES += -I$(DIR_ip)
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_ip)/html
+
+# Lint files
+# Note: ip_cli.c not lintable.
+LINT_FILES_ip += $(DIR_ip)/ping.c \
+  $(if $(MODULE_WEB),$(DIR_ip)/ip_web.c) \
+  $(if $(MODULE_CONF_XML),$(DIR_ip)/ip_xml.c) \
+  $(if $(MODULE_ICFG),$(DIR_ip)/vtss_sntp_icfg.c) \
+  $(DIR_ip)/ip.c $(DIR_ip)/ip_stack_glue.c
+
+# S/W coding style check
+VTSS_CODE_STYLE_CHK_FILES_ip += $(DIR_ip)/*.c $(DIR_ip)/*.h
+
+# Tidy files
+TIDY_FILES_ip += $(DIR_ip)/html/*.htm $(DIR_ip)/html/help/*.htm
+
+# JSlint files
+JSLINT_FILES_ip += $(TIDY_FILES_ip)
+

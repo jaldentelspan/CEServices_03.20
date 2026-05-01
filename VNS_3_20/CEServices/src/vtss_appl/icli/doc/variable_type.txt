@@ -1,0 +1,61 @@
+AN1047-ICLI_Command_Generation_Guide.doc v1.3
+=============================================
+
+The variable type is declared in \vtss_appl\icli\base\icli_types.h
+
+
+Variable Type           C Type
+-------------           ------
+mac_addr	            vtss_mac_t
+mac_ucast	            vtss_mac_t
+mac_mcast	            vtss_mac_t
+ipv4_addr	            vtss_ip_t
+ipv4_netmask	        vtss_ip_t
+ipv4_ucast	            vtss_ip_t
+ipv4_mcast	            vtss_ip_t
+ipv4_subnet	            icli_ipv4_subnet_t
+ipv6_addr	            vtss_ipv6_t
+ipv6_netmask	        vtss_ipv6_t
+ipv6_ucast	            vtss_ipv6_t
+ipv6_mcast	            vtss_ipv6_t
+ipv6_subnet	            icli_ipv6_subnet_t
+int	                    i32
+int16	                i16
+int8	                i8
+uint	                u32
+uint16	                u16
+uint8	                u8
+a-b,c,d-e	            u32
+range_list	            icli_range_t
+a~b	                    If with negtive icli_signed_range_t
+                        if without negative icli_unsigned_range_t
+port_type	            icli_port_type_t
+port_id	                icli_switch_port_range_t
+port_list	            icli_stack_port_range_t
+vlan_id	                u32
+vlan_list	            icli_unsigned_range_t
+binary	                u32
+binary16	            u16
+binary8	                u8
+octet	                u32
+octet16	                u16
+octet8	                u8
+hex	                    u32
+hex16	                u16
+hex8	                u8
+float	                icli_float_t
+time	                icli_time_t
+date	                icli_date_t
+word	                char *
+wordn	                char *
+wordm-n	                char *
+kword	                char *
+kwordn	                char *
+kwordm-n	            char *
+string	                char *
+stringn	                char *
+stringm-n	            char *
+line	                char *
+linen	                char *
+linem-n	                char *
+

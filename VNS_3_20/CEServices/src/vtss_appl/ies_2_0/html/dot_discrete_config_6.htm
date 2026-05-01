@@ -1,0 +1,386 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>.Discrete I/O Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_dot_discrete_config.htm";
+var configSyncePrioMax = 100;
+var configSynceNormMax = 150;
+
+/******  Example Packet from Server  *******************
+var swSize = 0; // ***** 0 tests with 12 port; 1 tests the 6 port switch configuration
+var input;
+var inputx = [[
+ "12",
+ "|12/1/2/3/4/5/6/7/8/9/10/11/12/1/0/1/up/",
+ "|12/1/2/3/4/5/6/7/8/9/10/11/12/2/0/1/up/",
+ "|12/1/2/3/4/5/6/7/8/9/10/11/12/3/0/1/up/",
+ "|12/1/2/3/4/5/6/7/8/9/10/11/12/4/0/1/up/",
+ "|12/1/2/3/4/5/6/7/8/9/10/11/12/5/0/1/up/",
+ "|12/1/2/3/4/5/6/7/8/9/10/11/12/6/0/1/up/",
+ "|12/1/2/3/4/5/6/7/8/9/10/11/12/7/0/1/up/",
+ "|12/1/2/3/4/5/6/7/8/9/10/11/12/8/0/1/up/",
+ "|12/1/2/3/4/5/6/7/8/9/10/11/12/9/0/1/up/",
+ "|12/1/2/3/4/5/6/7/8/9/10/11/12/10/0/1/up/",
+ "|12/1/2/3/4/5/6/7/8/9/10/11/12/11/0/1/up/",
+ "|12/1/2/3/4/5/6/7/8/9/10/11/12/12/0/1/up/",
+ "|4",
+ "|1/0/up/",
+ "|2/0/up/",
+ "|3/0/up/",
+ "|4/0/up/|"],
+[
+ "8",
+ "|6/1/2/3/4/5/6/1/3/2/up/",
+ "|6/1/2/3/4/5/6/2/0/1/up/",
+ "|6/1/2/3/4/5/6/3/0/1/down/",
+ "|6/1/2/3/4/5/6/4/0/1/up/",
+ "|6/1/2/3/4/5/6/5/0/1/up/",
+ "|6/1/2/3/4/5/6/6/0/1/up/",
+ "|6/1/2/3/4/5/6/7/0/1/up/",
+ "|6/1/2/3/4/5/6/8/0/1/up/",
+ "|1",
+ "|1/0/down/"]];
+   */   
+var oTpin_func = ["Activity","Link Up","Time Lock","1588 Lock", "Switch Error", "FPGA Error", "User Control","Disable"];
+var oVpin_func = [ 0, 1, 2, 3, 5, 6, 7, 8];
+var oTpin_enable = ["Disable","Enable"];
+var oVpin_enable = [ 0, 1];
+var reqObject;
+var streamElements = Array();
+var changedSelector;
+var correspondingPort;
+var value;
+
+//var shift_value;
+
+function resetForm()
+{
+    //requestUpdate();//
+    processUpdate(reqObject);
+}
+function validatePortSelector(row, onload)
+{
+    changedSelector = document.getElementById("funct_" + row);
+    correspondingPort = document.getElementById("port_" + row);
+    correspondingButton = document.getElementById("button_" + row); 
+    value = changedSelector.value;
+ // *** Disable or enable Port selector if ACTIVITY or LINK is selected
+    if(value > 1)
+    {
+       correspondingPort.disabled = true;
+    }
+    else
+    {
+       correspondingPort.disabled = false;
+    }
+ // *** Check for "USER CONTROL", give access to discrete toggle if user control is selected   
+    if(value == 7 & onload)
+    {
+       correspondingButton.disabled = false;
+    }
+    else
+    {
+       correspondingButton.disabled = true;
+    }
+   
+}
+function DiscreteButtonHandler(clicked_id)
+{
+    var button;
+    var i= 0;
+    var hex_shift_code = 0;
+    
+    for(i = 0; i < 13 ; i++)
+    {
+        button = "button_" + i.toString();
+        if(clicked_id == button)
+        {
+            hex_shift_code = i;
+            break;
+        }
+    }
+    document.getElementById("shift_value").value = hex_shift_code;
+    document.discreteConigForm.action = "/config/dot_discrete_trigger";
+    document.discreteConigForm.submit();
+    document.discreteConigForm.action = "/config/dot_discrete_config";
+    document.getElementById("shift_value").value = 0;
+    requestUpdate();
+
+}
+function addDiscreteOutputRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var inx = 0;
+
+    var port_cnt = parseInt(values[inx++]);
+    var oTPort12 = new Array(port_cnt);
+    var oVPort12 = new Array(port_cnt);
+
+    for (i=0; i<port_cnt; ++i)
+    {
+        oTPort12[i] = values[inx];
+        oVPort12[i] = parseInt(values[inx++]);
+    }
+
+    //source
+    var source = parseInt(values[inx+0]);
+    addTextCell(tr, String(source), "cr");
+    
+    //Pin Function   
+    var td = addSelectCell(tr, oTpin_func, oVpin_func, parseInt(values[inx+1]), "cr", "funct_" + source);
+
+    td.onchange = function(){validatePortSelector(source, false)};//.setAttribute("onchange", validatePortSelector(source));
+
+    //port
+    td = addSelectCell(tr, oTPort12, oVPort12, parseInt(values[inx+2]), "cr", "port_" + source);
+    if( parseInt(values[inx+1]) > 1)
+    {
+        td.disabled = true;
+    }
+    else
+    {
+        td.disabled = false;
+    }
+        // state
+    td = addButtonCell(tr, "Toggle", "cr", "button_" + source);
+    td.onclick = function(){DiscreteButtonHandler(this.id)};
+  
+    if( parseInt(values[inx+1]) == 7)
+    {
+        td.disabled = false;
+    }
+    else
+    {
+        td.disabled = true;
+    }
+    
+    link = values[inx+3];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+function addDiscreteInputRow(index, frag, values)
+{
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var inx = 0;
+ 
+    //source
+    var source = parseInt(values[inx+0]);
+    addTextCell(tr, String(source), "cr");
+    
+    //port
+    addSelectCell(tr, oTpin_enable, oVpin_enable, parseInt(values[inx+1]), "cr", "enable_" + source);
+    // state
+    link = values[inx+2];
+    addImageCell(tr, "c", "images/led-" + link.toLowerCase() + ".gif", link);
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+function processUpdate(req)
+{
+    
+    
+    if (redirectOnError(req))
+        return;
+    var reset=0;
+
+    if (reqObject != req)   
+    {
+        reqObject = req;
+    }
+    else
+    {
+        reset = 1;
+    }
+        var input = req.responseText;
+
+        streamElements = input.split("|");
+ // ******* Table to Configure Outputs ***************//      
+        var source_no = parseInt(streamElements[0]);
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+        var offset = 1;
+        
+        for (var i = 0; i < source_no; i++)
+        {
+            if (streamElements[offset+i])
+            {
+                var pval = streamElements[offset+i].split("/");
+                addDiscreteOutputRow(i, frag, pval);
+            }
+        }
+
+        var tbody = document.getElementById("discreteOutputConfigData");
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag))
+        { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+        
+ // ******* Table to Configure Inputs ***************//          
+        
+        source_no = parseInt(streamElements[parseInt(streamElements[0])+1]);
+
+        // create holder for accumulated tbody elements and text nodes
+        frag = document.createDocumentFragment();
+        offset = parseInt(streamElements[0]) + 2;
+        
+        for (var i = 0; i < source_no; i++)
+        {
+            if (streamElements[offset+i])
+            {
+                var pval = streamElements[offset+i].split("/");
+                addDiscreteInputRow(i, frag, pval);
+            }
+        }
+
+        var tbody = document.getElementById("discreteInputConfigData");
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag))
+        { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+// ******* Done Building Tables ***************//    
+
+    document.getElementById("update").style.visibility = "hidden";
+    
+}
+function requestUpdate()
+{
+    document.getElementById("shift_value").style.visibility="hidden";
+    document.getElementById("shift_value").value = 0;
+    document.getElementById("discreteInputConfig").style.visibility="hidden";
+    document.getElementById("discreteInputLabel").style.visibility="hidden";
+    this.blur();
+    setTimeout (function(){
+
+    if(loadXMLDoc("/config/dot_discrete_config", processUpdate, null)== null)
+    {
+        alert("loadXMLDoc Failed");        
+    }
+    updateAllSelectors();
+    },1000);
+
+}
+function updateAllSelectors()
+{
+    for(var i = 1; i < streamElements[0]; i++)
+    {
+        validatePortSelector(i, true);
+    }       
+}
+function checkForm(form)
+{
+    var r = confirm("Press \"OK\" to confirm to save changes");
+    if (r == true) {
+        return true; // User approved change
+    }
+    return false;
+}
+ </script>
+</head>
+
+
+<body class="content" onload="requestUpdate();updateAllSelectors()">
+
+<h1>.DISCRETE I/O Configuration<span id="display_sid"></span></h1>
+
+<div class="refreshbar">
+ <form action="#">
+  <input type="button" value="Refresh" onClick="requestUpdate();">
+  <img id="update" alt="" src="images/updating.gif">
+ </form>
+</div>
+
+<form name="discreteConigForm" method="POST" action="/config/dot_discrete_config" onsubmit="return checkForm(this);">
+
+<h2>.Discrete Output Configuration</h2>
+
+<table id="discreteOuputConfig" summary="discrete Output Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th rowSpan=2>Discrete Number</th>
+   <th rowSpan=2>Function</th>
+   <th rowSpan=2>Port</th>
+   <th rowSpan=2>Manual Trigger</th>
+   <th rowSpan=2>Status</th>
+   </tr>
+ </thead>
+ <tbody id="discreteOutputConfigData">
+ </tbody>
+</table>
+
+<h2 id="discreteInputLabel">.Discrete Input Configuration</h2>
+
+<table id="discreteInputConfig" summary="discrete Input Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th rowSpan=2>Discrete Number</th>
+   <th rowSpan=2>Enable\Disable</th>
+   <th rowSpan=2>Status</th>
+   </tr>
+ </thead>
+ <tbody id="discreteInputConfigData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="resetForm();">
+<input type="text" id="shift_value" name="shift_value">
+</p>
+
+
+
+</form>
+
+<!-- IE caching bug -->
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

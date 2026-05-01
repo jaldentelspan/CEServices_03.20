@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QoS Ingress Port Classification Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>QoS Ingress Port Classification Help</h1>
+
+<p>This page allows you to configure the basic <a href="glossary.htm#qos" class="glossary">QoS</a> Ingress Classification settings for all switch ports.</p>
+
+<p class="SPOM_only">The settings relate to the currently selected stack
+unit, as reflected by the page header.</p>
+
+<p>The displayed settings are:</p>
+
+<dl>
+ <dt>Port</dt>
+ <dd>The port number for which the configuration below applies.</dd>
+ 
+ <dt>QoS class</dt>
+ <dd>Controls the default <a href="glossary.htm#qos_class" class="glossary">QoS class</a>.
+
+ <p>All frames are classified to a QoS class. There is a one to one mapping between QoS class, queue and priority.
+ A QoS class of 0 (zero) has the lowest priority.</p>
+
+ <p class="has_qos_fixed_map">If the port is VLAN aware and the frame is tagged, then the frame is
+ classified to a QoS class that is based on the PCP value in the tag as shown below.
+ Otherwise the frame is classified to the default QoS class.</p>
+
+ <table class="has_qos_fixed_map" summary="PCP-QoS Map">
+  <tr><td>PCP value:</td><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td></tr>
+  <tr><td>QoS class:</td><td>1</td><td>0</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td></tr>
+ </table>
+
+ <p class="has_qos_tag_class">If the port is VLAN aware, the frame is tagged and Tag Class. is enabled,
+ then the frame is classified to a QoS class that is mapped from the PCP and DEI value in the tag.
+ Otherwise the frame is classified to the default QoS class.</p>
+
+ <p>The classified QoS class can be overruled by a QCL entry.</p>
+ 
+ <p><b>Note: </b>If the default QoS class has been dynamically changed, then the actual default QoS class is
+ shown in parentheses after the configured default QoS class.</p></dd>
+ 
+ <dt>DP level</dt>
+ <dd>Controls the default <a href="glossary.htm#dpl" class="glossary">Drop Precedence Level</a>.
+
+ <p>All frames are classified to a DP level.</p>
+
+ <p class="has_qos_fixed_map">If the port is VLAN aware and the frame is tagged, then the frame is classified to a
+ DP level that is equal to the DEI value in the tag. Otherwise the frame is classified to the default DP level.</p>
+
+ <p class="has_qos_tag_class">If the port is VLAN aware, the frame is tagged and Tag Class. is enabled,
+ then the frame is classified to a DP level that is mapped from the PCP and DEI value in the tag.
+ Otherwise the frame is classified to the default DP level.</p>
+
+ <p>The classified DP level can be overruled by a QCL entry.</p></dd>
+ 
+ <dt class="has_qos_pcp_dei">PCP</dt>
+ <dd class="has_qos_pcp_dei">Controls the default <a href="glossary.htm#PCP" class="glossary">PCP</a> value.
+
+ <p>All frames are classified to a PCP value.</p>
+
+ <p> If the port is VLAN aware and the frame is tagged, then the frame is classified to the
+ PCP value in the tag. Otherwise the frame is classified to the default PCP value.</p></dd>
+ 
+ <dt class="has_qos_pcp_dei">DEI</dt>
+ <dd class="has_qos_pcp_dei">Controls the default <a href="glossary.htm#DEI" class="glossary">DEI</a> value.
+
+ <p>All frames are classified to a DEI value.</p>
+
+ <p>If the port is VLAN aware and the frame is tagged, then the frame is classified to the
+ DEI value in the tag. Otherwise the frame is classified to the default DEI value.</p></dd>
+ 
+ <dt class="has_qos_tag_class">Tag Class.</dt>
+ <dd class="has_qos_tag_class">Shows the classification mode for tagged frames on this port.<br>
+ <samp>Disabled</samp>: Use default QoS class and DP level for tagged frames.<br>
+ <samp>Enabled</samp>: Use mapped versions of <a href="glossary.htm#PCP" class="glossary">PCP</a>
+ and <a href="glossary.htm#DEI" class="glossary">DEI</a> for tagged frames.
+ 
+ <p>Click on the mode in order to configure the mode and/or mapping.</p>
+
+ <p><b>Note: </b>This setting has no effect if the port is VLAN unaware. Tagged frames received on VLAN unaware ports
+ are always classified to the default QoS class and DP level.</p></dd>
+
+ <dt class="has_qos_dscp_class">DSCP Based</dt>
+ <dd class="has_qos_dscp_class">Click to Enable <a href="glossary.htm#dscp" class="glossary">DSCP</a> Based QoS
+ Ingress Port Classification. </dd>
+</dl>
+
+<h2>Buttons</h2>
+<p><input type="button" value="Save">: Click to save changes.</p>
+<p><input type="button" value="Reset">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

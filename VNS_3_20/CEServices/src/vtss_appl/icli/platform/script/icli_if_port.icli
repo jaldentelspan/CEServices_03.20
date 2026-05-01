@@ -1,0 +1,176 @@
+//
+// Vitesse Switch Software.
+//
+// Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+// Rights Reserved.
+//
+// Unpublished rights reserved under the copyright laws of the United States of
+// America, other countries and international treaties. Permission to use, copy,
+// store and modify, the software and its source code is granted. Permission to
+// integrate into other products, disclose, transmit and distribute the software
+// in an absolute machine readable format (e.g. HEX file) is also granted.  The
+// source code of the software may not be disclosed, transmitted or distributed
+// without the written permission of Vitesse. The software and its source code
+// may only be used in products utilizing the Vitesse switch products.
+//
+// This copyright notice must appear in any copy, modification, disclosure,
+// transmission or distribution of the software. Vitesse retains all ownership,
+// copyright, trade secret and proprietary rights in the software.
+//
+// THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+// INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+//
+//
+// Module Segment
+//   This tag value is used to decide whether all commands of this module are
+//   registered or not and the generated C/H file is compiled or not.
+//
+MODULE_IF_FLAG = 
+
+//
+// Include Segment
+//   The segment contains the include files. These include files are needed
+//   for the code body, that is, all other segments. 
+//   "icli_api.h" is the default include file that will be auto-generated
+//   in C file. 
+//   The content will be exactly pasted to the generated C file.
+//
+INCLUDE_BEGIN
+#include "icli_cmd_func.h"
+INCLUDE_END
+
+//
+// Function Segment
+//   The segment allows the designer writes the local functions that will be
+//   used in the command Segment and also the global functions that can be
+//   shared with other C files. 
+//   The content will be exactly pasted to the generated C file.
+//
+FUNCTION_BEGIN
+FUNCTION_END
+
+//
+// Export Segment
+//   This segment contains the API declarations of the global functions in
+//   Function Segment. This will be pasted exactly to the generated H file.
+//   So, others can include the H file to use the global functions.
+//
+EXPORT_BEGIN
+EXPORT_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = exit
+PROPERTY  = ICLI_CMD_PROP_MODE
+PRIVILEGE = ICLI_PRIVILEGE_13
+IF_FLAG   = 
+
+CMD_VAR   = 
+
+RUNTIME   = 
+
+BYWORD    = 
+
+HELP      = Exit from Interface Port mode
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+GOTO_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+
+VARIABLE_BEGIN
+    i32     level;
+VARIABLE_END
+
+CODE_BEGIN
+    level = ICLI_MODE_EXIT();
+    if ( level != 1 ) {
+        ICLI_PRINTF("%% Fail to exit Interface Port mode.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = end
+PROPERTY  = ICLI_CMD_PROP_MODE
+PRIVILEGE = ICLI_PRIVILEGE_13
+IF_FLAG   = 
+
+CMD_VAR   = 
+
+RUNTIME   = 
+
+BYWORD    = 
+
+HELP      = ##ICLI_HELP_END
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+GOTO_MODE = ICLI_CMD_MODE_EXEC
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ( icli_config_go_to_exec_mode(session_id) == FALSE ) {
+        ICLI_PRINTF("%% Fail to exit Interface Port mode.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+CMD_END
+
+//
+// Command Segment
+//   This segment is the implementation of the command,
+//   one segment for one command.
+//
+CMD_BEGIN
+COMMAND   = debug mode
+PROPERTY  = 
+PRIVILEGE = ICLI_PRIVILEGE_DEBUG
+IF_FLAG   = 
+
+CMD_VAR   = 
+
+RUNTIME   = 
+
+BYWORD    = 
+
+HELP      = ##ICLI_HELP_DEBUG
+HELP      =
+
+CMD_MODE  = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+
+MODE_VAR  = list
+
+VARIABLE_BEGIN
+    u32     i;
+VARIABLE_END
+
+CODE_BEGIN
+    ICLI_PRINTF("Type                Switch ID  Port ID  Port Cnt  Usid  Uport\n");
+    ICLI_PRINTF("==================  =========  =======  ========  ====  =====\n");
+    
+    for ( i = 0; i < list->cnt; i++ ) {
+        ICLI_PRINTF("%-18s %9d  %7d  %8d  %4d  %5d\n",
+            icli_port_type_get_name(list->switch_range[i].port_type),
+            list->switch_range[i].switch_id,
+            list->switch_range[i].begin_port,
+            list->switch_range[i].port_cnt,
+            list->switch_range[i].usid,
+            list->switch_range[i].begin_uport);
+    }
+CODE_END
+
+CMD_END
+

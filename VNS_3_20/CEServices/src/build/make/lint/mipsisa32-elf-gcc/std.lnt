@@ -1,0 +1,9 @@
+--i%ECOS_TOOLCHAIN_TOP%/lib/gcc/mipsisa32-elf/4.3.2/include
+--i%ECOS_TOOLCHAIN_TOP%/lib/gcc/mipsisa32-elf/4.3.2/include-fixed
+--i%ECOS_TOOLCHAIN_TOP%/lib/gcc/mipsisa32-elf/4.3.2/../../../../mipsisa32-elf/include
+--i%LINTDIR%
++ffn
+-hF
+-width(0)
+-"format=%(%f:%l: %)Lint %t %n: %m"
+%LINTDIR%/co-gcc.lnt

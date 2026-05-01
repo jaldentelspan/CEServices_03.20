@@ -1,0 +1,181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QCL Configuration Wizard - Policy</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+    
+// Help page magic
+var help_page = "/help/help_qcl_wizard_policy.htm";
+
+function addRow(frag, values, idx) {
+    var tr = CreateStyledElement("tr", idx % 2 ? "config_odd" : "config_even");
+    var policyno = parseInt(values[0], 10);
+    addTextCell(tr, policyno, "c");
+
+    for (var portNum = 1; portNum <= configNormalPortMax; portNum++) {
+        addRadioCell(tr, parseInt(values[portNum], 10), "c", "policy_port_" + portNum, "policy_" + policyno + "_port_" + portNum);
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    if(redirectOnError(req)) {
+        return;
+    }
+    if (req.responseText) {
+        var policyConfig = req.responseText.split("|");
+        //if (1) {
+        //var policyConfig = req.split("|");
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+        for(var i = 0; i < policyConfig.length; i++) {
+            if (policyConfig[i]) {
+                var values = policyConfig[i].split("/");
+                addRow(frag, values, i);
+            }
+        }
+        
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    } else {
+        SpomHandleError();   
+    }
+}
+
+function checkForm()
+{
+    var fld;
+    
+    for(var i = 0; i <= 8; i++) {
+        fld = document.getElementById("policy_name_"+ i);
+        if (fld) {
+            if (fld.value.length > 15) {
+                GiveAlert("The maximum length of 'Policy Name " + (i+1) + "' is restricted to 15", fld);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+function requestUpdate() {
+    // Format: [policy_id]/[is_policy_member]/[is_policy_member]/...[is_policy_member]|...
+    
+    //var req="1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1|2/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|3/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|4/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|5/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|6/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|7/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|8/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|9/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|10/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|11/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|12/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|13/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|14/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|15/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|16/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|17/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|18/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|19/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|20/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|21/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|22/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|23/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0|24/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0";
+    //processUpdate(req, "policyData");
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/qcl_wizard_policy"), processUpdate, 'policyData');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function GenerateHeader(id)
+{
+    var thead = document.getElementById(id);
+    var frag = document.createDocumentFragment();
+    var tr;
+
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, " ", "cl", "1");
+    addTextHeaderCell(tr, "Port Members", "hdrc", configNormalPortMax);
+    frag.appendChild(tr);       // Add row to fragment
+
+    tr = CreateStyledElement("tr", "config_header");
+    addTextHeaderCell(tr, "QCL ID", "cl");
+    for (var i = configPortMin; i <= configNormalPortMax; i++) {
+        addTextHeaderCell(tr, i, "portno");
+    }
+    frag.appendChild(tr);       // Add row to fragment
+
+    thead.appendChild(frag);
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+function goNextPage() {
+    parent.saveEditData("qos_class");
+}
+
+ </script>
+</head>
+
+<body class="content" onload="GenerateHeader('header'); requestUpdate();">
+
+<form name="policyForm" method="POST" action="/config/qcl_wizard_policy" onsubmit="return checkForm();">
+
+<h1>Set up Policy Rules <span id="display_sid"></span></h1>
+<h2>Group ports into several types according to different QCL policies.</h2>
+<p>&nbsp;</p>
+
+<table id="policyConfig" summary="QCL Policy Configuration" class="config">
+ <thead id="header"></thead>
+ <tbody id="policyData"></tbody>
+</table>
+
+<p>&nbsp;</p> 
+<hr>
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="button" value="Cancel Wizard" onclick="document.location.href='qcl_wizard.htm';">
+&nbsp;&nbsp;&nbsp;&nbsp;
+<input type="button" value="< Back" onclick="history.back();">
+<input type="submit" value="Next >" onclick="goNextPage();">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

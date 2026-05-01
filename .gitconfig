@@ -1,0 +1,11 @@
+[user]
+    email = jalden@telspandata.com
+    name = jaldentelspan
+
+# [includeIf "gitdir:~/new_istax/"]
+    # path = ~/new_istax/.gitconfig
+
+[color]
+    ui = auto
+[core]
+    excludesFile = /home/jalden/.gitignore

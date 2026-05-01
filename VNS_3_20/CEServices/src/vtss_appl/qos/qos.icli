@@ -1,0 +1,4061 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_QOS)
+
+INCLUDE_BEGIN
+#include "qos_api.h"
+#include "qos_icfg.h"
+#include "icli_porting_util.h"
+/*lint --e{438, 550} */
+INCLUDE_END
+
+FUNCTION_BEGIN
+i32 icli_session_printf(
+    IN  u32         session_id,
+    IN  const char  *format,
+    IN  ...
+) __attribute__ ((format (__printf__, 2, 3)));
+
+
+#undef IC_RC
+#define IC_RC(expr) do {                              \
+    vtss_rc _rc_ = (expr);                            \
+    if (_rc_ != VTSS_OK) {                            \
+        ICLI_PRINTF("Error: %s!\n", error_txt(_rc_)); \
+        return _rc_;                                  \
+    }                                                 \
+} while (0)
+
+static BOOL QOS_ICLI_has_wred(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#if defined(VTSS_FEATURE_QOS_WRED)
+        return TRUE;
+#endif
+    case ICLI_ASK_BYWORD:
+    case ICLI_ASK_HELP:
+    case ICLI_ASK_RANGE:
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL QOS_ICLI_has_maps(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#if defined(VTSS_FEATURE_QOS_CLASSIFICATION_V2) || defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2)
+#if defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+        return TRUE;
+#endif /* defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE) */
+#endif /* defined(VTSS_FEATURE_QOS_CLASSIFICATION_V2) || defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2) */
+    case ICLI_ASK_BYWORD:
+    case ICLI_ASK_HELP:
+    case ICLI_ASK_RANGE:
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL QOS_ICLI_has_storm(u32 session_id, icli_runtime_ask_t ask, icli_runtime_t *runtime)
+{
+    switch (ask) {
+    case ICLI_ASK_PRESENT:
+#if defined(VTSS_FEATURE_QOS_POLICER_UC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_MC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_BC_SWITCH)
+        return TRUE;
+#endif /* defined(VTSS_FEATURE_QOS_POLICER_UC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_MC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_BC_SWITCH) */
+    case ICLI_ASK_BYWORD:
+    case ICLI_ASK_HELP:
+    case ICLI_ASK_RANGE:
+    default:
+        break;
+    }
+    return FALSE;
+}
+
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = show qos [ { interface [ <port_type_list> ] } | wred | maps | storm | { qce [ <1-256> ] } ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_GREP
+
+CMD_MODE = ICLI_CMD_MODE_EXEC
+MODE_VAR = 
+
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = 
+RUNTIME = QOS_ICLI_has_wred
+RUNTIME = QOS_ICLI_has_maps
+RUNTIME = QOS_ICLI_has_storm
+
+
+! 1: show
+! 2: qos
+! 3: interface
+! 4: <port:port_type_list>
+! 5: wred
+! 6: maps
+! 7: storm
+! 8: qce
+! 9: <qce:1-256>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_interface
+CMD_VAR = port
+CMD_VAR = has_wred
+CMD_VAR = has_maps
+CMD_VAR = has_storm
+CMD_VAR = has_qce
+CMD_VAR = qce
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Interface : option>
+BYWORD = <Port : port_type_list>
+BYWORD = <Wred : option>
+BYWORD = <Maps : option>
+BYWORD = <Storm : option>
+BYWORD = <Qce : option>
+BYWORD = <Qce : 1-256>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+    if ((has_interface | has_wred | has_maps | has_storm | has_qce) == FALSE) {
+        has_interface = has_wred = has_maps = has_storm = has_qce = TRUE;
+    }
+
+    if (has_interface) {
+#if 1
+        switch_iter_t sit;
+        port_iter_t pit;
+        (void)icli_switch_iter_init(&sit);
+        while (icli_switch_iter_getnext(&sit, port)) {
+            (void)icli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_NORMAL);
+            while (icli_port_iter_getnext(&pit, port)) {
+                icli_print_port_info_txt(session_id, sit.usid, pit.uport);
+                ICLI_PRINTF("show interface sid %u, port %u, fs %u, fp %u\n", sit.usid, pit.uport, sit.first, pit.first);
+            }
+        }
+#else
+        int i, j;
+        if (port) {
+            for (i = 0; i < (int)port->cnt; i++) {
+                icli_switch_port_range_t *r = &port->switch_range[i];
+                for (j = 0; j < r->port_cnt; j++) {
+                    ICLI_PRINTF("show interface sid %u, port %u, pt %u, sw %u, bp %u, pc %u\n",
+                                r->usid,
+                                r->begin_uport + j,
+                                r->port_type,
+                                r->switch_id,
+                                r->begin_port + j,
+                                r->port_cnt);
+                }
+            }
+        } else {
+            ICLI_PRINTF("show interface all ports\n");
+        }
+#endif
+    }
+
+#if defined(VTSS_FEATURE_QOS_WRED)
+    if (has_wred) {
+        qos_conf_t c;
+        int        queue;
+
+        IC_RC(qos_conf_get(&c));
+
+        ICLI_PRINTF("qos wred:\n");
+        ICLI_PRINTF("=========\n");
+        ICLI_PRINTF("Queue  Mode      Min Th  Mdp 1  Mdp 2  Mdp 3\n");
+        ICLI_PRINTF("-----  ----      ------  -----  -----  -----\n");
+
+        for (queue = 0; queue < QOS_PORT_WEIGHTED_QUEUE_CNT; queue++) {
+            ICLI_PRINTF("%d      %s    %3u    %3u    %3u    %3u\n",
+                        queue,
+                        icli_bool_txt(c.wred[queue].enable),
+                        c.wred[queue].min_th,
+                        c.wred[queue].max_prob_1,
+                        c.wred[queue].max_prob_2,
+                        c.wred[queue].max_prob_3);
+        }
+        ICLI_PRINTF("\n");
+    }
+#endif
+
+#if defined(VTSS_FEATURE_QOS_CLASSIFICATION_V2) || defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2)
+#if defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE)
+    if (has_maps) {
+        qos_conf_t c;
+        int i;
+
+        IC_RC(qos_conf_get(&c));
+
+#if defined(VTSS_FEATURE_QOS_CLASSIFICATION_V2)
+        ICLI_PRINTF("qos map dscp-cos:\n");
+        ICLI_PRINTF("=================\n");
+
+        ICLI_PRINTF("DSCP       Trust     Cos  Dpl\n");
+        ICLI_PRINTF("---------  --------  ---  ---\n");
+
+        for (i = 0; i < 64; i++) {
+            ICLI_PRINTF("%-9s  %-8s  %-3u  %-3d\n", qos_dscp2str(i), icli_bool_txt(c.dscp.dscp_trust[i]), c.dscp.dscp_qos_class_map[i], c.dscp.dscp_dp_level_map[i]);
+        }
+#endif /* VTSS_FEATURE_QOS_CLASSIFICATION_V2 */
+
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2)
+        ICLI_PRINTF("qos map dscp-ingress-translation:\n");
+        ICLI_PRINTF("=================================\n");
+
+        ICLI_PRINTF("DSCP       Translated DSCP\n");
+        ICLI_PRINTF("---------  ---------------\n");
+
+        for (i = 0; i < 64; i++) {
+            ICLI_PRINTF("%-9s  %-9s\n", qos_dscp2str(i), qos_dscp2str(c.dscp.translate_map[i]));
+        }
+
+        ICLI_PRINTF("qos map dscp-classify:\n");
+        ICLI_PRINTF("======================\n");
+
+        ICLI_PRINTF("DSCP       Classify\n");
+        ICLI_PRINTF("---------  --------\n");
+
+        for (i = 0; i < 64; i++) {
+            ICLI_PRINTF("%-9s  %-8s\n", qos_dscp2str(i), icli_bool_txt(c.dscp.ingress_remark[i]));
+        }
+
+        ICLI_PRINTF("qos map cos-dscp:\n");
+        ICLI_PRINTF("=================\n");
+
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE)
+        ICLI_PRINTF("Cos  Dpl  DSCP\n");
+        ICLI_PRINTF("---  ---  ---------\n");
+#else
+        ICLI_PRINTF("Cos  DSCP\n");
+        ICLI_PRINTF("---  ---------\n");
+#endif
+        for (i = 0; i < VTSS_PRIO_ARRAY_SIZE; i++) {
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE)
+            ICLI_PRINTF("%-3d  %-3d  %-9s\n", i, 0, qos_dscp2str(c.dscp.qos_class_dscp_map[i]));
+            ICLI_PRINTF("%-3d  %-3d  %-9s\n", i, 1, qos_dscp2str(c.dscp.qos_class_dscp_map_dp1[i]));
+#else
+            ICLI_PRINTF("%-3d  %-9s\n", i, qos_dscp2str(c.dscp.qos_class_dscp_map[i]));
+#endif
+        }
+
+        ICLI_PRINTF("qos map dscp-egress-translation:\n");
+        ICLI_PRINTF("================================\n");
+
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE)
+        ICLI_PRINTF("DSCP       Remap dp0  Remap dp1\n");
+        ICLI_PRINTF("---------  ---------  ---------\n");
+#else
+        ICLI_PRINTF("DSCP       Remap\n");
+        ICLI_PRINTF("---------  ---------\n");
+#endif
+        for (i = 0; i < 64; i++) {
+#if defined(VTSS_FEATURE_QOS_DSCP_REMARK_DP_AWARE)
+            ICLI_PRINTF("%-9s  %-9s  %-9s\n", qos_dscp2str(i), qos_dscp2str(c.dscp.egress_remap[i]), qos_dscp2str(c.dscp.egress_remap_dp1[i]));
+#else
+            ICLI_PRINTF("%-9s  %-9s\n", qos_dscp2str(i), qos_dscp2str(c.dscp.egress_remap[i]));
+#endif
+        }
+#endif /* VTSS_FEATURE_QOS_DSCP_REMARK_V2 */
+
+
+    }
+#endif /* defined(VTSS_SW_OPTION_BUILD_SMB) || defined(VTSS_SW_OPTION_BUILD_CE) */
+#endif /* defined(VTSS_FEATURE_QOS_CLASSIFICATION_V2) || defined(VTSS_FEATURE_QOS_DSCP_REMARK_V2) */
+
+#if defined(VTSS_FEATURE_QOS_POLICER_UC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_MC_SWITCH) && defined(VTSS_FEATURE_QOS_POLICER_BC_SWITCH)
+    if (has_storm) {
+        qos_conf_t c;
+        char       buf[32];
+
+        IC_RC(qos_conf_get(&c));
+
+        ICLI_PRINTF("qos storm:\n");
+        ICLI_PRINTF("==========\n");
+
+#if defined(VTSS_FEATURE_QOS_POLICER_UC_SWITCH)
+        ICLI_PRINTF("Unicast  : %s %12s\n", icli_bool_txt(c.policer_uc_status), qos_icfg_storm_rate_txt(c.policer_uc, buf));
+#endif /* defined(VTSS_FEATURE_QOS_POLICER_UC_SWITCH) */
+
+#if defined(VTSS_FEATURE_QOS_POLICER_MC_SWITCH)
+        ICLI_PRINTF("Multicast: %s %12s\n", icli_bool_txt(c.policer_mc_status), qos_icfg_storm_rate_txt(c.policer_mc, buf));
+#endif /* defined(VTSS_FEATURE_QOS_POLICER_MC_SWITCH) */
+
+#if defined(VTSS_FEATURE_QOS_POLICER_BC_SWITCH)
+        ICLI_PRINTF("Broadcast: %s %12s\n", icli_bool_txt(c.policer_bc_status), qos_icfg_storm_rate_txt(c.policer_bc, buf));
+#endif /* defined(VTSS_FEATURE_QOS_POLICER_BC_SWITCH) */
+    }
+#endif
+
+    if (has_qce) {
+        ICLI_PRINTF("NYI! show qce %u\n", qce);
+    }
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos map dscp-cos { <0~63> | <dscp> } cos <0-7> dpl <dpl>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: qos
+! 2: map
+! 3: dscp-cos
+! 4: <dscp_num:0~63>
+! 5: <dscp_name:dscp>
+! 6: cos
+! 7: <cos:0-7>
+! 8: dpl
+! 9: <dpl:dpl>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = dscp_num
+CMD_VAR = dscp_name
+CMD_VAR = 
+CMD_VAR = cos
+CMD_VAR = 
+CMD_VAR = dpl
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <DscpNum : 0~63>
+BYWORD = <DscpName : dscp>
+BYWORD = 
+BYWORD = <Cos : 0-7>
+BYWORD = 
+BYWORD = <Dpl : dpl>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos map dscp-cos { <0~63> | <dscp> }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: map
+! 4: dscp-cos
+! 5: <dscp_num:0~63>
+! 6: <dscp_name:dscp>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = dscp_num
+CMD_VAR = dscp_name
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <DscpNum : 0~63>
+BYWORD = <DscpName : dscp>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos map dscp-ingress-translation { <0~63> | <dscp> } to { <0-63> | <dscp> }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: qos
+! 2: map
+! 3: dscp-ingress-translation
+! 4: <dscp_num_:0~63>
+! 5: <dscp_name:dscp>
+! 6: to
+! 7: <dscp_num_tr:0-63>
+! 8: <dscp_name_tr:dscp>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = dscp_num_
+CMD_VAR = dscp_name
+CMD_VAR = 
+CMD_VAR = dscp_num_tr
+CMD_VAR = dscp_name_tr
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <DscpNum : 0~63>
+BYWORD = <DscpName : dscp>
+BYWORD = 
+BYWORD = <DscpNumTr : 0-63>
+BYWORD = <DscpNameTr : dscp>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos map dscp-ingress-translation { <0~63> | <dscp> }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: map
+! 4: dscp-ingress-translation
+! 5: <dscp_num_:0~63>
+! 6: <dscp_name:dscp>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = dscp_num_
+CMD_VAR = dscp_name
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <DscpNum : 0~63>
+BYWORD = <DscpName : dscp>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos map dscp-classify { <0~63> | <dscp> }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: qos
+! 2: map
+! 3: dscp-classify
+! 4: <dscp_num:0~63>
+! 5: <dscp_name:dscp>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = dscp_num
+CMD_VAR = dscp_name
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <DscpNum : 0~63>
+BYWORD = <DscpName : dscp>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos map cos-dscp <0~7> dpl <0~1> dscp { <0-63> | <dscp> }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: qos
+! 2: map
+! 3: cos-dscp
+! 4: <cos:0~7>
+! 5: dpl
+! 6: <dpl:0~1>
+! 7: dscp
+! 8: <dscp_num:0-63>
+! 9: <dscp_name:dscp>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = cos
+CMD_VAR = 
+CMD_VAR = dpl
+CMD_VAR = 
+CMD_VAR = dscp_num
+CMD_VAR = dscp_name
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Cos : 0~7>
+BYWORD = 
+BYWORD = <Dpl : 0~1>
+BYWORD = 
+BYWORD = <DscpNum : 0-63>
+BYWORD = <DscpName : dscp>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos map cos-dscp <0~7> dpl <0~1>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: map
+! 4: cos-dscp
+! 5: <cos:0~7>
+! 6: dpl
+! 7: <dpl:0~1>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = cos
+CMD_VAR = 
+CMD_VAR = dpl
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Cos : 0~7>
+BYWORD = 
+BYWORD = <Dpl : 0~1>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos map dscp-egress-translation { <0~63> | <dscp> } <0~1> to { <0-63> | <dscp> }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: qos
+! 2: map
+! 3: dscp-egress-translation
+! 4: <dscp_num:0~63>
+! 5: <dscp_name:dscp>
+! 6: <dpl:0~1>
+! 7: to
+! 8: <dscp_num_tr:0-63>
+! 9: <dscp_name_tr:dscp>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = dscp_num
+CMD_VAR = dscp_name
+CMD_VAR = dpl
+CMD_VAR = 
+CMD_VAR = dscp_num_tr
+CMD_VAR = dscp_name_tr
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <DscpNum : 0~63>
+BYWORD = <DscpName : dscp>
+BYWORD = <Dpl : 0~1>
+BYWORD = 
+BYWORD = <DscpNumTr : 0-63>
+BYWORD = <DscpNameTr : dscp>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos map dscp-egress-translation { <0~63> | <dscp> } <0~1>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: map
+! 4: dscp-egress-translation
+! 5: <dscp_num:0~63>
+! 6: <dscp_name:dscp>
+! 7: <dpl:0~1>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = dscp_num
+CMD_VAR = dscp_name
+CMD_VAR = dpl
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <DscpNum : 0~63>
+BYWORD = <DscpName : dscp>
+BYWORD = <Dpl : 0~1>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos wred queue <0~5> min_th <0-100> mdp_1 <0-100> mdp_2 <0-100> mdp_3 <0-100>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: qos
+! 2: wred
+! 3: queue
+! 4: <queue:0~5>
+! 5: min_th
+! 6: <min_th:0-100>
+! 7: mdp_1
+! 8: <mdp_1:0-100>
+! 9: mdp_2
+! 10: <mdp_2:0-100>
+! 11: mdp_3
+! 12: <mdp_3:0-100>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = queue
+CMD_VAR = 
+CMD_VAR = min_th
+CMD_VAR = 
+CMD_VAR = mdp_1
+CMD_VAR = 
+CMD_VAR = mdp_2
+CMD_VAR = 
+CMD_VAR = mdp_3
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Queue : 0~5>
+BYWORD = 
+BYWORD = <MinTh : 0-100>
+BYWORD = 
+BYWORD = <Mdp1 : 0-100>
+BYWORD = 
+BYWORD = <Mdp2 : 0-100>
+BYWORD = 
+BYWORD = <Mdp3 : 0-100>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos wred queue <0~5>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: wred
+! 4: queue
+! 5: <queue:0~5>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = queue
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Queue : 0~5>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos storm { unicast | multicast | broadcast } <1,2,4,8,16,32,64,128,256,512,1024> [ kfps ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: qos
+! 2: storm
+! 3: unicast
+! 4: multicast
+! 5: broadcast
+! 6: <rate:1,2,4,8,16,32,64,128,256,512,1024>
+! 7: kfps
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_unicast
+CMD_VAR = has_multicast
+CMD_VAR = has_broadcast
+CMD_VAR = rate
+CMD_VAR = has_kfps
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Unicast : option>
+BYWORD = <Multicast : option>
+BYWORD = <Broadcast : option>
+BYWORD = <Rate : 1,2,4,8,16,32,64,128,256,512,1024>
+BYWORD = <Kfps : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos storm { unicast | multicast | broadcast }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: storm
+! 4: unicast
+! 5: multicast
+! 6: broadcast
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_unicast
+CMD_VAR = has_multicast
+CMD_VAR = has_broadcast
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Unicast : option>
+BYWORD = <Multicast : option>
+BYWORD = <Broadcast : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos qce <1-256> [ { next <1-256> } | last ] [ ingress interface <port_type_list> ] [ tag { tagged | untagged | any } ] [ vid { <vlan_list> | any } ] [ pcp { <pcp> | any } ] [ dei { <0-1> | any } ] [ smac { <oui> | any } ] [ dmac-type { unicast | multicast | broadcast | any } ] [ frametype { any | { etype [ { <0x600-0x7ff,0x801-0x86dc,0x86de-0xffff> | any } ] } | { llc [ dsap { <0-0xff> | any } ] [ ssap { <0-0xff> | any } ] [ control { <0-0xff> | any } ] } | { snap [ { <0-0xffff> | any } ] } | { ipv4 [ proto { <0-255> | tcp | udp | any } ] [ sip { <ipv4_subnet> | any } ] [ dscp { <0-63> | <dscp> | any } ] [ frag { yes | no | any } ] [ sport { <0-65535> | any } ] [ dport { <0-65535> | any } ] } | { ipv6 [ proto { <0-255> | tcp | udp | any } ] [ sip { <ipv4_subnet> | any } ] [ dscp { <0-63> | <dscp> | any } ] [ sport { <0-65535> | any } ] [ dport { <0-65535> | any } ] } } ] action { [ cos { <0-7> | default } ] [ dpl { <0-1> | default } ] [ dscp { <0-63> | <dscp> | default } ] }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: qos
+! 2: qce
+! 3: <id:1-256>
+! 4: next
+! 5: <next:1-256>
+! 6: last
+! 7: ingress
+! 8: interface
+! 9: <port_type_list>
+! 10: tag
+! 11: tagged
+! 12: untagged
+! 13: any
+! 14: vid
+! 15: <vid:vlan_list>
+! 16: any
+! 17: pcp
+! 18: <pcp:pcp>
+! 19: any
+! 20: dei
+! 21: <dei:0-1>
+! 22: any
+! 23: smac
+! 24: <smac:oui>
+! 25: any
+! 26: dmac-type
+! 27: unicast
+! 28: multicast
+! 29: broadcast
+! 30: any
+! 31: frametype
+! 32: any
+! 33: etype
+! 34: <etype:0x600-0x7ff,0x801-0x86dc,0x86de-0xffff>
+! 35: any
+! 36: llc
+! 37: dsap
+! 38: <dsap:0-0xff>
+! 39: any
+! 40: ssap
+! 41: <ssap:0-0xff>
+! 42: any
+! 43: control
+! 44: <control:0-0xff>
+! 45: any
+! 46: snap
+! 47: <pid:0-0xffff>
+! 48: any
+! 49: ipv4
+! 50: proto
+! 51: <pr4:0-255>
+! 52: tcp
+! 53: udp
+! 54: any
+! 55: sip
+! 56: <sip4:ipv4_subnet>
+! 57: any
+! 58: dscp
+! 59: <dscp4:0-63>
+! 60: <dscp4_name:dscp>
+! 61: any
+! 62: frag
+! 63: yes
+! 64: no
+! 65: any
+! 66: sport
+! 67: <sp4:0-65535>
+! 68: any
+! 69: dport
+! 70: <dp4:0-65535>
+! 71: any
+! 72: ipv6
+! 73: proto
+! 74: <pr6:0-255>
+! 75: tcp
+! 76: udp
+! 77: any
+! 78: sip
+! 79: <sip6:ipv4_subnet>
+! 80: any
+! 81: dscp
+! 82: <dscp6:0-63>
+! 83: <dscp6_name:dscp>
+! 84: any
+! 85: sport
+! 86: <sp6:0-65535>
+! 87: any
+! 88: dport
+! 89: <dp6:0-65535>
+! 90: any
+! 91: action
+! 92: cos
+! 93: <cos:0-7>
+! 94: default
+! 95: dpl
+! 96: <dpl:0-1>
+! 97: default
+! 98: dscp
+! 99: <dscp:0-63>
+! 100: <dscp_name:dscp>
+! 101: default
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = id
+CMD_VAR = has_next
+CMD_VAR = next
+CMD_VAR = has_last
+CMD_VAR = has_ingress
+CMD_VAR = 
+CMD_VAR = v_port_type_list
+CMD_VAR = has_tag
+CMD_VAR = has_tagged
+CMD_VAR = has_untagged
+CMD_VAR = has_any
+CMD_VAR = has_vid
+CMD_VAR = vid
+CMD_VAR = has_any_1
+CMD_VAR = has_pcp
+CMD_VAR = pcp
+CMD_VAR = has_any_2
+CMD_VAR = has_dei
+CMD_VAR = dei
+CMD_VAR = has_any_3
+CMD_VAR = has_smac
+CMD_VAR = smac
+CMD_VAR = has_any_4
+CMD_VAR = has_dmac_type
+CMD_VAR = has_unicast
+CMD_VAR = has_multicast
+CMD_VAR = has_broadcast
+CMD_VAR = has_any_5
+CMD_VAR = has_frametype
+CMD_VAR = has_any_6
+CMD_VAR = has_etype
+CMD_VAR = etype
+CMD_VAR = has_any_7
+CMD_VAR = has_llc
+CMD_VAR = has_dsap
+CMD_VAR = dsap
+CMD_VAR = has_any_8
+CMD_VAR = has_ssap
+CMD_VAR = ssap
+CMD_VAR = has_any_9
+CMD_VAR = has_control
+CMD_VAR = control
+CMD_VAR = has_any_10
+CMD_VAR = has_snap
+CMD_VAR = pid
+CMD_VAR = has_any_11
+CMD_VAR = has_ipv4
+CMD_VAR = has_proto
+CMD_VAR = pr4
+CMD_VAR = has_tcp
+CMD_VAR = has_udp
+CMD_VAR = has_any_12
+CMD_VAR = has_sip
+CMD_VAR = sip4
+CMD_VAR = has_any_13
+CMD_VAR = has_dscp
+CMD_VAR = dscp4
+CMD_VAR = dscp4_name
+CMD_VAR = has_any_14
+CMD_VAR = has_frag
+CMD_VAR = has_yes
+CMD_VAR = has_no
+CMD_VAR = has_any_15
+CMD_VAR = has_sport
+CMD_VAR = sp4
+CMD_VAR = has_any_16
+CMD_VAR = has_dport
+CMD_VAR = dp4
+CMD_VAR = has_any_17
+CMD_VAR = has_ipv6
+CMD_VAR = has_proto_1
+CMD_VAR = pr6
+CMD_VAR = has_tcp_1
+CMD_VAR = has_udp_1
+CMD_VAR = has_any_18
+CMD_VAR = has_sip_1
+CMD_VAR = sip6
+CMD_VAR = has_any_19
+CMD_VAR = has_dscp_1
+CMD_VAR = dscp6
+CMD_VAR = dscp6_name
+CMD_VAR = has_any_20
+CMD_VAR = has_sport_1
+CMD_VAR = sp6
+CMD_VAR = has_any_21
+CMD_VAR = has_dport_1
+CMD_VAR = dp6
+CMD_VAR = has_any_22
+CMD_VAR = has_action
+CMD_VAR = has_cos
+CMD_VAR = cos
+CMD_VAR = has_default
+CMD_VAR = has_dpl
+CMD_VAR = dpl
+CMD_VAR = has_default_1
+CMD_VAR = has_dscp_2
+CMD_VAR = dscp
+CMD_VAR = dscp_name
+CMD_VAR = has_default_2
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Id : 1-256>
+BYWORD = <Next : option>
+BYWORD = <Next : 1-256>
+BYWORD = <Last : option>
+BYWORD = <Ingress : option>
+BYWORD = 
+BYWORD = 
+BYWORD = <Tag : option>
+BYWORD = <Tagged : option>
+BYWORD = <Untagged : option>
+BYWORD = <Any : option>
+BYWORD = <Vid : option>
+BYWORD = <Vid : vlan_list>
+BYWORD = <Any : option>
+BYWORD = <Pcp : option>
+BYWORD = <Pcp : pcp>
+BYWORD = <Any : option>
+BYWORD = <Dei : option>
+BYWORD = <Dei : 0-1>
+BYWORD = <Any : option>
+BYWORD = <Smac : option>
+BYWORD = <Smac : oui>
+BYWORD = <Any : option>
+BYWORD = <DmacType : option>
+BYWORD = <Unicast : option>
+BYWORD = <Multicast : option>
+BYWORD = <Broadcast : option>
+BYWORD = <Any : option>
+BYWORD = <Frametype : option>
+BYWORD = <Any : option>
+BYWORD = <Etype : option>
+BYWORD = <Etype : 0x600-0x7ff,0x801-0x86dc,0x86de-0xffff>
+BYWORD = <Any : option>
+BYWORD = <Llc : option>
+BYWORD = <Dsap : option>
+BYWORD = <Dsap : 0-0xff>
+BYWORD = <Any : option>
+BYWORD = <Ssap : option>
+BYWORD = <Ssap : 0-0xff>
+BYWORD = <Any : option>
+BYWORD = <Control : option>
+BYWORD = <Control : 0-0xff>
+BYWORD = <Any : option>
+BYWORD = <Snap : option>
+BYWORD = <Pid : 0-0xffff>
+BYWORD = <Any : option>
+BYWORD = <Ipv4 : option>
+BYWORD = <Proto : option>
+BYWORD = <Pr4 : 0-255>
+BYWORD = <Tcp : option>
+BYWORD = <Udp : option>
+BYWORD = <Any : option>
+BYWORD = <Sip : option>
+BYWORD = <Sip4 : ipv4_subnet>
+BYWORD = <Any : option>
+BYWORD = <Dscp : option>
+BYWORD = <Dscp4 : 0-63>
+BYWORD = <Dscp4Name : dscp>
+BYWORD = <Any : option>
+BYWORD = <Frag : option>
+BYWORD = <Yes : option>
+BYWORD = <No : option>
+BYWORD = <Any : option>
+BYWORD = <Sport : option>
+BYWORD = <Sp4 : 0-65535>
+BYWORD = <Any : option>
+BYWORD = <Dport : option>
+BYWORD = <Dp4 : 0-65535>
+BYWORD = <Any : option>
+BYWORD = <Ipv6 : option>
+BYWORD = <Proto : option>
+BYWORD = <Pr6 : 0-255>
+BYWORD = <Tcp : option>
+BYWORD = <Udp : option>
+BYWORD = <Any : option>
+BYWORD = <Sip : option>
+BYWORD = <Sip6 : ipv4_subnet>
+BYWORD = <Any : option>
+BYWORD = <Dscp : option>
+BYWORD = <Dscp6 : 0-63>
+BYWORD = <Dscp6Name : dscp>
+BYWORD = <Any : option>
+BYWORD = <Sport : option>
+BYWORD = <Sp6 : 0-65535>
+BYWORD = <Any : option>
+BYWORD = <Dport : option>
+BYWORD = <Dp6 : 0-65535>
+BYWORD = <Any : option>
+BYWORD = <Action : option>
+BYWORD = <Cos : option>
+BYWORD = <Cos : 0-7>
+BYWORD = <Default : option>
+BYWORD = <Dpl : option>
+BYWORD = <Dpl : 0-1>
+BYWORD = <Default : option>
+BYWORD = <Dscp : option>
+BYWORD = <Dscp : 0-63>
+BYWORD = <DscpName : dscp>
+BYWORD = <Default : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos qce update <1-256> [ { next <1-256> } | last ] [ ingress interface <port_type_list> ] [ tag { tagged | untagged | any } ] [ vid { <vlan_list> | any } ] [ pcp { <pcp> | any } ] [ dei { <0-1> | any } ] [ smac { <oui> | any } ] [ dmac-type { unicast | multicast | broadcast | any } ] [ frametype { any | { etype [ { <0x600-0x7ff,0x801-0x86dc,0x86de-0xffff> | any } ] } | { llc [ dsap { <0-0xff> | any } ] [ ssap { <0-0xff> | any } ] [ control { <0-0xff> | any } ] } | { snap [ { <0-0xffff> | any } ] } | { ipv4 [ proto { <0-255> | tcp | udp | any } ] [ sip { <ipv4_subnet> | any } ] [ dscp { <0-63> | <dscp> | any } ] [ frag { yes | no | any } ] [ sport { <0-65535> | any } ] [ dport { <0-65535> | any } ] } | { ipv6 [ proto { <0-255> | tcp | udp | any } ] [ sip { <ipv4_subnet> | any } ] [ dscp { <0-63> | <dscp> | any } ] [ sport { <0-65535> | any } ] [ dport { <0-65535> | any } ] } } ] action { [ cos { <0-7> | default } ] [ dpl { <0-1> | default } ] [ dscp { <0-63> | <dscp> | default } ] }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: qos
+! 2: qce
+! 3: update
+! 4: <id:1-256>
+! 5: next
+! 6: <next:1-256>
+! 7: last
+! 8: ingress
+! 9: interface
+! 10: <port_type_list>
+! 11: tag
+! 12: tagged
+! 13: untagged
+! 14: any
+! 15: vid
+! 16: <vid:vlan_list>
+! 17: any
+! 18: pcp
+! 19: <pcp:pcp>
+! 20: any
+! 21: dei
+! 22: <dei:0-1>
+! 23: any
+! 24: smac
+! 25: <smac:oui>
+! 26: any
+! 27: dmac-type
+! 28: unicast
+! 29: multicast
+! 30: broadcast
+! 31: any
+! 32: frametype
+! 33: any
+! 34: etype
+! 35: <etype:0x600-0x7ff,0x801-0x86dc,0x86de-0xffff>
+! 36: any
+! 37: llc
+! 38: dsap
+! 39: <dsap:0-0xff>
+! 40: any
+! 41: ssap
+! 42: <ssap:0-0xff>
+! 43: any
+! 44: control
+! 45: <control:0-0xff>
+! 46: any
+! 47: snap
+! 48: <pid:0-0xffff>
+! 49: any
+! 50: ipv4
+! 51: proto
+! 52: <pr4:0-255>
+! 53: tcp
+! 54: udp
+! 55: any
+! 56: sip
+! 57: <sip4:ipv4_subnet>
+! 58: any
+! 59: dscp
+! 60: <dscp4:0-63>
+! 61: <dscp4_name:dscp>
+! 62: any
+! 63: frag
+! 64: yes
+! 65: no
+! 66: any
+! 67: sport
+! 68: <sp4:0-65535>
+! 69: any
+! 70: dport
+! 71: <dp4:0-65535>
+! 72: any
+! 73: ipv6
+! 74: proto
+! 75: <pr6:0-255>
+! 76: tcp
+! 77: udp
+! 78: any
+! 79: sip
+! 80: <sip6:ipv4_subnet>
+! 81: any
+! 82: dscp
+! 83: <dscp6:0-63>
+! 84: <dscp6_name:dscp>
+! 85: any
+! 86: sport
+! 87: <sp6:0-65535>
+! 88: any
+! 89: dport
+! 90: <dp6:0-65535>
+! 91: any
+! 92: action
+! 93: cos
+! 94: <cos:0-7>
+! 95: default
+! 96: dpl
+! 97: <dpl:0-1>
+! 98: default
+! 99: dscp
+! 100: <dscp:0-63>
+! 101: <dscp_name:dscp>
+! 102: default
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = id
+CMD_VAR = has_next
+CMD_VAR = next
+CMD_VAR = has_last
+CMD_VAR = has_ingress
+CMD_VAR = 
+CMD_VAR = v_port_type_list
+CMD_VAR = has_tag
+CMD_VAR = has_tagged
+CMD_VAR = has_untagged
+CMD_VAR = has_any
+CMD_VAR = has_vid
+CMD_VAR = vid
+CMD_VAR = has_any_1
+CMD_VAR = has_pcp
+CMD_VAR = pcp
+CMD_VAR = has_any_2
+CMD_VAR = has_dei
+CMD_VAR = dei
+CMD_VAR = has_any_3
+CMD_VAR = has_smac
+CMD_VAR = smac
+CMD_VAR = has_any_4
+CMD_VAR = has_dmac_type
+CMD_VAR = has_unicast
+CMD_VAR = has_multicast
+CMD_VAR = has_broadcast
+CMD_VAR = has_any_5
+CMD_VAR = has_frametype
+CMD_VAR = has_any_6
+CMD_VAR = has_etype
+CMD_VAR = etype
+CMD_VAR = has_any_7
+CMD_VAR = has_llc
+CMD_VAR = has_dsap
+CMD_VAR = dsap
+CMD_VAR = has_any_8
+CMD_VAR = has_ssap
+CMD_VAR = ssap
+CMD_VAR = has_any_9
+CMD_VAR = has_control
+CMD_VAR = control
+CMD_VAR = has_any_10
+CMD_VAR = has_snap
+CMD_VAR = pid
+CMD_VAR = has_any_11
+CMD_VAR = has_ipv4
+CMD_VAR = has_proto
+CMD_VAR = pr4
+CMD_VAR = has_tcp
+CMD_VAR = has_udp
+CMD_VAR = has_any_12
+CMD_VAR = has_sip
+CMD_VAR = sip4
+CMD_VAR = has_any_13
+CMD_VAR = has_dscp
+CMD_VAR = dscp4
+CMD_VAR = dscp4_name
+CMD_VAR = has_any_14
+CMD_VAR = has_frag
+CMD_VAR = has_yes
+CMD_VAR = has_no
+CMD_VAR = has_any_15
+CMD_VAR = has_sport
+CMD_VAR = sp4
+CMD_VAR = has_any_16
+CMD_VAR = has_dport
+CMD_VAR = dp4
+CMD_VAR = has_any_17
+CMD_VAR = has_ipv6
+CMD_VAR = has_proto_1
+CMD_VAR = pr6
+CMD_VAR = has_tcp_1
+CMD_VAR = has_udp_1
+CMD_VAR = has_any_18
+CMD_VAR = has_sip_1
+CMD_VAR = sip6
+CMD_VAR = has_any_19
+CMD_VAR = has_dscp_1
+CMD_VAR = dscp6
+CMD_VAR = dscp6_name
+CMD_VAR = has_any_20
+CMD_VAR = has_sport_1
+CMD_VAR = sp6
+CMD_VAR = has_any_21
+CMD_VAR = has_dport_1
+CMD_VAR = dp6
+CMD_VAR = has_any_22
+CMD_VAR = has_action
+CMD_VAR = has_cos
+CMD_VAR = cos
+CMD_VAR = has_default
+CMD_VAR = has_dpl
+CMD_VAR = dpl
+CMD_VAR = has_default_1
+CMD_VAR = has_dscp_2
+CMD_VAR = dscp
+CMD_VAR = dscp_name
+CMD_VAR = has_default_2
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Id : 1-256>
+BYWORD = <Next : option>
+BYWORD = <Next : 1-256>
+BYWORD = <Last : option>
+BYWORD = <Ingress : option>
+BYWORD = 
+BYWORD = 
+BYWORD = <Tag : option>
+BYWORD = <Tagged : option>
+BYWORD = <Untagged : option>
+BYWORD = <Any : option>
+BYWORD = <Vid : option>
+BYWORD = <Vid : vlan_list>
+BYWORD = <Any : option>
+BYWORD = <Pcp : option>
+BYWORD = <Pcp : pcp>
+BYWORD = <Any : option>
+BYWORD = <Dei : option>
+BYWORD = <Dei : 0-1>
+BYWORD = <Any : option>
+BYWORD = <Smac : option>
+BYWORD = <Smac : oui>
+BYWORD = <Any : option>
+BYWORD = <DmacType : option>
+BYWORD = <Unicast : option>
+BYWORD = <Multicast : option>
+BYWORD = <Broadcast : option>
+BYWORD = <Any : option>
+BYWORD = <Frametype : option>
+BYWORD = <Any : option>
+BYWORD = <Etype : option>
+BYWORD = <Etype : 0x600-0x7ff,0x801-0x86dc,0x86de-0xffff>
+BYWORD = <Any : option>
+BYWORD = <Llc : option>
+BYWORD = <Dsap : option>
+BYWORD = <Dsap : 0-0xff>
+BYWORD = <Any : option>
+BYWORD = <Ssap : option>
+BYWORD = <Ssap : 0-0xff>
+BYWORD = <Any : option>
+BYWORD = <Control : option>
+BYWORD = <Control : 0-0xff>
+BYWORD = <Any : option>
+BYWORD = <Snap : option>
+BYWORD = <Pid : 0-0xffff>
+BYWORD = <Any : option>
+BYWORD = <Ipv4 : option>
+BYWORD = <Proto : option>
+BYWORD = <Pr4 : 0-255>
+BYWORD = <Tcp : option>
+BYWORD = <Udp : option>
+BYWORD = <Any : option>
+BYWORD = <Sip : option>
+BYWORD = <Sip4 : ipv4_subnet>
+BYWORD = <Any : option>
+BYWORD = <Dscp : option>
+BYWORD = <Dscp4 : 0-63>
+BYWORD = <Dscp4Name : dscp>
+BYWORD = <Any : option>
+BYWORD = <Frag : option>
+BYWORD = <Yes : option>
+BYWORD = <No : option>
+BYWORD = <Any : option>
+BYWORD = <Sport : option>
+BYWORD = <Sp4 : 0-65535>
+BYWORD = <Any : option>
+BYWORD = <Dport : option>
+BYWORD = <Dp4 : 0-65535>
+BYWORD = <Any : option>
+BYWORD = <Ipv6 : option>
+BYWORD = <Proto : option>
+BYWORD = <Pr6 : 0-255>
+BYWORD = <Tcp : option>
+BYWORD = <Udp : option>
+BYWORD = <Any : option>
+BYWORD = <Sip : option>
+BYWORD = <Sip6 : ipv4_subnet>
+BYWORD = <Any : option>
+BYWORD = <Dscp : option>
+BYWORD = <Dscp6 : 0-63>
+BYWORD = <Dscp6Name : dscp>
+BYWORD = <Any : option>
+BYWORD = <Sport : option>
+BYWORD = <Sp6 : 0-65535>
+BYWORD = <Any : option>
+BYWORD = <Dport : option>
+BYWORD = <Dp6 : 0-65535>
+BYWORD = <Any : option>
+BYWORD = <Action : option>
+BYWORD = <Cos : option>
+BYWORD = <Cos : 0-7>
+BYWORD = <Default : option>
+BYWORD = <Dpl : option>
+BYWORD = <Dpl : 0-1>
+BYWORD = <Default : option>
+BYWORD = <Dscp : option>
+BYWORD = <Dscp : 0-63>
+BYWORD = <DscpName : dscp>
+BYWORD = <Default : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos qce <1~256>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: qce
+! 4: <1~256>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = v_1_to_256
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos qce refresh
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: qos
+! 2: qce
+! 3: refresh
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos cos <0-7>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: cos
+! 3: <cos:0-7>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = cos
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Cos : 0-7>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos cos
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: cos
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos dpl <dpl>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: dpl
+! 3: <dpl:dpl>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = dpl
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Dpl : dpl>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos dpl
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: dpl
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos pcp <0-7>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: pcp
+! 3: <pcp:0-7>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = pcp
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Pcp : 0-7>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos pcp
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: pcp
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos dei <0-1>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: dei
+! 3: <dei:0-1>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = dei
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Dei : 0-1>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos dei
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: dei
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos trust tag
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: trust
+! 3: tag
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos trust dscp
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: trust
+! 3: dscp
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos map tag-cos pcp <0~7> dei <0~1> cos <0-7> dpl <dpl>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: map
+! 3: tag-cos
+! 4: pcp
+! 5: <pcp:0~7>
+! 6: dei
+! 7: <dei:0~1>
+! 8: cos
+! 9: <cos:0-7>
+! 10: dpl
+! 11: <dpl:dpl>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = pcp
+CMD_VAR = 
+CMD_VAR = dei
+CMD_VAR = 
+CMD_VAR = cos
+CMD_VAR = 
+CMD_VAR = dpl
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Pcp : 0~7>
+BYWORD = 
+BYWORD = <Dei : 0~1>
+BYWORD = 
+BYWORD = <Cos : 0-7>
+BYWORD = 
+BYWORD = <Dpl : dpl>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos map tag-cos pcp <0~7> dei <0~1>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: map
+! 4: tag-cos
+! 5: pcp
+! 6: <pcp:0~7>
+! 7: dei
+! 8: <dei:0~1>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = pcp
+CMD_VAR = 
+CMD_VAR = dei
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Pcp : 0~7>
+BYWORD = 
+BYWORD = <Dei : 0~1>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos policer <uint> { kbps | fps } [ flowcontrol ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: policer
+! 3: <rate:uint>
+! 4: kbps
+! 5: fps
+! 6: flowcontrol
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = rate
+CMD_VAR = has_kbps
+CMD_VAR = has_fps
+CMD_VAR = has_flowcontrol
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Rate : uint>
+BYWORD = <Kbps : option>
+BYWORD = <Fps : option>
+BYWORD = <Flowcontrol : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos policer
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: policer
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos queue-policer queue <0~7> <uint>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: queue-policer
+! 3: queue
+! 4: <queue:0~7>
+! 5: <rate:uint>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = queue
+CMD_VAR = rate
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Queue : 0~7>
+BYWORD = <Rate : uint>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos queue-policer queue <0~7>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: queue-policer
+! 4: queue
+! 5: <queue:0~7>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = queue
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Queue : 0~7>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos wrr <1-100> <1-100> <1-100> <1-100> <1-100> <1-100>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: wrr
+! 3: <w0:1-100>
+! 4: <w1:1-100>
+! 5: <w2:1-100>
+! 6: <w3:1-100>
+! 7: <w4:1-100>
+! 8: <w5:1-100>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = w0
+CMD_VAR = w1
+CMD_VAR = w2
+CMD_VAR = w3
+CMD_VAR = w4
+CMD_VAR = w5
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <W0 : 1-100>
+BYWORD = <W1 : 1-100>
+BYWORD = <W2 : 1-100>
+BYWORD = <W3 : 1-100>
+BYWORD = <W4 : 1-100>
+BYWORD = <W5 : 1-100>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos wrr
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: wrr
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos shaper <uint>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: shaper
+! 3: <rate:uint>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = rate
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Rate : uint>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos shaper
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: shaper
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos queue-shaper queue <0~7> <uint> [ excess ]
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: queue-shaper
+! 3: queue
+! 4: <queue:0~7>
+! 5: <rate:uint>
+! 6: excess
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = queue
+CMD_VAR = rate
+CMD_VAR = has_excess
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Queue : 0~7>
+BYWORD = <Rate : uint>
+BYWORD = <Excess : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos queue-shaper queue <0~7>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: queue-shaper
+! 4: queue
+! 5: <queue:0~7>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = queue
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Queue : 0~7>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos tag-remark { pcp <0-7> dei <0-1> | mapped [ yellow <0-4> ] }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: tag-remark
+! 3: pcp
+! 4: <pcp:0-7>
+! 5: dei
+! 6: <dei:0-1>
+! 7: mapped
+! 8: yellow
+! 9: <yellow:0-4>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_pcp
+CMD_VAR = pcp
+CMD_VAR = 
+CMD_VAR = dei
+CMD_VAR = has_mapped
+CMD_VAR = has_yellow
+CMD_VAR = yellow
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Pcp : option>
+BYWORD = <Pcp : 0-7>
+BYWORD = 
+BYWORD = <Dei : 0-1>
+BYWORD = <Mapped : option>
+BYWORD = <Yellow : option>
+BYWORD = <Yellow : 0-4>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos tag-remark
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: tag-remark
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos map cos-tag cos <0~7> dpl <0~1> pcp <0-7> dei <0-1>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: map
+! 3: cos-tag
+! 4: cos
+! 5: <cos:0~7>
+! 6: dpl
+! 7: <dpl:0~1>
+! 8: pcp
+! 9: <pcp:0-7>
+! 10: dei
+! 11: <dei:0-1>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = cos
+CMD_VAR = 
+CMD_VAR = dpl
+CMD_VAR = 
+CMD_VAR = pcp
+CMD_VAR = 
+CMD_VAR = dei
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Cos : 0~7>
+BYWORD = 
+BYWORD = <Dpl : 0~1>
+BYWORD = 
+BYWORD = <Pcp : 0-7>
+BYWORD = 
+BYWORD = <Dei : 0-1>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos map cos-tag cos <0~7> dpl <0~1>
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: map
+! 4: cos-tag
+! 5: cos
+! 6: <cos:0~7>
+! 7: dpl
+! 8: <dpl:0~1>
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = cos
+CMD_VAR = 
+CMD_VAR = dpl
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Cos : 0~7>
+BYWORD = 
+BYWORD = <Dpl : 0~1>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos dscp-translate
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+NO_FORM_DOC_CMD_DESC    = 
+NO_FORM_DOC_CMD_DEFAULT = 
+NO_FORM_DOC_CMD_USAGE   = 
+NO_FORM_DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: dscp-translate
+
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+NO_FORM_CODE_BEGIN
+NO_FORM_CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos dscp-classify { zero | selected | any }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: dscp-classify
+! 3: zero
+! 4: selected
+! 5: any
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_zero
+CMD_VAR = has_selected
+CMD_VAR = has_any
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Zero : option>
+BYWORD = <Selected : option>
+BYWORD = <Any : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos dscp-classify
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: dscp-classify
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos dscp-remark { rewrite | remap | remap-dp }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: dscp-remark
+! 3: rewrite
+! 4: remap
+! 5: remap-dp
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_rewrite
+CMD_VAR = has_remap
+CMD_VAR = has_remap_dp
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Rewrite : option>
+BYWORD = <Remap : option>
+BYWORD = <RemapDp : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos dscp-remark
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: dscp-remark
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = qos storm { unicast | broadcast | unknown } <100-13200000> { kbps | fps }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: qos
+! 2: storm
+! 3: unicast
+! 4: broadcast
+! 5: unknown
+! 6: <rate:100-13200000>
+! 7: kbps
+! 8: fps
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_unicast
+CMD_VAR = has_broadcast
+CMD_VAR = has_unknown
+CMD_VAR = rate
+CMD_VAR = has_kbps
+CMD_VAR = has_fps
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = <Unicast : option>
+BYWORD = <Broadcast : option>
+BYWORD = <Unknown : option>
+BYWORD = <Rate : 100-13200000>
+BYWORD = <Kbps : option>
+BYWORD = <Fps : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no qos storm { unicast | broadcast | unknown }
+
+DOC_CMD_DESC    = 
+DOC_CMD_DEFAULT = 
+DOC_CMD_USAGE   = 
+DOC_CMD_EXAMPLE = 
+
+FUNC_NAME = 
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_INTERFACE_PORT_LIST
+MODE_VAR = plist
+
+RUNTIME = 
+
+! 1: no
+! 2: qos
+! 3: storm
+! 4: unicast
+! 5: broadcast
+! 6: unknown
+
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = 
+CMD_VAR = has_unicast
+CMD_VAR = has_broadcast
+CMD_VAR = has_unknown
+
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+HELP = 
+
+BYWORD = 
+BYWORD = 
+BYWORD = 
+BYWORD = <Unicast : option>
+BYWORD = <Broadcast : option>
+BYWORD = <Unknown : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+CODE_BEGIN
+CODE_END
+
+CMD_END
+

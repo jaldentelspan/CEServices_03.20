@@ -1,0 +1,281 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QCL Configuration Wizard - Network Application</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_qcl_wizard_appl.htm";
+
+function selectEtype() {
+    var tbody = document.getElementById("appl_type_10").checked;
+    if (tbody) {
+        document.getElementById("input_user_etype").style.display = ""; 
+    } else {
+        document.getElementById("input_user_etype").style.display = "none";  
+    }
+}
+
+function selectVid() {
+    var tbody = document.getElementById("appl_type_11").checked;
+    if (tbody) {
+        document.getElementById("input_user_vid").style.display = ""; 
+    } else {
+        document.getElementById("input_user_vid").style.display = "none";  
+    }
+}
+
+function selectPortFilter() {
+    var filter_value = document.getElementById("port_filter").value;
+    if (parseInt(filter_value, 10)) {
+        document.getElementById("user_port_dash").style.display = "";
+        document.getElementById("user_port_high").style.display = ""; 
+    } else {
+        document.getElementById("user_port_dash").style.display = "none";
+        document.getElementById("user_port_high").style.display = "none"; 
+    }
+    document.getElementById("user_port_low").style.display = "";
+}
+
+function selectUcpTcpPort() {
+    var tbody = document.getElementById("appl_type_12").checked;
+    if (tbody) {
+        document.getElementById("input_user_port").style.display = ""; 
+    } else {
+        document.getElementById("input_user_port").style.display = "none";
+    }
+    selectPortFilter();
+}
+
+function selectDscp() {
+    var tbody = document.getElementById("appl_type_13").checked;
+    if (tbody) {
+        document.getElementById("input_user_dscp").style.display = ""; 
+    } else {
+        document.getElementById("input_user_dscp").style.display = "none";
+    }
+}
+
+function checkPortRange(elm_low, elm_high, isRange) {
+    var range_low = document.getElementById(elm_low);
+    var range_high = document.getElementById(elm_high);
+    if (range_low) {
+        var fld_name_txt;
+        if(isRange) {
+            fld_name_txt = "'TCP/UDP Port Range lower'";
+        } else {
+            fld_name_txt = "'TCP/UDP Port'";
+        }
+        if(!isWithinRange(elm_low, 0, 65535, fld_name_txt)) {
+            return false;
+        }
+    }
+    if(isRange && !isWithinRange(elm_high, 0, 65535, "'TCP/UDP Port Range higher'")) {
+        return false;
+    }
+    if(isRange && range_low && range_high) {
+        if (parseInt(range_low.value, 10) > parseInt(range_high.value, 10)) {
+            GiveAlert("The higher value of the 'TCP/UDP Port Range' must be at or above the lower.", range_low);
+            return false;
+        }
+    }  
+    return true;  
+}
+
+function isEthType(str) {
+    var myReg;
+    
+    if (!str) {
+        return false;
+    }
+
+    myReg = /^[A-Fa-f0-9]{1,4}$/;
+    
+    var result = myReg.test(str);
+    if (result) {
+        var intFormat = parseInt("0x"+str, 16); 
+        if (intFormat < 0x600) {
+            return false;
+        }
+    }
+    return result;
+}
+
+function goNextPage() {
+    var qclApplType = "";
+    var counter = 0;
+    var i;
+    var tbody;
+    var fld;
+    
+    for (i = 0; i <= 13; i++) {
+        tbody = document.getElementById("appl_type_" + parseInt(i, 10)).checked;
+        if (tbody) {
+            qclApplType |= 1<<i;
+            counter++;
+        }
+    }
+    
+    // etype
+    tbody = document.getElementById("appl_type_10").checked;
+    if (tbody) {
+        fld = document.getElementById("user_etype");
+        if (fld) {
+            if (!isEthType(fld.value)) {
+                GiveAlert("The format of 'Ethernet Type Value' is '0x600-0xFFFF'", fld);
+                return false;
+            }   
+        }
+        qclApplType += "|" + fld.value;
+    } else {
+        qclApplType += "|0";
+    }
+    
+    // user_vid
+    tbody = document.getElementById("appl_type_11").checked;
+    if (tbody) {
+        fld = document.getElementById("user_vid");
+        if(fld && !isWithinRange("user_vid", 1, 4095, "'VLAN ID'")) {
+            return false;
+        }
+        qclApplType += "|" + fld.value;
+    } else {
+        qclApplType += "|0";
+    }
+    
+    // tcp/udp port range
+    var filter_value = document.getElementById("port_filter").value;
+    if (!parseInt(filter_value, 10)) {
+        document.getElementById("user_port_high").value = document.getElementById("user_port_low").value;
+    }
+    tbody = document.getElementById("appl_type_12").checked;
+    if (tbody) {
+        if (!checkPortRange("user_port_low", "user_port_high", parseInt(filter_value, 10))) {
+            return false;
+        }
+        var range_low = document.getElementById("user_port_low").value;
+        var range_high = document.getElementById("user_port_high").value;
+        qclApplType += "|" + range_low;
+        qclApplType += "|" + range_high;
+    } else {
+        qclApplType += "|0|0";
+    }
+    
+    // dscp
+    tbody = document.getElementById("appl_type_13").checked;
+    if (tbody) {
+        fld = document.getElementById("user_dscp");
+        if(fld && !isWithinRange("user_dscp", 0, 63, "'DSCP Value'")) {
+            return false;
+        }
+        qclApplType += "|" + fld.value;
+    } else {
+        qclApplType += "|0";
+    }
+      
+    if (counter) {
+        parent.saveEditData(qclApplType);
+        document.location.href='qcl_wizard_qce.htm';
+        return true;
+    } else {
+        alert("Please select a type before proceeding"); 
+        return false;
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="selectEtype();selectVid();selectUcpTcpPort();selectDscp();">
+
+<h1>Set up Typical Network Application Rules</h1>
+<h2>Set up the specific QCL for different typical network application quality control by
+ selecting the network application type for your rule:</h2>
+<p>&nbsp;</p>
+
+<h2>o&nbsp;Audio and Video</h2>
+<p><input type="checkbox" name="appl_type_0" id="appl_type_0">QuickTime 4 Server
+&nbsp;<input type="checkbox" name="appl_type_1" id="appl_type_1">MSN Messenger Phone
+&nbsp;<input type="checkbox" name="appl_type_2" id="appl_type_2">Yahoo Messenger Phone
+&nbsp;<input type="checkbox" name="appl_type_3" id="appl_type_3">Napster
+&nbsp;<input type="checkbox" name="appl_type_4" id="appl_type_4">Real Audio
+</p>
+
+<p>&nbsp;</p>
+<h2>o&nbsp;Games</h2>
+<p><input type="checkbox" name="appl_type_5" id="appl_type_5">Blizzard Battlenet (Diablo2 and StarCraft)
+&nbsp;<input type="checkbox" name="appl_type_6" id="appl_type_6">Fighter Ace II
+&nbsp;<input type="checkbox" name="appl_type_7" id="appl_type_7">Quake2
+&nbsp;<input type="checkbox" name="appl_type_8" id="appl_type_8">Quake3
+&nbsp;<input type="checkbox" name="appl_type_9" id="appl_type_9">MSN Game Zone
+</p>
+
+<p>&nbsp;</p>
+<h2>o&nbsp;User Definition</h2>
+<p><input type="checkbox" name="appl_type_10" id="appl_type_10" onclick="selectEtype();">Ethernet Type
+<span id="input_user_etype" style="display:none;">0x<input type="text" id="user_etype" size="4" maxlength="4"></span>
+&nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox" name="appl_type_11" id="appl_type_11" onclick="selectVid();">VLAN ID
+<span id="input_user_vid" style="display:none;"><input type="text" id="user_vid" size="4" maxlength="4"></span>
+&nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox" name="appl_type_12" id="appl_type_12" onclick="selectUcpTcpPort();">TCP/UDP Port
+<span id="input_user_port" style="display:none;">
+  <select id="port_filter" onchange="selectPortFilter();">
+    <option value=0>Specific</option>
+    <option value=1>Range</option>
+  </select>
+<input type="text" id="user_port_low" size="5" maxlength="5">
+<span id="user_port_dash" style="display:none;">&nbsp;-</span>
+<input type="text" id="user_port_high" size="5" maxlength="5"></span>
+&nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox" name="appl_type_13" id="appl_type_13" onclick="selectDscp();">DSCP
+<span id="input_user_dscp" style="display:none;"><input type="text" id="user_dscp" size="2" maxlength="2"></span>
+</p>
+
+<p>&nbsp;</p>
+<hr>
+
+<p>
+<input type="button" value="Cancel Wizard" onclick="document.location.href='qcl_wizard.htm';">
+&nbsp;&nbsp;&nbsp;&nbsp;
+<input type="button" value="< Back" onclick="history.back();">
+<input type="button" value="Next >" onclick="goNextPage();">
+</p>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

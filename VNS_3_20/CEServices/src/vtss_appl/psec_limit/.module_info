@@ -1,0 +1,6 @@
+---
+directory: vtss_appl/psec_limit
+license: VTSS
+maintainer: René
+name: Port Security MAC address limiter
+source: Vitesse

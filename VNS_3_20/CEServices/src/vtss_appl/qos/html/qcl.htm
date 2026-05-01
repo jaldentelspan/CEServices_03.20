@@ -1,0 +1,408 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QoS Control List</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_qcl.htm";
+
+var oVNormal = genArrayInt(0, 6);
+var oTQclId = genArrayStr(configPortMin, configNormalPortMax);
+var oVQclId = genArrayInt(configPortMin, configNormalPortMax);
+var oVPriority = ["N/A","Low","Normal","Medium","High"];
+var oTQCEType = ["Ethernet Type","VLAN ID","TCP/UDP Port","DSCP","ToS","Tag Priority"];
+
+var SelectQclId = 1;
+var singleQceConfigData;
+var QceIdMapTbl = [];
+var qceConfig = [];
+var qclNOConfig = [];
+var qclConfigIdx = 0;
+
+// Forward declaration of processUpdate() function.
+// This is needed in order to avoid jslint warning.
+var processUpdate;
+
+function qceEdit() {
+    //Format: [flag]/[date]
+    //<Del>         : 1/[qcl_id]/[qce_id]
+    //<Move>        : 2/[qcl_id]/[next_qce_id]
+    //<Edit>        : 3/[qcl_id]/[qce_id]
+    //<Insert>      : 4/[qcl_id]/[next_qce_id]
+    //<Add to Last> : 5/[qcl_id]/0
+    //<Get>         : 6/[qcl_id]
+    parent.saveEditData( "3/" + document.getElementById("qcl_id").value + "/" + this.value);
+    document.location.href="qcl_edit.htm";
+}
+
+function qceDelete() {
+    var url="/config/qcl?qceConfigFlag=1&SelectQclId=";
+    url = url + SelectQclId + "&SelectQceId=" + this.value;
+    loadXMLDoc(url, processUpdate, 'QCLData');
+}
+
+function qceMoveUp() {
+    var url="/config/qcl?qceConfigFlag=2&SelectQclId=";
+    url = url + SelectQclId + "&SelectQceId=" + QceIdMapTbl[this.value];
+    loadXMLDoc(url, processUpdate, 'QCLData');
+}
+
+function qceMoveDown() {
+    var url="/config/qcl?qceConfigFlag=2&SelectQclId=";
+    url = url + SelectQclId + "&SelectQceId=" + this.value;
+    loadXMLDoc(url, processUpdate, 'QCLData');
+}
+
+function qceInsert() {
+    //Format: [flag]/[date]
+    //<Del>         : 1/[qcl_id]/[qce_id]
+    //<Move>        : 2/[qcl_id]/[next_qce_id]
+    //<Edit>        : 3/[qcl_id]/[qce_id]
+    //<Insert>      : 4/[qcl_id]/[next_qce_id]
+    //<Add to Last> : 5/[qcl_id]/0
+    //<Get>         : 6/[qcl_id]
+    parent.saveEditData( "4/" + document.getElementById("qcl_id").value + "/" + this.value);
+    document.location.href="qcl_edit.htm";
+}
+
+function qceAddLast() {
+    //Format: [flag]/[date]
+    //<Del>         : 1/[qcl_id]/[qce_id]
+    //<Move>        : 2/[qcl_id]/[next_qce_id]
+    //<Edit>        : 3/[qcl_id]/[qce_id]
+    //<Insert>      : 4/[qcl_id]/[next_qce_id]
+    //<Add to Last> : 5/[qcl_id]/0
+    //<Get>         : 6/[qcl_id]
+    parent.saveEditData( "5/" + document.getElementById("qcl_id").value + "/0");
+    document.location.href="qcl_edit.htm";
+}
+
+function qclChange() {
+    loadXMLDoc("/config/qcl?qceConfigFlag=6&SelectQclId=" + this.value, processUpdate, "QCLData");
+}
+
+function addImageInline(frag, style, src, text, idx, click)
+{
+    var field = document.createElement('img');
+    var pval = text.split(" ");
+    field.id = pval[pval.length - 1] + "_" + (idx > 0 ? idx : 0);
+    field.src = src;
+    field.border = 0;
+    field.value = idx;
+    if (click) {
+        field.onclick = click;
+    }
+    field.title = field.alt = text;
+    frag.appendChild(field);
+    return field;
+}
+
+function addRowControlCol(tr, values, idx) {
+    var container = document.createElement("td");
+
+    //insert
+    addImageInline(container, "cl",  "images/add.gif", "Insert new QCE before this QCE", parseInt(values[1], 10), qceInsert);
+
+    //move up
+    if (idx !== 0) {
+        addImageInline(container, "cl",  "images/up.gif", "Move QCE up", idx-1, qceMoveUp);
+    } else {
+        addImageInline(container, "cl",  "images/up_gray.gif", "Move QCE up", -1, null);
+    }
+    
+    container.appendChild(document.createElement("br"));
+
+    //edit
+    addImageInline(container, "cl",  "images/edit.gif", "Edit QCE", parseInt(values[1], 10), qceEdit);
+
+    //move down
+    if (idx != (qclConfigIdx-1)) {
+        addImageInline(container, "cl",  "images/down.gif", "Move QCE down", parseInt(values[1], 10), qceMoveDown);
+    }  else {
+        addImageInline(container, "cl",  "images/down_gray.gif", "Move QCE down", -1, null);
+    }
+    
+    //del
+    addImageInline(container, "cl",  "images/del.gif", "Delete QCE", parseInt(values[1], 10), qceDelete);
+    
+    tr.appendChild(container);
+}
+
+function addRow(frag, values, idx) {
+    QceIdMapTbl[idx] = parseInt(values[1], 10);
+    var tr = CreateStyledElement("tr", idx % 2 ? "config_odd" : "config_even"); 
+    
+    // Format: [qcl_id]/[qce_id]/[next_qce_id]/[qce_type]/[type_value_filed]|...,
+    // [type_value_filed]
+    // - Ethernet Type [eth_type]/[class]
+    // - VLAN ID       [vid]/[class]
+    // - TCP/UDP Port  [port_low]/[port_high]/[class]
+    // - DSCP          [dscp]/[class]
+    // - ToS           [class0]/[class1]/[class2]/[class3]/[class4]/[class5]/[class6]/[class7]
+    // - Tag Priority  [class0]/[class1]/[class2]/[class3]/[class4]/[class5]/[class6]/[class7]
+
+    addTextCell(tr, oTQCEType[parseInt(values[3], 10)], "cl");
+    if (oTQCEType[parseInt(values[3], 10)] == "ToS" || oTQCEType[parseInt(values[3], 10)] == "Tag Priority") {
+        addTextCell(tr,"---", "cl");
+        addTextCell(tr,"---", "cl");
+    } else if (oTQCEType[parseInt(values[3], 10)] == "TCP/UDP Port") {
+        var port_low = parseInt(values[4], 10);
+        var port_high = parseInt(values[5], 10);
+        if (port_low == 6970 && port_high == 6970) {
+            addTextCell(tr, port_low + " - " + port_high + " (QuickTime 4 Server)", "cl");
+        } else if (port_low == 6901 && port_high == 6901) {
+            addTextCell(tr, port_low + " - " + port_high + " (MSN Messenger Phone)", "cl");
+        } else if (port_low == 5055 && port_high == 5055) {
+            addTextCell(tr, port_low + " - " + port_high + " (Yahoo Messenger Phone)", "cl");
+        } else if (port_low == 6699 && port_high == 6699) {
+            addTextCell(tr, port_low + " - " + port_high + " (Napster)", "cl");
+        } else if (port_low == 6970 && port_high == 7170) {
+            addTextCell(tr, port_low + " - " + port_high + " (Real Audio)", "cl");
+        } else if (port_low == 4000 && port_high == 4000) {
+            addTextCell(tr, port_low + " - " + port_high + " (Blizzard Battlenet)", "cl");
+        } else if (port_low == 6112 && port_high == 6112) {
+            addTextCell(tr, port_low + " - " + port_high + " (Blizzard Battlenet)", "cl");
+        } else if (port_low == 50000 && port_high == 50100) {
+            addTextCell(tr, port_low + " - " + port_high + " (Fighter Ace II)", "cl");
+        } else if (port_low == 27910 && port_high == 27910) {
+            addTextCell(tr, port_low + " - " + port_high + " (Quake2)", "cl");
+        } else if (port_low == 27660 && port_high == 27662) {
+            addTextCell(tr, port_low + " - " + port_high + " (Quake3)", "cl");
+        } else if (port_low == 6667 && port_high == 6667) {
+            addTextCell(tr, port_low + " - " + port_high + " (MSN Game Zone)", "cl");
+        } else if (port_low == 28800 && port_high == 29000) {
+            addTextCell(tr, port_low + " - " + port_high + " (MSN Game Zone)", "cl");
+        } else if (port_low == 47624 && port_high == 47624) {
+            addTextCell(tr, port_low + " - " + port_high + " (Fighter Ace II)", "cl");
+        } else if (port_low == 2300 && port_high == 2400) {
+            addTextCell(tr, port_low + " - " + port_high + " (Fighter Ace II)", "cl");
+	    } else if (port_low >= port_high ){
+            addTextCell(tr, port_low, "cl");
+        } else {
+            addTextCell(tr, port_low + " - " + port_high, "cl");
+        }
+        addTextCell(tr, oVPriority[parseInt(values[6], 10)], "cl");
+    } else if (oTQCEType[parseInt(values[3], 10)] == "Ethernet Type") {
+        addTextCell(tr, "0x" + values[4], "cl");
+        addTextCell(tr, oVPriority[parseInt(values[5], 10)], "cl");
+    } else {
+        addTextCell(tr, parseInt(values[4], 10), "cl");
+        addTextCell(tr, oVPriority[parseInt(values[5], 10)], "cl");
+    }
+
+    /* Don't show control bar on reserve QCL */
+    if (SelectQclId < configQCLMax) {
+        addRowControlCol(tr, values, idx);
+    }
+    frag.appendChild(tr);   // Add row to fragment
+}
+
+function processUpdateQcl(qclconf, ref) {
+    qceConfig = qclconf.split("|");
+    
+    if (qceConfig === "") {
+        qclConfigIdx = 0;
+    } else {
+        qclConfigIdx = qceConfig.length;
+    }
+            
+    //create holder for accumulated tbody elements and text nodes
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < qclConfigIdx; i++) {
+        var pval = qceConfig[i].split("/");
+        addRow(frag, pval, i);
+    }
+
+    if (SelectQclId < configQCLMax) {
+        // Last Row - for new
+        var tr = document.createElement("tr");
+        var td = document.createElement("td");
+        td.setAttribute("colSpan", "3");
+        tr.appendChild(td); // Add col to row
+        
+        td = document.createElement("td");
+        var img = addImageInline(td, "cl",  "images/add.gif", "Add QCE to end of list", 0, qceAddLast);
+        tr.appendChild(td); // Add col to row
+        frag.appendChild(tr);   // Add row to fragment
+    }
+        
+    var tbody = document.getElementById(ref);
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+}
+
+processUpdate = function(req, ref) {
+    // Format: [Selected qcl_id],[qce duplicate];[qcl_id]/[qce_id]/[next_qce_id]/[qce_type]/[type_value_filed]|...,
+    //if (req) {
+    var tbody;
+    var frag;
+    var tr;
+    var td;
+
+    if (req.responseText) {
+        var val = req.responseText.split(";");
+        var tmp = val[0].split(",");
+
+        SelectQclId = parseInt(tmp[0], 10);
+        
+        if (parseInt(tmp[1], 10)) {
+            alert("QCE add failed! Duplicate QCE exists in this QCL.");
+        }
+        if (val[1]) {
+            processUpdateQcl(val[1], ref);
+        } else {
+            tbody = document.getElementById(ref);
+            if (tbody) {
+                frag = document.createDocumentFragment();
+
+                if (SelectQclId < configQCLMax) {
+                    // Last Row - for new
+                    tr = document.createElement("tr");
+                    td = document.createElement("td");
+                    td.setAttribute("colSpan", "3");
+                    tr.appendChild(td); // Add col to row
+                    td = document.createElement("td");
+                    var img = addImageInline(td, "cl",  "images/add.gif", "Add To End", 0, qceAddLast);
+                    tr.appendChild(td); // Add col to row
+                    frag.appendChild(tr);   // Add row to fragment    
+                }
+
+                tbody = document.getElementById(ref);
+                clearChildNodes(tbody);
+                if (!tbody.appendChild(frag)) { // Add Frag to table body
+                    alert("This browser doesn't support dynamic tables.");
+                }
+            }
+        }
+    }
+    
+    tbody = document.getElementById("QclIdData");
+    if (tbody) {
+        frag = document.createDocumentFragment();
+    
+        tr = document.createElement("tr");
+        addTextCell(tr, "QCL #", "param_label");
+        td = addSelectCell(tr, oTQclId, oVQclId, SelectQclId, "cl", "qcl_id");
+        td.onchange = qclChange;
+        frag.appendChild(tr);    
+    
+        tbody = document.getElementById("QclIdData");
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    }
+};
+
+function requestUpdate() {
+    // Format: [Selected qcl_id];[qcl_id]/[qce_id]/[next_qce_id]/[qce_type]/[type_value_filed]|...,
+    //var req = "1/3/4/0/0800/2|1/4/5/1/1/3/1|1/5/2/2/0/65535/1|1/2/0/4/0/1/0,2/3/4/0/0800/2|2/4/0/1/1/3/1";
+    //qclNumConfig = req.split(",");
+    //processUpdate(qclNumConfig[0], "QCLData");
+    //processUpdate(req, "QCLData");
+
+    //Format: [flag]/[date]
+    //<Del>         : 1/[qcl_id]/[qce_id]
+    //<Move>        : 2/[qcl_id]/[next_qce_id]
+    //<Edit>        : 3/[qcl_id]/[qce_id]
+    //<Insert>      : 4/[qcl_id]/[next_qce_id]
+    //<Add to Last> : 5/[qcl_id]/0
+    //<Get>         : 6/[qcl_id]
+
+    var qceConfigFlag = parent.getEditData().split("/");
+    parent.saveEditData("");
+    if (qceConfigFlag[0] == 6) {
+        loadXMLDoc("/config/qcl?qceConfigFlag=6&SelectQclId=" + qceConfigFlag[1], processUpdate, "QCLData");
+    } else {
+        loadXMLDoc("/config/qcl?qceConfigFlag=6&SelectQclId=" + SelectQclId, processUpdate, "QCLData");
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+
+<div id="control_bar_tbl">
+
+<h1>QoS Control List Configuration</h1>
+
+<table summary="QCL" cellspacing="0" class="display">
+ <tbody id="QclIdData">
+ </tbody>
+</table>
+
+<p>&nbsp;</p>
+
+<table summary="QoS Control List" cellspacing="0" class="display">
+ <thead>
+  <tr class="display_header">
+   <th>QCE Type</th>
+   <th>Type Value</th>
+   <th>Traffic Class</th>
+   <th>&nbsp;</th>
+  </tr>
+ </thead>
+ <tbody id="QCLData">
+ </tbody>
+</table>
+
+</div>
+
+<!-- IE caching bug -->
+<div style="visibility: hidden;">
+ <img alt="" src="images/add.gif">
+ <img alt="" src="images/up.gif">
+ <img alt="" src="images/up_gray.gif">
+ <img alt="" src="images/edit.gif">
+ <img alt="" src="images/down.gif">
+ <img alt="" src="images/down_gray.gif">
+ <img alt="" src="images/del.gif">
+</div>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

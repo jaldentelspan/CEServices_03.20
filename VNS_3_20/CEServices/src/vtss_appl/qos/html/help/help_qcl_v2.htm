@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QoS Control List Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="/lib/config.js"></script>
+ <script type="text/javascript" src="/lib/mootools-core.js"></script>
+ <script type="text/javascript" language="JavaScript">
+   window.addEvent('domready', function() {
+     $$('span.qceMax').set('text', configQCEMax);
+   });
+ </script>
+</head>
+
+<body>
+<h1>QoS Control List Configuration Help</h1>
+
+<h2>QoS Control List Configuration</h2>
+
+<p>This page shows the QoS Control List(<a href="glossary.htm#q" class="glossary">QCL</a>), which is made up of the <a href="glossary.htm#q" class="glossary">QCE</a>s.
+Each row describes a QCE that is defined. The maximum number of QCEs is <samp><span class="qceMax">?</span></samp> on each switch.
+<br>Click on the lowest plus sign to add a new QCE
+to the list.
+</p>
+
+<dl>
+ <dt>QCE#</dt>
+ <dd>
+ Indicates the index of QCE.
+ </dd>
+ 
+ <dt class="SPOM_only">Switch</dt>
+ <dd class="SPOM_only">
+ Indicates the switch id on which QCE entry is configured. 'Any' indicates QCE is configured on all the switches in the stack.
+ </dd>
+ <dt>Port</dt>
+ <dd>
+ Indicates the list of ports configured with the QCE.
+ </dd>
+
+ <dt>Frame Type</dt>
+ <dd>
+ Indicates the type of frame to look for incoming frames. Possible frame types are:
+ <br><samp>Any</samp>: The QCE will match all frame type.
+ <br><samp>Ethernet</samp>: Only Ethernet frames (with Ether Type 0x600-0xFFFF) are allowed.
+ <br><samp>LLC</samp>: Only (<a href="glossary.htm#llc" class="glossary">LLC</a>) frames are allowed.
+ <br><samp>SNAP</samp>: Only (<a href="glossary.htm#snap" class="glossary">SNAP</a>) frames are allowed.
+ <br><samp>IPv4</samp>: The QCE will match only IPV4 frames.
+ <br><samp>IPv6</samp>: The QCE will match only IPV6 frames.
+ </dd>
+ <dt>SMAC</dt>
+ <dd>
+ Displays the OUI field of Source MAC address, i.e. first three octet (byte) of MAC address.
+ </dd>
+ <dt>DMAC</dt>
+ <dd>
+ Specify the type of Destination MAC addresses for incoming frame. Possible values are:
+ <br><samp>Any</samp>: All types of Destination MAC addresses are allowed.
+ <br><samp>Unicast</samp>: Only Unicast MAC addresses are allowed.
+ <br><samp>Multicast</samp>: Only Multicast MAC addresses are allowed.
+ <br><samp>Broadcast</samp>: Only Broadcast MAC addresses are allowed.
+ <br>The default value is 'Any'.
+ </dd>
+
+ <dt>VID</dt>
+ <dd> Indicates (<a href="glossary.htm#vlan_id" class="glossary">VLAN ID</a>), either a specific VID or range of VIDs. VID can be in the range 1-4095 or 'Any' </dd>
+ <dt>PCP</dt>
+ <dd>Priority Code Point: Valid value PCP are specific(0, 1, 2, 3, 4, 5, 6, 7) or range(0-1, 2-3, 4-5, 6-7, 0-3, 4-7) or 'Any'.
+ </dd>
+ <dt>DEI</dt>
+ <dd>Drop Eligible Indicator: Valid value of DEI can be any of values between 0, 1 or 'Any'.
+ </dd>
+ <dt>Action</dt>
+ <dd>
+ Indicates the classification action taken on ingress frame if parameters configured are matched with the frame's content. 
+ <br>There are three action fields: Class, DPL and DSCP.
+ <br><samp>Class</samp>: Classified <a href="glossary.htm#qos_class" class="glossary">QoS class</a>.
+ <br><samp>DPL</samp>: Classified <a href="glossary.htm#dpl" class="glossary">Drop Precedence Level</a>.
+ <br><samp>DSCP</samp>: Classified <a href="glossary.htm#dscp" class="glossary">DSCP</a> value.
+ </dd>
+ <dt>Modification Buttons</dt>
+ <dd>
+ You can modify each QCE (QoS Control Entry) in the table using the following buttons:
+ <br><img src="../images/add.gif" alt="Add">: Inserts a new QCE before the current row.
+ <br><img src="../images/edit.gif" alt="Edit">: Edits the QCE.
+ <br><img src="../images/up.gif" alt="Up">: Moves the QCE up the list.
+ <br><img src="../images/down.gif" alt="Down">: Moves the QCE down the list.
+ <br><img src="../images/del.gif" alt="Delete">: Deletes the QCE.
+ <br><img src="../images/add.gif" alt="Add">: The lowest plus sign adds a new entry at the bottom of the QCE listings.
+ </dd>
+</dl>
+</body>
+</html>

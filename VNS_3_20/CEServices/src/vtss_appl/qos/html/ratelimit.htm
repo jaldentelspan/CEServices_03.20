@@ -1,0 +1,192 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Rate Limit Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_ratelimit.htm";
+
+var oTUnit = ["kbps", "Mbps"];
+var oVUnit = [0, 1];
+var rateconfig = [];
+
+function addRow(index, frag, values) {
+    var portno = values[0];
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var td;
+    
+    addTextCell(tr, configPortName(portno, 0), "cr");
+    addCheckBoxCell(tr, parseInt(values[1], 10), "c", "pe_" + portno);
+    var edit_ctrl = addInputCell(tr, parseInt(values[2], 10), "cr", "p_" + portno, 6);
+    edit_ctrl.setAttribute("maxLength", 7); // The longest string is "1000000" kbps equiv. to 1Gbps.
+    addSelectCell(tr, oTUnit, oVUnit, parseInt(values[3], 10), "cr", "pu_" + portno);
+    
+    addCheckBoxCell(tr, parseInt(values[4], 10), "c", "se_" + portno);
+    edit_ctrl = addInputCell(tr, parseInt(values[5], 10), "cr", "s_" + portno, 6);
+    edit_ctrl.setAttribute("maxLength", 7); // The longest string is "1000000" kbps equiv. to 1Gbps.
+    addSelectCell(tr, oTUnit, oVUnit, parseInt(values[6], 10), "cr", "su_" + portno);
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function processUpdate(req, ref)
+{
+    // Format: 
+    // [port]/[policer enabled]/[policer rate]/[policer unit]|[shaper enabled]|[shaper rate]/[shaper unit]|....
+    // 1/100/1/100/0|2/100/1/10/0|....
+    if(redirectOnError(req)) {
+        return;
+    }
+    if(req.responseText) {
+        rateconfig = req.responseText.split("|");
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+        for(var i = 0; i < rateconfig.length; i++) {
+            if (rateconfig[i]) {
+                var pval = rateconfig[i].split("/");
+                addRow(i, frag, pval);
+            }    
+        }
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    } else {
+        SpomHandleError();
+    }
+}
+
+function requestUpdate() {
+    if(SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/ratelimit"), processUpdate, 'rateData');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+}
+
+function CheckRange(rate_fld_name, unit_fld_name, which)
+{
+    var unit = document.getElementById(unit_fld_name);
+    if(parseInt(unit.value, 10) === 0) {
+        // It's measured in kbps
+        if (!isWithinRange(rate_fld_name, 500, 1000000, "'" + which + " Rate'",
+                           " when the Unit is specified in 'kbps'.\nSelect the 'Mbps' unit for a coarser granularity for rates that need to be greater than 1 Gbps (1000000 kbps).")) {
+            return false;
+        }
+    } else {
+        // It's measured in Mbps
+        if (!isWithinRange(rate_fld_name, 1, 1000, "'" + which + " Rate'",
+                           " Mbps.\nSelect the 'kbps' unit for a finer granularity.")) {
+            return false;
+        }
+    }
+    return true;
+}    
+
+function checkForm(form)
+{
+    var i;
+    
+    for (i = 0; i < rateconfig.length; i++) {
+        if (rateconfig[i]) {
+            var pval = rateconfig[i].split("/");
+            var port = pval[0];
+
+            if(!CheckRange("p_" + port, "pu_" + port, "Policer")) {
+                return false;
+            }
+           
+            if(!CheckRange("s_" + port, "su_" + port, "Shaper")) {
+                return false;
+            }
+        }
+    }
+    return true;                // Feed the chickens and go home
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>Rate Limit Configuration <span id="display_sid"></span></h1>
+
+<form method="POST" action="/config/ratelimit" onsubmit="return checkForm(this);"> 
+
+<table id="rateconfig" summary="Switch Rate Limit Configuration" cellspacing="0" class="config">
+ <thead>
+  <tr class="config_header">
+   <th>Port</th>
+   <th>Policer<br>Enabled</th>
+   <th>Policer<br>Rate</th>
+   <th>Policer<br>Unit</th>
+   <th>Shaper<br>Enabled</th>
+   <th>Shaper<br>Rate</th>
+   <th>Shaper<br>Unit</th>
+  </tr>
+ </thead>
+ <tbody id="rateData">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">    
+<input type="submit" value="Save">
+<input type="reset" value="Reset">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

@@ -1,0 +1,13 @@
+# This raises the "misc" pool to 1.5M in order to accomodate 128 interfaces
+cdl_option CYGPKG_NET_MEMPOOL_SIZE {
+    user_value 1572864
+};
+
+cdl_option CYGNUM_FILEIO_NFILE {
+    user_value 144
+};
+
+cdl_option CYGNUM_FILEIO_NFD {
+    user_value 144
+};
+

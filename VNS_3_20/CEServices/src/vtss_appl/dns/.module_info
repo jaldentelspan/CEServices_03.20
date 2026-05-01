@@ -1,0 +1,6 @@
+---
+directory: vtss_appl/dns
+license: VTSS
+maintainer: Charles Liang
+name: DNS Client
+source: Vitesse

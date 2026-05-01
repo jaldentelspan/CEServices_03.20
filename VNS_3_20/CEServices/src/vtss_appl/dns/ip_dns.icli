@@ -1,0 +1,301 @@
+#
+# Vitesse Switch software.
+#
+# Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+
+MODULE_IF_FLAG = defined(VTSS_SW_OPTION_DNS)
+
+INCLUDE_BEGIN
+#include "icli_porting_util.h"
+#include "mgmt_api.h"
+#ifndef VTSS_SW_OPTION_IP2
+#include "ip_api.h"
+#endif /* VTSS_SW_OPTION_IP2 */
+#include "ip_dns_api.h"
+INCLUDE_END
+
+FUNCTION_BEGIN
+static BOOL _icli_ip_dns_proxy_state_set(i32 session_id, BOOL state)
+{
+    return (ip_dns_mgmt_set_proxy_status(&state) == VTSS_OK);
+}
+FUNCTION_END
+
+EXPORT_BEGIN
+EXPORT_END
+
+HELP_DNS_SRV    = DNS (Domain Name System) server
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ip name-server <ipv4_ucast>
+
+DOC_CMD_DESC    = Set the DNS server for resolving domain names
+DOC_CMD_DEFAULT = None
+DOC_CMD_USAGE   = When the DNS is required by system, add or update the \
+                  server's IP address for access
+DOC_CMD_EXAMPLE = Switch# configure terminal
+DOC_CMD_EXAMPLE = Switch(config)# do show running-config all-defaults
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = no ip name-server
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = Switch(config)# ip name-server 168.95.1.1
+DOC_CMD_EXAMPLE = Switch(config)# do show running-config
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = ip name-server 168.95.1.1
+DOC_CMD_EXAMPLE = ...
+
+FUNC_NAME = icli_ip_dns_server_set
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: ip
+! 2: name-server
+! 3: <ipv4_ucast>
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR = v_ipv4_ucast
+
+HELP = ##ICLI_HELP_IP
+HELP = ##HELP_DNS_SRV
+HELP = A valid IPv4 unicast address
+
+BYWORD = <HasIp : option>
+BYWORD = <HasNameServer : option>
+BYWORD = 
+
+VARIABLE_BEGIN
+#ifndef VTSS_SW_OPTION_IP2
+    ip_conf_t   ipcfg;
+#endif /* VTSS_SW_OPTION_IP2 */
+VARIABLE_END
+
+CODE_BEGIN
+#ifdef VTSS_SW_OPTION_IP2
+    if (ip_dns_mgmt_set_server4(&v_ipv4_ucast) != VTSS_OK) {
+        i8  adrString[40];
+
+        (void) icli_ipv4_to_str(v_ipv4_ucast, adrString);
+        ICLI_PRINTF("%% Failed to set DNS server %s.\n\n", adrString);
+        return ICLI_RC_ERROR;
+    }
+#else
+    if (ip_mgmt_conf_get(&ipcfg) == VTSS_OK) {
+        ipcfg.ipv4_dns = v_ipv4_ucast;
+        if (ip_mgmt_conf_set(&ipcfg) != VTSS_OK) {
+            i8  adrString[40];
+
+            (void) icli_ipv4_to_str(v_ipv4_ucast, adrString);
+            ICLI_PRINTF("%% Failed to set DNS server %s.\n\n", adrString);
+            return ICLI_RC_ERROR;
+        }
+    } else {
+        ICLI_PRINTF("%% Invalid operation.\n\n");
+        return ICLI_RC_ERROR;
+    }
+#endif /* VTSS_SW_OPTION_IP2 */
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = no ip name-server
+
+DOC_CMD_DESC    = Stop resolving domain names by accessing DNS server
+DOC_CMD_DEFAULT = None
+DOC_CMD_USAGE   = When the DNS is no longer required by system, use this \
+                  command to stop accessing DNS
+DOC_CMD_EXAMPLE = Switch# configure terminal
+DOC_CMD_EXAMPLE = Switch(config)# ip name-server 168.95.1.1
+DOC_CMD_EXAMPLE = Switch(config)# do show running-config
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = ip name-server 168.95.1.1
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = Switch(config)# no ip name-server 168.95.1.1
+DOC_CMD_EXAMPLE = Switch(config)# do show running-config all-defaults
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = no ip name-server
+DOC_CMD_EXAMPLE = ...
+
+FUNC_NAME = icli_ip_dns_server_clear
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = ICLI_CMD_PROP_LOOSELY
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: no
+! 2: ip
+! 3: name-server
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_NO
+HELP = ##ICLI_HELP_IP
+HELP = ##HELP_DNS_SRV
+
+BYWORD = <HasNo : option>
+BYWORD = <HasIp : option>
+BYWORD = <HasNameServer : option>
+
+VARIABLE_BEGIN
+#ifdef VTSS_SW_OPTION_IP2
+    vtss_ipv4_t dns_srv;
+#else
+    ip_conf_t   ipcfg;
+#endif /* VTSS_SW_OPTION_IP2 */
+VARIABLE_END
+
+CODE_BEGIN
+#ifdef VTSS_SW_OPTION_IP2
+    dns_srv = 0;
+    if (ip_dns_mgmt_set_server4(&dns_srv) != VTSS_OK) {
+        ICLI_PRINTF("%% Failed to clear DNS server.\n\n");
+        return ICLI_RC_ERROR;
+    }
+#else
+    if (ip_mgmt_conf_get(&ipcfg) == VTSS_OK) {
+        memset(&ipcfg.ipv4_dns, 0x0, sizeof(ipcfg.ipv4_dns));
+        if (ip_mgmt_conf_set(&ipcfg) != VTSS_OK) {
+            ICLI_PRINTF("%% Failed to clear DNS server.\n\n");
+            return ICLI_RC_ERROR;
+        }
+    } else {
+        ICLI_PRINTF("%% Invalid operation.\n\n");
+        return ICLI_RC_ERROR;
+    }
+#endif /* VTSS_SW_OPTION_IP2 */
+CODE_END
+
+CMD_END
+
+!==============================================================================
+
+CMD_BEGIN
+
+IF_FLAG = 
+
+COMMAND = ip dns proxy
+
+DOC_CMD_DESC    = Enable DNS proxy service
+DOC_CMD_DEFAULT = DNS proxy is disabled by default
+DOC_CMD_USAGE   = When the DNS proxy is required, use this command to \
+                  enable the DNS proxy service.
+DOC_CMD_EXAMPLE = Switch# configure terminal
+DOC_CMD_EXAMPLE = Switch(config)# do show running-config all-defaults
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = no ip dns proxy
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = Switch(config)# ip dns proxy
+DOC_CMD_EXAMPLE = Switch(config)# do show running-config
+DOC_CMD_EXAMPLE = ...
+DOC_CMD_EXAMPLE = ip dns proxy
+DOC_CMD_EXAMPLE = ...
+
+NO_FORM_DOC_CMD_DESC    = Disable DNS proxy service
+NO_FORM_DOC_CMD_DEFAULT = DNS proxy is disabled by default
+NO_FORM_DOC_CMD_DEFAULT = When the DNS proxy is no longer required, use \
+                          this command to disable the DNS proxy service.
+NO_FORM_DOC_CMD_EXAMPLE = Switch# configure terminal
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# ip dns proxy
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# do show running-config
+NO_FORM_DOC_CMD_EXAMPLE = ...
+NO_FORM_DOC_CMD_EXAMPLE = ip dns proxy
+NO_FORM_DOC_CMD_EXAMPLE = ...
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# no ip dns proxy
+NO_FORM_DOC_CMD_EXAMPLE = Switch(config)# do show running-config all-defaults
+NO_FORM_DOC_CMD_EXAMPLE = ...
+NO_FORM_DOC_CMD_EXAMPLE = no ip dns proxy
+NO_FORM_DOC_CMD_EXAMPLE = ...
+
+FUNC_NAME = icli_ip_dns_proxy_state_set
+FUNC_REUSE = 
+
+PRIVILEGE = ICLI_PRIVILEGE_15
+PROPERTY  = 
+
+CMD_MODE = ICLI_CMD_MODE_GLOBAL_CONFIG
+MODE_VAR = 
+
+RUNTIME = 
+
+! 1: ip
+! 2: dns
+! 3: proxy
+
+CMD_VAR =
+CMD_VAR =
+CMD_VAR =
+
+HELP = ##ICLI_HELP_IP
+HELP = ##ICLI_HELP_DNS
+HELP = DNS proxy service
+
+BYWORD = <HasIp : option>
+BYWORD = <HasDns : option>
+BYWORD = <HasProxy : option>
+
+VARIABLE_BEGIN
+VARIABLE_END
+
+NO_FORM_VARIABLE_BEGIN
+NO_FORM_VARIABLE_END
+
+CODE_BEGIN
+    if (!_icli_ip_dns_proxy_state_set(session_id, TRUE)) {
+        ICLI_PRINTF("%% Failed to enable DNS proxy.\n\n");
+        return ICLI_RC_ERROR;
+    }
+CODE_END
+
+NO_FORM_CODE_BEGIN
+    if (!_icli_ip_dns_proxy_state_set(session_id, FALSE)) {
+        ICLI_PRINTF("%% Failed to disable DNS proxy.\n\n");
+        return ICLI_RC_ERROR;
+    }
+NO_FORM_CODE_END
+
+CMD_END
+

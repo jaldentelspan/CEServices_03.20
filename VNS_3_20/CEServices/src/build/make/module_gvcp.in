@@ -1,0 +1,39 @@
+########################################################-*- mode: Makefile -*-
+#
+# Telspan Data Software.
+#
+# Copyright (c) 2012-2013 Telspan Data. All
+# Rights Reserved.
+#
+# ------------------------------------------------------------------------
+
+# Pointer to timer source code folder
+DIR_gvcp := $(DIR_APPL)/gvcp
+
+# Timer module files
+OBJECTS_gvcp := gvcp.o gvcp_types.o gvcp_ack_packet.o gvcp_cmd_packet.o readreg.o
+#$(call if-module,vcli,gvcp_cli.o,) 
+#$(if $(MODULE_WEB),gvcp_web.o)
+
+# Compile/dependencies
+$(OBJECTS_gvcp): %.o: $(DIR_gvcp)/%.c
+	$(call compile_c, $@, $<)
+
+# Include files
+INCLUDES += -I$(DIR_gvcp)
+
+# Web Content Generation
+#WEB_CONTENT += $(DIR_gvcp)/html
+
+# Files to be linted
+LINT_FILES_gvcp += $(addprefix $(DIR_gvcp)/,$(OBJECTS_gvcp:.o=.c))
+
+# Tidy files
+#TIDY_FILES_gvcp += $(DIR_gvcp)/html/*.htm $(DIR_gvcp)/html/help/*.htm
+
+# JSLINT files
+#JSLINT_FILES_gvcp += $(DIR_gvcp)/html/*.htm $(DIR_gvcp)/html/help/*.htm
+
+# Coding style check
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_gvcp := $(DIR_gvcp)/*.*
+

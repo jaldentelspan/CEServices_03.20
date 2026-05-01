@@ -1,0 +1,6 @@
+---
+directory: vtss_appl/dualcpu
+license: VTSS
+maintainer: Lars Povlsen
+name: dualcpu
+source: Vitesse

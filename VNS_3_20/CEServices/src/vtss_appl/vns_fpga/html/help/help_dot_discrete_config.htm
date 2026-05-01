@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2010 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>.DISCRETE I/O Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>.DISCRETE I/O Configuration Help</h1>
+
+<h2><a href="glossary.htm#.DISCRETE I/O" class="glossary">.DISCRETE I/O </a> Configuration</h2>
+
+<h3>.DISCRETE Output Configuration Help</h3>
+<dl>
+     <dt>Discrete Number</dt>
+ <dd>
+    Identification name for output pin.
+ </dd>
+ 
+ <dt>Function</dt>
+ <dd>
+ Indicates the Function to trigger output. Possible modes are:
+ <br><samp>Activity</samp>: Activates trigger when traffic is detected.
+ <br><samp>Link Up</samp>: Activates trigger when a link is established.
+ <br><samp>Time Lock</samp>: Activates trigger when the time is locked.
+ <br><samp>1588 Lock</samp>: Activates trigger when a 1588 time source is locked.
+ <br><samp>GPS Lock</samp>: Activates trigger when a GPS source is locked
+ <br><samp>Switch Error</samp>: Activates trigger when switch errors occur.
+ <br><samp>FPGA Error</samp>: Activates trigger when the FPGA detects a errors.
+ <br><samp>User Control</samp>: Enables user to manually control the output. 
+ <br><samp>Disabled</samp>: Disables the discrete output.
+ </dd>
+
+ <dt>Port</dt>
+ <dd>
+    This selection is only active for the functions "Activity" and "Link Up".  Activates trigger on selected port when activity or a link is detected. 
+ </dd>
+ 
+  <dt>Manual Trigger</dt>
+ <dd>
+    This button is only active for the "User Control" function.  It allows the user to manually toggle the discrete output to its alternate state.  
+ </dd>
+ 
+ <dt>Status</dt>
+ <dd>
+    Displays status of discrete output.  The status can have three different states on, off, or disabled  which is respectively represented by a green, red, or grey led image.
+ </dd>
+ 
+</dl>
+<h4>.DISCRETE Input Configuration Help</h4>
+   
+ <dt>Discrete Number</dt>
+ <dd>
+    Identification name for input pin.
+ </dd>
+ 
+  <dt>Enable\Disable</dt>
+ <dd>
+ Indicates the Function to trigger output. Possible modes are:
+ <br><samp>Disabled</samp>: Disables the discrete input.
+ <br><samp>Enable</samp>: Enables the discrete input.
+ </dd>
+ 
+  <dt>Status</dt>
+ <dd>
+    Displays status of discrete input.  The status can have three different states on, off, or disabled which is respectively represented by a green, red, or grey led image.
+ </dd>
+
+<h5>Buttons</h5>
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+
+</body>
+</html>

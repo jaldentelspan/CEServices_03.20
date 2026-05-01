@@ -1,0 +1,324 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>Port QoS Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_qos_class.htm";
+
+var oTClassSelect = ["1","2","4"];
+var oVClassSelect = [1, 2, 4];
+var oTClass4 = ["Low", "Normal", "Medium", "High"];
+var oVClass4 = genArrayInt(1, oTClass4.length);
+var oTUserPriority = genArrayStr(0, 7);
+var oVUserPriority = genArrayInt(0, oTUserPriority.length);
+var oTQueueingMode = ["Strict Priority","Weighted"];
+var oVQueueingMode = genArrayStr(0, 1);
+var oTWeight = ["1","2","4","8"];
+var oVWeight = genArrayStr(0, 3);
+var oTQCL = genArrayStr(configPortMin, configQCLMax);
+var oVQCL = genArrayInt(configPortMin, configQCLMax);
+var classconfig = [];
+
+function qosClassReset() {
+    document.qosClassConfigForm.reset();
+
+    for (var i = 0; i < classconfig.length; i++) {
+        if (classconfig[i]) {
+            var pval = classconfig[i].split("/");
+            var portno = parseInt(pval[0], 10);
+            if (parseInt(pval[4], 10)) {
+                 document.getElementById("low_queue_mode_" + portno).disabled = false;
+                 document.getElementById("normal_queue_mode_" + portno).disabled = false;
+                 document.getElementById("medium_queue_mode_" + portno).disabled = false;
+                 document.getElementById("high_queue_mode_" + portno).disabled = false;
+            } else { //strict mode
+                 document.getElementById("low_queue_mode_" + portno).disabled = true;
+                 document.getElementById("normal_queue_mode_" + portno).disabled = true;
+                 document.getElementById("medium_queue_mode_" + portno).disabled = true;
+                 document.getElementById("high_queue_mode_" + portno).disabled = true;
+            }
+        }
+    }
+}
+
+function queue_mode_changed() {
+    if (this.value === 0) { //strict mode
+        document.getElementById("high_" + this.id).disabled = true;
+        document.getElementById("medium_" + this.id).disabled = true;
+        document.getElementById("normal_" + this.id).disabled = true;
+        document.getElementById("low_" + this.id).disabled = true;
+    } else {
+        document.getElementById("high_" + this.id).disabled = false;
+        document.getElementById("medium_" + this.id).disabled = false;
+        document.getElementById("normal_" + this.id).disabled = false;
+        document.getElementById("low_" + this.id).disabled = false;
+    }
+}
+
+function addRow(index, frag, values) {
+    var tr = CreateStyledElement("tr", index % 2 ? "config_odd" : "config_even");
+    var hasPrioVlan;    
+    var td;
+
+    //port_no
+    var portno = parseInt(values[0], 10);
+    addTextCell(tr, configPortName(portno, 0), "cr");
+
+    //default_class
+    addSelectCell(tr, oTClass4, oVClass4, parseInt(values[1], 10), "cr", "class_" + portno);
+
+    //qcl_id
+    if (index === 0 && configPortType) { //Only for SecureGrocX 
+        oTQCL.push("VtssFast");
+        oVQCL.push(7);
+    }
+    if (parseInt(values[2], 10) > configQCLMax) { //reserved QCL
+        addTextCell(tr, "Occupied", "cr");
+    } else {
+        td = addSelectCell(tr, oTQCL, oVQCL, parseInt(values[2], 10), "cr", "qcl_" + portno);
+    }
+
+    if(typeof(configHasPrioVlan) == "function") {
+        hasPrioVlan = configHasPrioVlan();
+    } else {
+        hasPrioVlan = 1;
+    }
+      
+    //user_priority
+    if (hasPrioVlan) {
+        addSelectCell(tr, oTUserPriority, oVUserPriority, parseInt(values[3], 10), "c", "user_prio_" + portno);
+    }
+
+    if (configPortType !== 0 && configPortName(portno, 0) === "WiFi2") {
+        /* only for WebGrocX */
+        addTextCell(tr, " ", "cr");
+        addTextCell(tr, " ", "cr");
+        addTextCell(tr, " ", "cr");
+        addTextCell(tr, " ", "cr");
+        addTextCell(tr, " ", "cr");
+        frag.appendChild(tr);       // Add row to fragment
+        return;
+    }
+
+    //queuing_mode
+    var queuing_mode = parseInt(values[4], 10);
+    td = addSelectCell(tr, oTQueueingMode, oVQueueingMode, queuing_mode, "c", "queue_mode_" + portno);
+    td.onchange = queue_mode_changed;
+
+    //low_queue
+    td = addSelectCell(tr, oTWeight, oVWeight, parseInt(values[5], 10), "c", "low_queue_mode_" + portno);
+    if (queuing_mode === 0) {
+        td.disabled = true;
+    }
+
+    //normal_queue
+    td = addSelectCell(tr, oTWeight, oVWeight, parseInt(values[6], 10), "c", "normal_queue_mode_" + portno);
+    if (queuing_mode === 0) {
+        td.disabled = true;
+    }
+
+    //middle_queue
+    td = addSelectCell(tr, oTWeight, oVWeight, parseInt(values[7], 10), "c", "medium_queue_mode_" + portno);
+    if (queuing_mode === 0) {
+        td.disabled = true;
+    }
+
+    //high_queue
+    td = addSelectCell(tr, oTWeight, oVWeight, parseInt(values[8], 10), "c", "high_queue_mode_" + portno);
+    if (queuing_mode === 0) {
+        td.disabled = true;
+    }
+
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function portIsFilter(portNo)
+{
+    if (configPortType >= 3 && (configPortName(portNo, 0) == "WAN" || configPortName(portNo, 0) == "WAN2" || configPortName(portNo, 0) == "EPON")) {
+        return true;
+    }
+    return false;
+}
+
+function processUpdate(req, ref)
+{
+    var frag;
+    var tr;
+    var elem;
+
+    if (redirectOnError(req)) {
+        return;
+    }
+
+    if (req.responseText) {
+        var input = req.responseText;
+        var values = input.split(",");
+        org_classno = parseInt(values[0], 10);
+        UpdateIdSelect('classselect', oTClassSelect, oVClassSelect, org_classno);
+
+        // Create Port QoS Table Header
+        frag = document.createDocumentFragment();
+
+        tr = document.createElement("tr");
+        elem = addTextHeaderCell(tr, "Ingress Configuration", "cl", 4);
+        elem.setAttribute("height", "35");
+        elem = addTextHeaderCell(tr, "Egress Configuration", "cl", 5);
+        frag.appendChild(tr);
+
+        tr = document.createElement("tr");
+        elem = addTextHeaderCell(tr, "Port", "cl");
+        elem.setAttribute("rowSpan", "2");
+        elem = addTextHeaderCell(tr, "Default Class", "cl");
+        elem.setAttribute("rowSpan", "2");
+        elem = addTextHeaderCell(tr, "QCL #", "cl");
+        elem.setAttribute("rowSpan", "2");
+        elem = addTextHeaderCell(tr, "Tag Priority", "cl");
+        elem.setAttribute("rowSpan", "2");
+        elem = addTextHeaderCell(tr, "Queuing Mode", "cl");
+        elem.setAttribute("rowSpan", "2");
+        elem = addTextHeaderCell(tr, "Queue Weight", "cl", 4);
+        frag.appendChild(tr);
+
+        tr = document.createElement("tr");
+        elem = addTextHeaderCell(tr, "Low", "cl");
+        elem = addTextHeaderCell(tr, "Normal", "cl");
+        elem = addTextHeaderCell(tr, "Medium", "cl");
+        elem = addTextHeaderCell(tr, "High", "cl");
+        frag.appendChild(tr);
+
+        elem = document.getElementById("qos_thead");
+        clearChildNodes(elem);
+        elem.appendChild(frag);
+
+        // Add configuration rows
+        classconfig = values[1].split("|");
+        // create holder for accumulated tbody elements and text nodes
+        frag = document.createDocumentFragment();
+        for (var i = 0; i < classconfig.length; i++) {
+            if (classconfig[i]) {
+                var pval = classconfig[i].split("/");
+                if(portIsFilter(pval[0])) {
+                    continue;
+                }
+                addRow(i, frag, pval);
+            }
+        }
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    } else {
+        SpomHandleError();
+    }
+}
+
+function requestUpdate() {
+    // Format: [class_num],[port_no]/[default_class]/[qcl_id]/[user_priority]/[queuing_mode]/[low_queue]/[normal_queue]/[middle_queue]/[high_queue]|...
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+    loadXMLDoc(SpomAddSidArg("/config/classconfig"), processUpdate, 'qos_tbody');
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+
+}
+
+function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);     // Save current SID
+    requestUpdate();            // Update page to reflect selector
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<h1>Port QoS Configuration</h1>
+
+<h2 class="SPOM_only">Stack Global Settings</h2>
+
+<form name="qosClassConfigForm" method="POST" action="/config/classconfig">
+
+<table id="qconfig" summary="Switch Port QoS Configuration" cellspacing="0" class="config">
+ <tbody>
+  <tr class="config">
+   <td class="param_label"><label accesskey="N" for="classselect">Number of Classes</label></td>
+   <td>
+    <select name="cselect" id="classselect">
+     <option value="1">1</option>
+     <option value="2">2</option>
+     <option value="4">4</option>
+     <option value="8">8</option>
+    </select>
+   </td>
+  </tr>
+ </tbody>
+</table>
+
+<br class="Standalone_only">
+<h2 class="SPOM_only">Settings <span id="display_sid"></span></h2>
+
+<table summary="Switch Port QoS Configuration" cellspacing="0" class="config">
+ <thead id="qos_thead">
+ </thead>
+ <tbody id="qos_tbody">
+ </tbody>
+</table>
+
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+<input type="submit" value="Save">
+<input type="button" value="Reset" onclick="qosClassReset();">
+</p>
+
+</form>
+
+<!-- IE caching bug -->
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

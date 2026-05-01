@@ -1,0 +1,57 @@
+########################################################-*- mode: Makefile -*-
+#
+# Vitesse Switch Software.
+#
+# Copyright (c) 2002-2012 Vitesse Semiconductor Corporation "Vitesse". All
+# Rights Reserved.
+#
+# Unpublished rights reserved under the copyright laws of the United States of
+# America, other countries and international treaties. Permission to use, copy,
+# store and modify, the software and its source code is granted. Permission to
+# integrate into other products, disclose, transmit and distribute the software
+# in an absolute machine readable format (e.g. HEX file) is also granted.  The
+# source code of the software may not be disclosed, transmitted or distributed
+# without the written permission of Vitesse. The software and its source code
+# may only be used in products utilizing the Vitesse switch products.
+#
+# This copyright notice must appear in any copy, modification, disclosure,
+# transmission or distribution of the software. Vitesse retains all ownership,
+# copyright, trade secret and proprietary rights in the software.
+#
+# THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+# INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+#
+# ------------------------------------------------------------------------
+
+DIR_vtss_api := $(TOP)/vtss_api
+
+OBJECTS_vtss_api_core := vtss_api.o vtss_phy.o vtss_phy_veriphy.o vtss_phy_10g.o vtss_phy_ts_api.o vtss_phy_init_scripts.o vtss_wis_api.o vtss_phy_ewis.o
+OBJECTS_vtss_api_core += vtss_fdma.o vtss_fdma_common.o vtss_luton28_fdma.o vtss_vcoreiii_fdma.o vtss_serval_fdma.o
+OBJECTS_vtss_api_core += vtss_b2.o vtss_luton28.o vtss_luton26.o vtss_jaguar1.o vtss_serval.o
+OBJECTS_vtss_api_core += vtss_util.o vtss_common.o vtss_mpls_common.o vtss_l3.o
+OBJECTS_vtss_api_core += vtss_aneg_api.o vtss_xfi_api.o vtss_otn_api.o vtss_upi_api.o vtss_tfi5_api.o vtss_sfi4_api.o vtss_xaui_api.o vtss_gfp_api.o vtss_ae_api.o vtss_mac10g_api.o vtss_pcs_10gbase_r_api.o vtss_rab_api.o vtss_i2c_api.o vtss_oha_api.o
+OBJECTS_vtss_api_daytona := vtss_daytona.o vtss_daytona_basics.o vtss_daytona_wis.o vtss_daytona_aneg.o vtss_daytona_xfi.o vtss_daytona_otn.o vtss_daytona_upi.o vtss_daytona_xaui.o vtss_daytona_tfi5.o vtss_daytona_sfi4.o vtss_daytona_gfp.o vtss_daytona_ae.o vtss_daytona_mac10g.o vtss_daytona_pcs_10gbase_r.o vtss_daytona_rab.o vtss_daytona_i2c.o vtss_daytona_oha.o
+
+OBJECTS_vtss_api_os :=
+OBJECTS_vtss_api := $(OBJECTS_vtss_api_core) $(OBJECTS_vtss_api_os) $(OBJECTS_vtss_api_daytona)
+DOXYGEN_FILES += $(wildcard $(DIR_vtss_api)/include/*.h)
+
+$(OBJECTS_vtss_api_core): %.o: $(DIR_vtss_api)/base/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_vtss_api_daytona): %.o: $(DIR_vtss_api)/base/daytona/%.c
+	$(call compile_c, $@, $<)
+
+INCLUDES += -I$(DIR_vtss_api)/include
+
+# Lint files
+LINT_FILES_vtss_api += $(addprefix $(DIR_vtss_api)/base/,vtss_b2.c vtss_jaguar1.c vtss_luton26.c vtss_util.c vtss_common.c vtss_mpls_common.c vtss_serval.c)
+LINT_FILES_vtss_api += $(addprefix $(DIR_vtss_api)/base/,vtss_fdma.c vtss_fdma_common.c vtss_luton28_fdma.c vtss_vcoreiii_fdma.c vtss_serval_fdma.c)
+LINT_FILES_vtss_api += $(addprefix $(DIR_vtss_api)/base/,vtss_phy_10g.c vtss_phy_ts_api.c vtss_wis_api.c vtss_phy.c vtss_phy_init_scripts.c vtss_l3.c)
+LINT_FILES_vtss_api += $(addprefix $(DIR_vtss_api)/boards/,board_probe.c port_custom_lu26.c port_custom_jr1.c port_custom_jr1_cu48.c port_custom_lu28.c port_custom_serval.c)
+LINT_FILES_vtss_api += $(addprefix $(DIR_vtss_api)/base/,vtss_aneg_api.c vtss_xfi_api.c vtss_otn_api.c  vtss_upi_api.c  vtss_tfi5_api.c vtss_sfi4_api.c vtss_xaui_api.c vtss_gfp_api.c vtss_ae_api.c)
+LINT_FILES_vtss_api += $(addprefix $(DIR_vtss_api)/base/,vtss_i2c_api.c vtss_mac10g_api.c vtss_pcs_10gbase_r_api.c vtss_rab_api.c)
+LINT_FILES_vtss_api += $(addprefix $(DIR_vtss_api)/base/daytona/,vtss_daytona.c vtss_daytona_basics.c vtss_daytona_wis.c vtss_daytona_aneg.c vtss_daytona_xfi.c vtss_daytona_otn.c vtss_daytona_upi.c vtss_daytona_tfi5.c vtss_daytona_sfi4.c vtss_daytona_xaui.c vtss_daytona_gfp.c vtss_daytona_ae.c)
+LINT_FILES_vtss_api += $(addprefix $(DIR_vtss_api)/base/daytona/,vtss_daytona_i2c.c vtss_daytona_mac10g.c vtss_daytona_pcs_10gbase_r.c vtss_daytona_rab.c)
+

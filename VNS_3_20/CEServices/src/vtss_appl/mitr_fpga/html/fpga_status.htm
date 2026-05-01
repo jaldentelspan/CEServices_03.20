@@ -1,0 +1,181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>.FPGA_Status Configuration</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_fpga_status.htm";
+// Refresh timer
+var timerID;
+
+function chkRefresh(fld)
+{
+  if (!fld.checked) {
+    if (timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = null;
+  } else {
+    requestUpdate();
+  }
+}
+function clearPage()
+{
+    var tables = document.getElementsByTagName("TABLE");
+    for (var i=tables.length-1; i>=0;i-=1)
+        if (tables[i]) tables[i].parentNode.removeChild(tables[i]); 
+    
+    var breaks = document.getElementsByTagName("br");
+    for (var i=breaks.length-1; i>=0;i-=1)
+        if (breaks[i]) breaks[i].parentNode.removeChild(breaks[i]); 
+    
+    var header = document.getElementsByTagName("h1");
+    for (var i=header.length-1; i>=0;i-=1)
+        if (header[i]) header[i].parentNode.removeChild(header[i]); 
+    
+}
+function processUpdate(req, ref) {
+    
+    clearPage();
+    
+    var getText = req.responseText;
+    var items = getText.split(",");
+    var listLength = items.length -1; // last items is empty & do not want a additional cell created
+//    document.writeln("<h1>.FPGA Status & Error Report</h1>")
+    var body = document.getElementsByTagName("body")[0];
+       
+    var header = document.createElement("h1");
+    body.appendChild(header);
+    var headerText = document.createTextNode("FPGA Status & Error Report");
+    header.appendChild(headerText);
+ //   body.append("<link href="lib/normal.css" rel="stylesheet" type="text/css">");
+    for (var i = 0; i < listLength; i++) 
+    {
+        if(items[i].indexOf(".") > -1)
+        {
+         //    document.write("<br>");
+              // get the reference for the body
+            var lineBreak = document.createElement("br");
+            body.appendChild(lineBreak);
+
+            // creates a <table> element and a <tbody> element
+            var tbl = document.createElement("table");
+            tbl.setAttribute("class", "config");
+
+            body.appendChild(tbl);
+            var tblBody = document.createElement("tbody");
+            // creating all cells
+              // creates a table row
+            var row = document.createElement("tr");
+            var cell = addLabelTextCell(row, items[i], "param_label", "cell"+ i);
+            cell.style.width = "20em";
+ 
+            tblBody.appendChild(row);
+            
+            while ((items[i + 1].indexOf(".") < 0)&&((i+1) < listLength)) // look at next item in array 
+            {
+                    // Create a <td> element and a text node, make the text
+                    // node the contents of the <td>, and put the <td> at
+                    // the end of the table row
+                    i++;
+                    row = document.createElement("tr");
+                    var cell = document.createElement("td");
+                    cell.style.width = "20em";
+                    cellText = document.createTextNode(items[i]);
+                     cell.setAttribute("class", "cl");
+                    cell.appendChild(cellText);
+                    row.appendChild(cell);
+                    // add the row to the end of the table body
+                    tblBody.appendChild(row);                    
+            } 
+             // put the <tbody> in the <table>
+            tbl.appendChild(tblBody);
+            // appends <table> into <body>
+            body.appendChild(tbl);
+            // sets the border attribute of tbl to 2;
+            tbl.setAttribute("border", "1");
+ 
+        }
+
+    }
+
+
+ // Update the timer
+  var autorefresh = document.getElementById('autorefresh');
+  if (autorefresh.checked) {
+    if (timerID) {
+      clearTimeout(timerID);
+    }
+    timerID = setTimeout('requestUpdate()', settingsRefreshInterval());
+  }
+
+}
+
+function requestUpdate() {
+
+    if(loadXMLDoc("/config/dot_fpga_status", processUpdate, null)== null) {
+        alert("loadXMLDoc Failed");        
+    }
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate()">
+      <div class="refreshbar">
+    <form action="#">
+      <label for="autorefresh">Auto-refresh</label>
+      <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+      <input type="button" value="Refresh"                       onclick="requestUpdate();this.blur();">
+      <img id="update" alt="" src="images/updating.gif">
+   </form>
+  </div>
+    
+<form method="POST" action=#>
+
+
+</form>
+</body>
+</html>
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

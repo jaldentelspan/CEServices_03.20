@@ -1,0 +1,126 @@
+/*
+ * tsd_ch7_decoder_2p0_regs.h
+ *
+ *  Created on: Mar 31, 2020
+ *      Author: eric
+ */
+
+#ifndef TSD_CH7_DECODER_2P0_REGS_H_
+#define TSD_CH7_DECODER_2P0_REGS_H_
+
+#include <io.h>
+
+/**************************************
+ * CH7 DECODER DEFINES
+ **************************************/
+#define TSD_CH7_DEC_CTRL_FRAME_SIZE_MASK       (0x0000000F) /* 223*THIS VALUE */
+#define TSD_CH7_DEC_CTRL_FRAME_SIZE_SHFT       (0)
+#define TSD_CH7_DEC_CTRL_TSE_PAD_EN_BIT        (0x00000010)
+#define TSD_CH7_DEC_CTRL_REMOVE_FCS_BIT        (0x00000040)
+#define TSD_CH7_DEC_CTRL_ENABLE_BIT            (0x00000080)
+#define TSD_CH7_DEC_CTRL_TSE_SHFT_EN           (0x00080000)
+#define TSD_CH7_DEC_CTRL_ETH_HDR_ADD_EN        (0x00100000)
+#define TSD_CH7_DEC_CTRL_ETH_CSDW_HDR_ADD_EN   (0x00200000)
+#define TSD_CH7_DEC_CTRL_ETH_SEC_HDR_ADD_EN    (0x00400000)
+#define TSD_CH7_DEC_CTRL_ETH_STRM_HDR_ADD_EN   (0x00800000)
+#define TSD_CH7_DEC_CTRL_CH10_HDR_ADD_EN       (0x01000000)
+#define TSD_CH7_DEC_CTRL_CH10_CSDW_HDR_ADD_EN  (0x02000000)
+#define TSD_CH7_DEC_CTRL_CH10_SEC_HDR_ADD_EN   (0x04000000)
+#define TSD_CH7_DEC_CTRL_CH10_STRM_HDR_ADD_EN  (0x08000000)
+#define TSD_CH7_DEC_CTRL_INVERT_CLOCK          (0x10000000)
+#define TSD_CH7_DEC_CTRL_SOFT_RESET            (0x80000000)
+
+#define TSD_CH7_DEC_STATUS_ILLEGAL_FRAME_SZ    (0x00000001)
+#define TSD_CH7_DEC_STATUS_AVST_ERROR          (0x00000002)
+#define TSD_CH7_DEC_STATUS_START_OF_MAJOR      (0x00000004)
+#define TSD_CH7_DEC_STATUS_MISSED_CH7_SYNC     (0x00000008)
+#define TSD_CH7_DEC_STATUS_GOLAY_ERROR         (0x00000010)
+#define TSD_CH7_DEC_STATUS_FRAME_LOCK          (0x00000020)
+#define TSD_CH7_DEC_STATUS_SFID_CAPTURE        (0x00000100)
+#define TSD_CH7_DEC_STATUS_AVMM_TIMEOUT        (0x80000000)
+
+#define TSD_CH7_DEC_PORT_SELECT_ENABLE         (0x00000080)
+#define TSD_CH7_DEC_PORT_SELECT_MASK           (0x00000003)
+#define TSD_CH7_DEC_PORT_SELECT_FIXED_CH10     (0x00000001)
+#define TSD_CH7_DEC_PORT_SELECT_FIXED_ETH      (0x00000002)
+
+#define TSD_CH7_DEC_COUNTER_MASK               (0xFFFFFFFF)
+#define TSD_CH7_DEC_COUNTER_RESET_MASK         (0x80000000)
+
+
+/**************************************
+ * CH7 DECODER REGISTERS
+ **************************************/
+#define TSD_CH7_DEC_VERSION_REG               (0x00)
+#define TSD_CH7_DEC_IP_ID_REG                 (0x01)
+#define TSD_CH7_DEC_STATUS_REG                (0x02)
+#define TSD_CH7_DEC_CTRL_REG                  (0x03)
+#define TSD_CH7_DEC_PORT_SELECT_REG           (0x04)
+#define TSD_CH7_DEC_SYNC_PATTERN_REG          (0x05)
+#define TSD_CH7_DEC_SYNC_PATTERN_MASK_REG     (0x06)
+#define TSD_CH7_DEC_SYNC_PATTERN_LEN_REG      (0x07)
+#define TSD_CH7_DEC_TX_ETH_PACKET_CNT_REG     (0x08)
+#define TSD_CH7_DEC_TX_CH10_PACKET_CNT_REG    (0x09)
+#define TSD_CH7_DEC_FIFO0_OVERFLOW_CNT_REG    (0x0A)
+#define TSD_CH7_DEC_FIFO0_UNDERFLOW_CNT_REG   (0x0B)
+#define TSD_CH7_DEC_FIFO1_OVERFLOW_CNT_REG    (0x0C)
+#define TSD_CH7_DEC_FIFO1_UNDERFLOW_CNT_REG   (0x0D)
+
+/**************************************
+ * CH7/CH7 DECODER REGISTER ACCESS
+ **************************************/
+#define TSD_CH7_DEC_IORD_VERSION(base) \
+    IORD(base, TSD_CH7_DEC_VERSION_REG)
+
+#define TSD_CH7_DEC_IORD_IP_ID(base) \
+    IORD(base, TSD_CH7_DEC_IP_ID_REG)
+
+#define TSD_CH7_DEC_IORD_STATUS(base)    \
+    IORD(base, TSD_CH7_DEC_STATUS_REG)
+#define TSD_CH7_DEC_IOWR_STATUS(base, val)\
+    IOWR(base, TSD_CH7_DEC_STATUS_REG, val)
+
+#define TSD_CH7_DEC_IORD_CONTROL(base)    \
+    IORD(base, TSD_CH7_DEC_CTRL_REG)
+#define TSD_CH7_DEC_IOWR_CONTROL(base, val)\
+    IOWR(base, TSD_CH7_DEC_CTRL_REG, val)
+
+#define TSD_CH7_DEC_IORD_PORT_SELECT(base)    \
+    IORD(base, TSD_CH7_DEC_PORT_SELECT_REG)
+#define TSD_CH7_DEC_IOWR_PORT_SELECT(base, val)\
+    IOWR(base, TSD_CH7_DEC_PORT_SELECT_REG, val)
+
+#define TSD_CH7_DEC_IORD_SYNC_PATTERN(base)    \
+    IORD(base, TSD_CH7_DEC_SYNC_PATTERN_REG)
+#define TSD_CH7_DEC_IOWR_SYNC_PATTERN(base, val)\
+    IOWR(base, TSD_CH7_DEC_SYNC_PATTERN_REG, val)
+
+#define TSD_CH7_DEC_IORD_SYNC_MASK(base)    \
+    IORD(base, TSD_CH7_DEC_SYNC_PATTERN_MASK_REG)
+#define TSD_CH7_DEC_IOWR_SYNC_MASK(base, val)\
+    IOWR(base, TSD_CH7_DEC_SYNC_PATTERN_MASK_REG, val)
+
+#define TSD_CH7_DEC_IORD_SYNC_LENGTH(base)    \
+    IORD(base, TSD_CH7_DEC_SYNC_PATTERN_LEN_REG)
+#define TSD_CH7_DEC_IOWR_SYNC_LENGTH(base, val)\
+    IOWR(base, TSD_CH7_DEC_SYNC_PATTERN_LEN_REG, val)
+
+#define TSD_CH7_DEC_IORD_TX_ETH_PACKET_CNT(base) \
+    IORD(base, TSD_CH7_DEC_TX_ETH_PACKET_CNT_REG)
+
+#define TSD_CH7_DEC_IORD_TX_CH10_PACKET_CNT(base) \
+    IORD(base, TSD_CH7_DEC_TX_CH10_PACKET_CNT_REG)
+
+#define TSD_CH7_DEC_IORD_FIFO0_OVERFLOW_CNT(base) \
+    IORD(base, TSD_CH7_DEC_FIFO0_OVERFLOW_CNT_REG)
+
+#define TSD_CH7_DEC_IORD_FIFO0_UNDERFLOW_CNT(base) \
+    IORD(base, TSD_CH7_DEC_FIFO0_UNDERFLOW_CNT_REG)
+
+#define TSD_CH7_DEC_IORD_FIFO1_OVERFLOW_CNT(base) \
+    IORD(base, TSD_CH7_DEC_FIFO1_OVERFLOW_CNT_REG)
+
+#define TSD_CH7_DEC_IORD_FIFO1_UNDERFLOW_CNT(base) \
+    IORD(base, TSD_CH7_DEC_FIFO1_UNDERFLOW_CNT_REG)
+
+#endif /* SD_CH7_DECODER_2P0_REGS_H_ */

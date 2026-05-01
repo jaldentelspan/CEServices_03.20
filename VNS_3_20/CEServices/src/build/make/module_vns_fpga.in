@@ -1,0 +1,39 @@
+########################################################-*- mode: Makefile -*-
+#
+# Telspan Data Software.
+#
+# Copyright (c) 2012-2013 Telspan Data. All
+# Rights Reserved.
+#
+# ------------------------------------------------------------------------
+
+# Pointer to timer source code folder
+DIR_vns_fpga := $(DIR_APPL)/vns_fpga
+
+# Timer module files
+OBJECTS_vns_fpga := vns_strings.o vns_fpga.o $(call if-module,vcli,vns_fpga_cli.o,) \
+$(if $(MODULE_WEB),vns_fpga_web.o) \
+$(if $(MODULE_CONF_XML),vns_fpga_xml.o)
+
+# Compile/dependencies
+$(OBJECTS_vns_fpga): %.o: $(DIR_vns_fpga)/%.c
+	$(call compile_c, $@, $<)
+
+# Include files
+INCLUDES += -I$(DIR_vns_fpga)
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_vns_fpga)/html
+
+# Files to be linted
+LINT_FILES_vns_fpga += $(addprefix $(DIR_vns_fpga)/,$(OBJECTS_vns_fpga:.o=.c))
+
+# Tidy files
+TIDY_FILES_vns_fpga += $(DIR_vns_fpga)/html/*.htm $(DIR_vns_fpga)/html/help/*.htm
+
+# JSLINT files
+JSLINT_FILES_vns_fpga += $(DIR_vns_fpga)/html/*.htm $(DIR_vns_fpga)/html/help/*.htm
+
+# Coding style check
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_vns_fpga := $(DIR_vns_fpga)/*.*
+

@@ -1,0 +1,16 @@
+cc1: warning: command line option "-Woverloaded-virtual" is valid for C++/ObjC++ but not for C
+cc1: warning: command line option "-fno-rtti" is valid for C++/ObjC++ but not for C
+cc1: warning: command line option "-Woverloaded-virtual" is valid for C++/ObjC++ but not for C
+cc1: warning: command line option "-fno-rtti" is valid for C++/ObjC++ but not for C
+make[2]: warning: jobserver unavailable: using -j1.  Add '+' to parent make rule.
+make[2]: warning: jobserver unavailable: using -j1.  Add '+' to parent make rule.
+cc1: warning: command line option "-Woverloaded-virtual" is valid for C++/ObjC++ but not for C
+cc1: warning: command line option "-fno-rtti" is valid for C++/ObjC++ but not for C
+cc1: warning: command line option "-Woverloaded-virtual" is valid for C++/ObjC++ but not for C
+cc1: warning: command line option "-fno-rtti" is valid for C++/ObjC++ but not for C
+/raid5/home/jalden/TelspanDataProjectsInternal/iES_12/Development/Software/CEServices/VNS_3_20/CEServices/src/build/../eCos/packages/hal/mips/vcoreiii/current/src/vcoreiii_diag_custom.c:76: warning: unused variable ‘bit_count’
+/raid5/home/jalden/TelspanDataProjectsInternal/iES_12/Development/Software/CEServices/VNS_3_20/CEServices/src/build/../eCos/packages/hal/mips/vcoreiii/current/src/vcoreiii_diag_custom.c:76: warning: unused variable ‘bit_count’
+cc1: warning: command line option "-Woverloaded-virtual" is valid for C++/ObjC++ but not for C
+cc1: warning: command line option "-fno-rtti" is valid for C++/ObjC++ but not for C
+cc1: warning: command line option "-Woverloaded-virtual" is valid for C++/ObjC++ but not for C
+cc1: warning: command line option "-fno-rtti" is valid for C++/ObjC++ but not for C

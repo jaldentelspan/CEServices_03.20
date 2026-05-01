@@ -1,0 +1,108 @@
+########################################################-*- mode: Makefile -*-
+#
+# Telspan Data Software.
+#
+# Copyright (c) 2012-2013 Telspan Data. All
+# Rights Reserved.
+#
+# ------------------------------------------------------------------------
+
+# Pointer to timer source code folder
+DIR_ies_2_0 := $(DIR_APPL)/ies_2_0
+
+DIR_ies_2_0_interface := $(DIR_ies_2_0)/interface
+DIR_ies_2_0_drivers := $(DIR_ies_2_0_interface)/drivers
+
+# Timer module files
+OBJECTS_ies_2_0_base := vns_strings.o vns_fpga.o \
+$(call if-module,vcli,vns_fpga_cli.o,) \
+$(if $(MODULE_WEB),vns_fpga_web.o) \
+$(if $(MODULE_CONF_XML),vns_fpga_xml.o)
+
+# OBJECTS_ies_2_0_base := vns_strings.o vns_fpga.o \
+# $(call if-module,vcli,vns_fpga_cli.o,) \
+# $(if $(MODULE_WEB),vns_fpga_web.o) \
+# $(if $(MODULE_CONF_XML),vns_fpga_xml.o)
+
+OBJECTS_ies_2_0_interface := \
+ies_fpga_led.o \
+fw_image_validate.o \
+time_input.o
+
+# ies_fpga_led.o \
+# fw_image_validate.o \
+
+OBJECTS_ies_2_0_drivers := \
+io.o \
+tsd_pll_reconfig.o \
+tsd_ch7_decoder_2p0.o \
+tsd_ch7_encoder_2p0.o \
+tsd_tse_sxe.o \
+tsd_hdlc_decoder_2p0.o \
+tsd_hdlc_encoder_2p0.o \
+tsd_hdlc_ch7_decoder.o \
+tsd_hdlc_ch7_encoder.o \
+tsd_manual_inc_time.o \
+tsd_rx_irig_core.o \
+tsd_rx_1pps_core.o \
+tsd_gps_core.o \
+tsd_time_input_selector.o \
+tsd_rtc_calibrator.o \
+tsd_time_bcd.o \
+tsd_remote_update_brdg.o \
+tsd_tx_irig_core.o \
+tsd_shift_reg_led.o \
+tsd_pio_in.o \
+tsd_pio_out.o \
+mmdrv_printf.o
+
+
+# tsd_time_bcd.o \
+# tsd_gps_core.o \
+# tsd_manual_inc_time.o \
+# tsd_rtc_calibrator.o \
+# tsd_rx_1pps_core.o \
+# tsd_rx_irig_core.o \
+# tsd_tcg_time_core.o \
+# tsd_time_input_selector.o \
+# tsd_remote_update_brdg.o \
+# tsd_tx_irig_core.o \
+# tsd_pcm.o \
+
+
+OBJECTS_ies_2_0 := \
+$(OBJECTS_ies_2_0_base) \
+$(OBJECTS_ies_2_0_interface) \
+$(OBJECTS_ies_2_0_drivers)
+
+# Compile/dependencies
+$(OBJECTS_ies_2_0_base): %.o: $(DIR_ies_2_0)/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_ies_2_0_interface): %.o: $(DIR_ies_2_0_interface)/%.c
+	$(call compile_c, $@, $<)
+
+$(OBJECTS_ies_2_0_drivers): %.o: $(DIR_ies_2_0_drivers)/%.c
+	$(call compile_c, $@, $<)
+# Include files
+INCLUDES += -I$(DIR_ies_2_0_interface) -I$(DIR_ies_2_0_drivers) -I$(DIR_ies_2_0)  
+# INCLUDES += -I$(DIR_ies_2_0_interface) -I$(DIR_ies_2_0)  -I$(DIR_ies_2_0_drivers) 
+# INCLUDES += -I$(DIR_ies_2_0)  -I$(DIR_ies_2_0_interface) -I$(DIR_ies_2_0_drivers) 
+# INCLUDES += -I$(DIR_ies_2_0_drivers) -I$(DIR_ies_2_0)  
+# INCLUDES += -I$(DIR_ies_2_0) 
+
+# Web Content Generation
+WEB_CONTENT += $(DIR_ies_2_0)/html
+
+# Files to be linted
+LINT_FILES_ies_2_0 += $(addprefix $(DIR_ies_2_0)/,$(OBJECTS_ies_2_0:.o=.c))
+
+# Tidy files
+TIDY_FILES_ies_2_0 += $(DIR_ies_2_0)/html/*.htm $(DIR_ies_2_0)/html/help/*.htm
+
+# JSLINT files
+JSLINT_FILES_ies_2_0 += $(DIR_ies_2_0)/html/*.htm $(DIR_ies_2_0)/html/help/*.htm
+
+# Coding style check
+VTSS_CODE_STYLE_CHK_FILES_TWO_INDENT_ies_2_0 := $(DIR_ies_2_0)/*.*
+

@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2010 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QoS Control List Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>QoS Control List Configuration Help</h1>
+
+<p>This page lists the <a href="glossary.htm#qce" class="glossary">QCE</a>s for a given <a href="glossary.htm#qcl" class="glossary">QCL</a>.</p>
+
+<p>
+Frames can be classified into 4 different <a href="glossary.htm#qos" class="glossary">QoS</a> classes: 
+<b>Low</b>, <b>Normal</b>, <b>Medium</b> and <b>High</b>.<br><br> 
+The classification is controlled by a QoS assigned to each port.<br> 
+A QCL consists of an ordered list of up to 12 QCEs.<br> 
+Each QCE can be used to classify certain frames to a specific QoS class. <br>
+This classification can be based on parameters such as <a href="glossary.htm#vlan_id" class="glossary">VLAN ID</a>, <a href="glossary.htm#udp" class="glossary">UDP</a>/<a href="glossary.htm#tcp" class="glossary">TCP</a> port, IPv4/IPv6 <a href="glossary.htm#dscp" class="glossary">DSCP</a> or <a href="glossary.htm#tag_priority" class="glossary">Tag Priority</a>.
+Frames not matching any of the QCEs are classified to the default QoS Class for the port.
+</p>
+
+<dl>
+ <dt>QCL #</dt>
+ <dd>
+Select a QCL to display a table that lists all the QCEs for that particular QCL.
+ </dd>
+
+ <dt>QCE Type</dt>
+ <dd>
+ Specifies which frame field the QCE processes to determine the QoS class of the frame.<br> 
+ The following QCE types are supported:<br>
+ <samp><a href="glossary.htm#ethernet_type" class="glossary">Ethernet Type</a></samp>: The Ethernet Type field. If frame is tagged, this is the Ethernet Type that follows the tag header.<br>
+ <samp><a href="glossary.htm#vlan" class="glossary">VLAN</a> ID</samp>: VLAN ID. Only applicable if the frame is VLAN tagged.<br>
+ <samp>TCP/UDP Port</samp>: IPv4 TCP/UDP source/destination port.<br>
+ <samp>DSCP</samp>: IPv4 and IPv6 DSCP.<br>
+ <samp><a href="glossary.htm#tos" class="glossary">ToS</a></samp>: The 3 precedence bit in the ToS byte of the IPv4/IPv6 header (also known as DS field).<br>
+ <samp>Tag Priority</samp>: <a href="glossary.htm#user_priority" class="glossary">User Priority</a>. Only applicable if the frame is VLAN tagged or priority tagged.
+ </dd>
+ 
+ <dt>Type Value</dt>
+ <dd>
+ Indicates the value according to its QCE type.
+ <br><samp>Ethernet Type</samp>: The field shows the Ethernet Type value.
+ <br><samp>VLAN ID</samp>: The field shows the VLAN ID.
+ <br><samp>TCP/UDP Port</samp>: The field shows the TCP/UDP port range.
+ <br><samp>DSCP</samp>: The field shows the IPv4/IPv6 DSCP value.
+ </dd>
+ 
+ <dt>Traffic Class</dt>
+ <dd>
+ The QoS class associated with the QCE.
+ </dd>
+ 
+ <dt>Modification Buttons</dt>
+ <dd>
+ You can modify each QCE in the table using the following buttons:
+ <br><img src="../images/add.gif" alt="Add">: Inserts a new QCE before the current row.
+ <br><img src="../images/edit.gif" alt="Edit">: Edits the QCE.
+ <br><img src="../images/up.gif" alt="Up">: Moves the QCE up the list.
+ <br><img src="../images/down.gif" alt="Down">: Moves the QCE down the list. 
+ <br><img src="../images/del.gif" alt="Delete">: Deletes the QCE.
+ <br><img src="../images/add.gif" alt="Add">: The lowest plus sign adds a new entry at the bottom of the list of QCL.
+ </dd>
+</dl>
+
+</body>
+</html>

@@ -1,0 +1,99 @@
+/*
+ * tsd_tcg_time_regs.h
+ *
+ *  Created on: May 14, 2018
+ *      Author: eric
+ */
+
+#ifndef TSD_MANUAL_INC_REGS_H_
+#define TSD_MANUAL_INC_REGS_H_
+
+#include <io.h>
+
+#define TSD_MANUAL_INC_RTC_TICKS_PER_SEC (10000000)
+
+/////////////////////////////////////////////////////////////////////
+// REGISTERS
+/////////////////////////////////////////////////////////////////////
+#define TSD_MANUAL_INC_VERSION_REG		(0x00)
+#define TSD_MANUAL_INC_CONTROL_REG		(0x01)
+#define TSD_MANUAL_INC_STATUS_REG		(0x02)
+#define TSD_MANUAL_INC_TIME_L_REG		(0x03)
+#define TSD_MANUAL_INC_TIME_H_REG		(0x04)
+#define TSD_MANUAL_INC_TIME_RESET_OFFSET	(0x05)
+#define TSD_MANUAL_INC_LATCHED_RTC_L_REG	(0x06)
+#define TSD_MANUAL_INC_LATCHED_RTC_H_REG 	(0x07)
+
+/////////////////////////////////////////////////////////////////////
+// REGISTER BITS/MASKS
+/////////////////////////////////////////////////////////////////////
+
+#define TSD_MANUAL_INC_CONTROL_ENABLE				(0x01)
+#define TSD_MANUAL_INC_CONTROL_SRC_EXTERNAL			(0x02)
+#define TSD_MANUAL_INC_CONTROL_RESET				(0x80000000)
+
+#define TSD_MANUAL_INC_STATUS_INTERNAL_ERR			(0x01)
+#define TSD_MANUAL_INC_STATUS_SETUP_ERR				(0x02)
+#define TSD_MANUAL_INC_STATUS_NO_SIGNAL_ERR			(0x04)
+#define TSD_MANUAL_INC_STATUS_BAD_SIGNAL_ERR		(0x08)
+#define TSD_MANUAL_INC_STATUS_NOT_LOCKED_ERR		(0x10)
+#define TSD_MANUAL_INC_STATUS_NOT_ENABLED_ERR		(0x20) /* RX_IRIG core not running... enable bit == 0 */
+
+#define TSD_MANUAL_INC_TIME_L_HOURS_MASK			(0xFF000000)
+#define TSD_MANUAL_INC_TIME_L_HOURS_SHFT			(24)
+#define TSD_MANUAL_INC_TIME_L_MINUTES_MASK			(0x00FF0000)
+#define TSD_MANUAL_INC_TIME_L_MINUTES_SHFT			(16)
+#define TSD_MANUAL_INC_TIME_L_SECONDS_MASK			(0x0000FF00)
+#define TSD_MANUAL_INC_TIME_L_SECONDS_SHFT			(8)
+#define TSD_MANUAL_INC_TIME_L_MILLISECONDS_MASK		(0x000000FF)
+#define TSD_MANUAL_INC_TIME_L_MILLISECONDS_SHFT		(0)
+
+#define TSD_MANUAL_INC_TIME_H_YEARS_MASK			(0x00FF0000)
+#define TSD_MANUAL_INC_TIME_H_YEARS_SHFT			(16)
+#define TSD_MANUAL_INC_TIME_H_HDAYS_MASK			(0x00000F00)
+#define TSD_MANUAL_INC_TIME_H_HDAYS_SHFT			(8)
+#define TSD_MANUAL_INC_TIME_H_TDAYS_MASK			(0x000000F0)
+#define TSD_MANUAL_INC_TIME_H_TDAYS_SHFT			(4)
+#define TSD_MANUAL_INC_TIME_H_DAYS_MASK				(0x0000000F)
+#define TSD_MANUAL_INC_TIME_H_DAYS_SHFT				(0)
+
+/////////////////////////////////////////////////////////////////////
+// REGISTER ACCESS
+/////////////////////////////////////////////////////////////////////
+
+#define TSD_MANUAL_INC_IORD_VERSION(base) \
+	IORD(base, TSD_MANUAL_INC_VERSION_REG)
+
+#define TSD_MANUAL_INC_IORD_CONTROL(base) \
+	IORD(base, TSD_MANUAL_INC_CONTROL_REG)
+#define TSD_MANUAL_INC_IOWR_CONTROL(base, val) \
+	IOWR(base, TSD_MANUAL_INC_CONTROL_REG, val)
+
+#define TSD_MANUAL_INC_IORD_STATUS(base) \
+	IORD(base, TSD_MANUAL_INC_STATUS_REG)
+#define TSD_MANUAL_INC_IOWR_STATUS(base, val) \
+	IOWR(base, TSD_MANUAL_INC_STATUS_REG, val)
+
+#define TSD_MANUAL_INC_IORD_SETTINGS(base) \
+	IORD(base, TSD_MANUAL_INC_SETTINGS_REG)
+#define TSD_MANUAL_INC_IOWR_SETTINGS(base, val) \
+	IOWR(base, TSD_MANUAL_INC_SETTINGS_REG, val)
+
+#define TSD_MANUAL_INC_IORD_TIME_L(base) \
+	IORD(base, TSD_MANUAL_INC_TIME_L_REG)
+
+#define TSD_MANUAL_INC_IORD_TIME_H(base) \
+	IORD(base, TSD_MANUAL_INC_TIME_H_REG)
+
+#define TSD_MANUAL_INC_TIME_IORD_RESET_OFFSET(base) \
+	IORD(base, TSD_MANUAL_INC_TIME_RESET_OFFSET)
+#define TSD_MANUAL_INC_TIME_IOWR_RESET_OFFSET(base, val) \
+	IOWR(base, TSD_MANUAL_INC_TIME_RESET_OFFSET, val)
+
+#define TSD_MANUAL_INC_IORD_LATCHED_RTC_MSW(base) \
+	IORD(base, TSD_MANUAL_INC_LATCHED_RTC_H_REG)
+
+#define TSD_MANUAL_INC_IORD_LATCHED_RTC_LSW(base) \
+	IORD(base, TSD_MANUAL_INC_LATCHED_RTC_L_REG)
+
+#endif /* TSD_MANUAL_INC_REGS_H_ */

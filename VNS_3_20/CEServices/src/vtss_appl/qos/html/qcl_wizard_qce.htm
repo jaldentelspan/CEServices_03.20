@@ -1,0 +1,189 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QCL Configuration Wizard - QCE</title>
+ <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+ <script type="text/javascript">
+
+// Help page magic
+var help_page = "/help/help_qcl_wizard_qce.htm";
+
+var oTPort  = genArrayInt(configPortMin, configQCLMax);
+var oVPort  = genArrayStr(configPortMin, configQCLMax);
+var oTPriority = ["Low","Normal","Medium","High"];
+var oVPriority = genArrayInt(1, oTPriority.length);
+
+function appendQclApplTypeFiled() {
+    var parent_data = parent.getEditData();
+    if (!parent_data) {
+        document.location.href = "qcl_wizard.htm"; 
+        return;
+    }
+    var values = parent_data.split("|");
+    var qclApplType = parseInt(values[0], 10);
+    UpdateIdValue("appl_type", qclApplType);
+    if (qclApplType & 0x400) {
+        //appl_type_10
+        UpdateIdValue("user_etype", values[1]);
+    }
+    if (qclApplType & 0x800) {
+        //appl_type_11
+        UpdateIdValue("user_vid", values[2]);
+    }
+    if (qclApplType & 0x1000) {
+        //appl_type_12
+        UpdateIdValue("user_port_low", values[3]);
+        UpdateIdValue("user_port_high", values[4]);
+    }
+    if (qclApplType & 0x2000) {
+        //appl_type_13
+       UpdateIdValue("user_dscp", values[5]);
+    }    
+}
+
+function qceSubmit() {
+    document.getElementById("buttons").style.visibility = "hidden";
+    appendQclApplTypeFiled();
+    document.qceConfigForm.submit();
+}
+
+function addRow(frag, values) {
+    //qcl_id
+    tr = document.createElement("tr");
+    addTextCell(tr, "QCL ID", "param_label");
+    //for(var i = 0; i < 26; i++) {
+    //    if (values[i])
+    //    oTPort[i] += " - " + values[i];
+    //}
+    var td = addSelectCell(tr, oTPort, oVPort, 1, "cl", "qcl_id");
+    frag.appendChild(tr);
+    
+    //traffic_class
+    tr = document.createElement("tr");
+    addTextCell(tr, "Traffic Class", "param_label");
+    addSelectCell(tr, oTPriority, oVPriority, 0, "cl", "traffic_class");
+    frag.appendChild(tr);
+}
+
+function processUpdate(req, ref)
+{
+    //if (req.responseText) {
+        //var values = req.responseText.split("/");
+        if (1) {
+        var values = req.split("/");
+
+        // create holder for accumulated tbody elements and text nodes
+        var frag = document.createDocumentFragment();
+        addRow(frag, values);
+        
+        var tbody = document.getElementById(ref);
+        clearChildNodes(tbody);
+        if (!tbody.appendChild(frag)) { // Add Frag to table body
+            alert("This browser doesn't support dynamic tables.");
+        }
+    }
+}
+
+function requestUpdate() {
+    // Format: [qcl_name_0]/[qcl_name_1]/...,
+
+    var req="default/user define 1/user define 2/user define 3/user define 4/user define 5/user define 6/user define 7/user define 8/user define 9/user define 10/user define 11/user define 12/user define 13/user define 14/user define 15/user define 16/user define 17/user define 18/user define 19/user define 20/user define 21/user define 22/user define 23/user define 24/user define 25";
+    processUpdate(req, "policyData");
+    document.getElementById("applType").style.display = "none";
+    //loadXMLDoc("/config/qcl_wizard_qce", processUpdate, 'policyData');
+}
+
+ </script>
+</head>
+
+<body class="content" onload="requestUpdate();">
+
+<form name="qceConfigForm" method="POST" action="/config/qcl_wizard_qce">
+
+<h1>Set up Typical Network Application Rules</h1>
+<h2>According to your selection on the previous page, this wizard will create 
+<br>specific QCEs (QoS Control Entries) automatically.</h2>
+<h2>First select the QCL ID for these QCEs, and then select the traffic class.
+<br>Different parameter options are displayed, depending on your selection.</h2>
+<p>&nbsp;</p>
+
+<table id="applType" summary="QCL Configuration Wizard - QCE Type" class="config">
+ <tr>
+  <td class="param_label"><label for="appl_type">Application Type</label></td>
+  <td class="cl"><input type="text" id="appl_type" name="appl_type" value="0"></td>
+ </tr>
+ <tr>
+  <td class="param_label"><label for="user_etype">Ethernet Type</label></td>
+  <td class="cl"><input type="text" id="user_etype" name="user_etype" value="0"></td>
+ </tr>
+ <tr>
+  <td class="param_label"><label for="user_vid">VLAN ID</label></td>
+  <td class="cl"><input type="text" id="user_vid" name="user_vid" value="0"></td>
+ </tr>
+ <tr>
+  <td class="param_label"><label for="user_port_low">TCP/UDP Port Range</label></td>
+  <td class="cl"><input type="text" id="user_port_low" name="user_port_low" value="0"></td>
+  <td class="cl"><input type="text" id="user_port_high" name="user_port_high" value="0"></td>
+ </tr>
+ <tr>
+  <td class="param_label"><label for="user_dscp">DSCP</label></td>
+  <td class="cl"><input type="text" id="user_dscp" name="user_dscp" value="0"></td>
+ </tr>
+</table>
+ 
+<table id="policyConfig" summary="QCL Configuration Wizard - QCE" class="config">
+    <tbody id="policyData"></tbody>
+</table>
+
+<p>&nbsp;</p> 
+<hr>
+<p id="buttons">
+<input type="button" value="Cancel Wizard" onclick="document.location.href='qcl_wizard.htm';">
+&nbsp;&nbsp;&nbsp;&nbsp;
+<input type="button" value="< Back" onclick="history.back();">
+<input type="button" value="Next >" onclick="qceSubmit();">
+</p>
+
+</form>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

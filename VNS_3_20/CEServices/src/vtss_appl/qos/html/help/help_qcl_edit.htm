@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ 
+ Vitesse Switch Software.
+ 
+ Copyright (c) 2002-2010 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+ 
+-->
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+ <title>QCE Configuration Help</title>
+ <link href="/lib/help.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>QoS Control Entry Configuration Help</h1>
+
+<p>Configure a new <a href="glossary.htm#qos" class="glossary">QoS</a> Control Entry on this page.</p>
+
+<p>
+Frames can be classified into 4 different QoS classes: <samp>Low</samp>, <samp>Normal</samp>, <samp>Medium</samp>, and <samp>High</samp>.<br><br> 
+The classification is controlled by a <a href="glossary.htm#qcl" class="glossary">QCL</a> assigned to each port. <br>
+A QCL consists of an ordered list of up to 12 <a href="glossary.htm#qce" class="glossary">QCE</a>s. <br>
+Each QCE can be used to classify certain frames to a specific QoS Class. <br>
+This classification can be based on parameters such as <a href="glossary.htm#vlan_id" class="glossary">VLAN ID</a>, <a href="glossary.htm#udp" class="glossary">UDP</a>/<a href="glossary.htm#tcp" class="glossary">TCP</a> port, 
+IPv4/IPv6 <a href="glossary.htm#dscp" class="glossary">DSCP</a> or Tag Priority.
+Frames not matching any of the QCEs are classified to the default QoS Class for the port.
+</p>
+
+<dl>
+ <dt>QCE Type</dt>
+ <dd>
+ Select the available type for the specific QCE.
+ <br><samp><a href="glossary.htm#ethernet_type" class="glossary">Ethernet Type</a></samp>: Matches the received frame's EtherType against the QCE Key.
+ <br><samp><a href="glossary.htm#vlan" class="glossary">VLAN</a> ID</samp>: Matches the frame's VID against the QCE Key. 
+ <br><samp>TCP/UDP Port</samp>: Matches the destination port and the source port against the QCE Key.
+ <br><samp>DSCP</samp>: Matches the received IPv4/IPv6 DSCP value (6 bits) against the two DSCP values in the QCE Key.
+ <br><samp><a href="glossary.htm#tos" class="glossary">ToS</a></samp>: Uses the precedence part of the IPv4/IPv6 ToS (3 bits) as an index to the eight QoS Class values in the QCE Key.
+ <br><samp><a href="glossary.htm#tag_priority" class="glossary">Tag Priority</a></samp>: Uses the <a href="glossary.htm#user_priority" class="glossary">User Priority</a> value (3 bits) as an index to the eight QoS Class values in the QCE Key.
+ </dd>
+ 
+ <dt>Type Value</dt>
+ <dd>
+ Configure the values according to the QCE type you select.
+ <br><samp>Ethernet Type</samp>: The allowed values for this type range from 0x600 (1536) to 0xFFFF (65535).
+ <br><samp>VLAN ID</samp>: The allowed values for this type range from 1 to 4095.
+ <br><samp>TCP/UDP Port Range</samp>: Specify whether there is a range or a specific port number. The port range allowed is from 0 to 65535.
+ <br><samp>DSCP</samp>: The allowed range is 0 to 63.
+ <br><br><samp>ToS</samp> or
+<samp>Tag Priority</samp> do not have type value settings.
+ </dd>
+ 
+ <dt>Traffic Class</dt>
+ <dd>
+ Select a traffic class of Low, Normal, Medium, or High to apply to the QCE.
+ <br>If the QCE type is <samp>ToS</samp> or <samp>Tag Priority</samp>, there are 8 rows of traffic class that can be configured for each priority.
+ </dd>
+</dl>
+
+<h2>Buttons</h2>
+
+<p><input type="button" value=" Save ">: Click to save changes.</p>
+<p><input type="button" value=" Reset ">: Click to undo any changes made locally and revert to previously saved values.</p>
+<p><input type="button" value=" Cancel ">: Return to the previous page.</p>
+
+</body>
+</html>

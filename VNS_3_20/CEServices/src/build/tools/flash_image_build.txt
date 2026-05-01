@@ -1,0 +1,19 @@
+gcc -g -m32 -Wall ../../eCos/host/webstax_binmerge/webstax_binmerge.c -o webstax_binmerge
+./webstax_binmerge -v -sb 64 -sc 256 -r ../obj/redboot.bin -w ../obj/iES-12_2_0.gz -o ies_2_0_flash_.bin -a "MAC=30:2d:e8:11:00:00" -a "BOARDID=1"
+0x00000000 - 0x0001d5c0: Copying RedBoot
+0x0001d5c0 - 0x00040000: Padding
+0x00040000 - 0x00040031: Writing 'conf' section
+0x00040031 - 0x00080000: Padding
+0x00080000 - 0x00180000: Padding
+0x00180000 - 0x001c0000: Padding
+0x001c0000 - 0x006236dc: Copying managed
+0x006236dc - 0x007c0000: Padding
+0x007c0000 - 0x00c236dc: Copying managed.bk
+0x00c236dc - 0x00dc0000: Padding
+0x00dc0000 - 0x00fd0000: Padding
+0x00fd0000 - 0x00fd0a00: Writing Redundant FIS
+0x00fd0a00 - 0x00fe0000: Padding
+0x00fe0000 - 0x00fe1000: Writing 'RedBoot config'
+0x00fe1000 - 0x00ff0000: Padding
+0x00ff0000 - 0x00ff0a00: Writing FIS directory
+0x00ff0a00 - 0x01000000: Padding

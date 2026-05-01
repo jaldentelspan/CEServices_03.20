@@ -1,0 +1,407 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<!--
+
+ Vitesse Switch Software.
+
+ Copyright (c) 2002-2011 Vitesse Semiconductor Corporation "Vitesse". All
+ Rights Reserved.
+
+ Unpublished rights reserved under the copyright laws of the United States of
+ America, other countries and international treaties. Permission to use, copy,
+ store and modify, the software and its source code is granted. Permission to
+ integrate into other products, disclose, transmit and distribute the software
+ in an absolute machine readable format (e.g. HEX file) is also granted.  The
+ source code of the software may not be disclosed, transmitted or distributed
+ without the written permission of Vitesse. The software and its source code
+ may only be used in products utilizing the Vitesse switch products.
+
+ This copyright notice must appear in any copy, modification, disclosure,
+ transmission or distribution of the software. Vitesse retains all ownership,
+ copyright, trade secret and proprietary rights in the software.
+
+ THIS SOFTWARE HAS BEEN PROVIDED "AS IS," WITHOUT EXPRESS OR IMPLIED WARRANTY
+ INCLUDING, WITHOUT LIMITATION, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR USE AND NON-INFRINGEMENT.
+
+-->
+
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <title>VLAN membership Statistics</title>
+  <link href="lib/normal.css" rel="stylesheet" type="text/css">
+ <script type="text/javascript" src="lib/config.js"></script>
+ <script type="text/javascript" src="lib/ajax.js"></script>
+ <script type="text/javascript" src="lib/spom.js"></script>
+ <script type="text/javascript" src="lib/validate.js"></script>
+ <script type="text/javascript" src="lib/dynforms.js"></script>
+<script type="text/javascript" language="JavaScript">
+
+  // Help page magic
+var help_page = "/help/help_vlan_membership.htm";
+
+  //
+  // Global variables
+  //
+  var timerID = null;
+  var selectedtext="Combined";
+ // var VLANUser;
+  var vlanmembership = Array();
+  var vlanarg = Array();
+  var vlanUserType     = new Array();
+  var LastVlanVal = 0;
+
+  function addClonedNode(tr, val, proto)
+  {
+   if(parseInt(val)) {
+        var td = CreateTd("c");
+        addCell(tr, td, proto.cloneNode(1));
+    } else {
+        addTextCell(tr, "", "c");
+    }
+  }
+  function SpomSidSelectorUpdate(sid)
+{
+    SpomSetCurrentSid(sid);    
+     requestUpdate("GetFirstEntry");
+}
+
+function addRow(index, frag, values)
+{
+    var tr     = CreateStyledElement("tr", index % 2 ? "display_even" : "display_odd");
+    var VID    = values[0];
+
+    var bullet = document.getElementById("bullet");
+	var nobullet = document.getElementById("nobullet");
+    var confnobullet = document.getElementById("confnobullet");
+    var emptybullet  = document.getElementById("emptybullet");
+
+    bullet.setAttribute('border',1);
+    nobullet.setAttribute('border',1);
+    confnobullet.setAttribute('border',1);
+    emptybullet.setAttribute('border',1);
+    bullet.setAttribute('height',12);
+    bullet.setAttribute('width',15);
+    nobullet.setAttribute('height',12);
+    nobullet.setAttribute('width',15);
+    confnobullet.setAttribute('height',12);
+    confnobullet.setAttribute('width',15);
+	emptybullet.setAttribute('height',12);
+    emptybullet.setAttribute('width',15);
+    addTextCell(tr, VID, "c");
+    for (i = 1; i <values.length; i++ ) {
+        if(values[i] != "") {
+			if(values[i] == 1) {
+            	addClonedNode(tr, values[i], bullet);
+			} else if(values[i] == 2) {
+				addClonedNode(tr, values[i], nobullet);
+			} else if(values[i] == 3) {
+				addClonedNode(tr, values[i], confnobullet);
+			} else {
+                values[i] = 1;
+                addClonedNode(tr, values[i], emptybullet);
+            }
+         }
+    }
+    frag.appendChild(tr);       // Add row to fragment
+}
+
+function createOptions(req, ref)
+{
+    var fval;
+
+    if(req.responseText) {
+        vlanmembership = req.responseText.split("#");
+        for(var k = 1; k < vlanmembership.length-2; k++) {
+            fval = vlanmembership[k].split("|");
+            vlanUserType[k-1]=fval[0];
+        }
+        var sel = document.getElementById(ref);
+        clearChildNodes(sel);
+        var frag = document.createDocumentFragment();
+        for (var i = 0; i < vlanUserType.length; i++) {
+            var opt = document.createElement("option");
+            opt.appendChild(document.createTextNode(vlanUserType[i]));
+            opt.setAttribute("text", vlanUserType[i]);
+            if(selectedtext == vlanUserType[i]) {
+                opt.setAttribute("selected", true);
+            }
+            frag.appendChild(opt);
+        }
+        sel.appendChild(frag);
+        var fld = document.getElementById("StartVid");
+        fld.value = fld.defaultValue = parseInt(vlanmembership[vlanmembership.length-2]);
+
+        var fld = document.getElementById("NumberOfEntries");
+        fld.value = fld.defaultValue = parseInt(vlanmembership[vlanmembership.length-1]);
+        updateTable();
+     } else {
+         SpomHandleError();
+     }
+ }
+
+function updateTable()
+{
+    var tmp_user_data_base;
+    var nPorts = SpomCurrentPorts() - configPortMin;
+
+    for (var i = 0; i < SpomCurrentPorts(); i++ ) {
+        if (isStackPort(i + 1)) {
+            nPorts--;
+        }
+    }
+    var frag = document.createDocumentFragment();  
+    CreateTableHeader(frag);
+    var fld = document.getElementById("StartVid");
+    fld.value = fld.defaultValue = parseInt(vlanmembership[vlanmembership.length-2]);
+
+    var fld = document.getElementById("NumberOfEntries");
+    fld.value = fld.defaultValue = parseInt(vlanmembership[vlanmembership.length-1]);
+    for(var j = 1; j < vlanmembership.length-2; j++ ) {
+        if (vlanmembership[j]) {
+            tmp_user_data_base = vlanmembership[j].split("|");
+            if (tmp_user_data_base[0] == selectedtext) {
+                if((tmp_user_data_base[0] == vlanmembership[j]) && (tmp_user_data_base[1]!=" ")) {
+                    var tr = CreateStyledElement("tr", "notice");
+                    addTextCell(tr, "No data exists for the user", "cl", nPorts+2);
+                    frag.appendChild(tr);
+                }
+
+                for(var tmpCt = 1; tmpCt < tmp_user_data_base.length; tmpCt++) {
+                    if(tmp_user_data_base[tmpCt]) {
+                        var  fval = tmp_user_data_base[tmpCt].split("/");
+                        addRow(tmpCt , frag, fval);
+                    }
+                }
+                LastVlanVal = tmp_user_data_base[tmpCt-1];
+            }
+        }
+    }
+
+    var tbody = document.getElementById("vlanData");
+    clearChildNodes(tbody);
+    if (!tbody.appendChild(frag)) { // Add Frag to table body
+        alert("This browser doesn't support dynamic tables.");
+    }
+    document.getElementById("update").style.visibility = "hidden";
+ }
+
+function CreateTableHeader (frag)
+{
+    var tr     = CreateStyledElement("tr", "display_header");
+    var nPorts = SpomCurrentPorts() - configPortMin;
+    var elem;
+
+    for (var i = 0; i < SpomCurrentPorts(); i++ ) {
+        if (isStackPort(i + 1)) {
+            nPorts--;
+        }
+    }
+    addTextHeaderCell(tr, "", "hdrc", 1);
+    addTextHeaderCell(tr, "Port Members", "hdrc", nPorts+1);
+    frag.appendChild(tr);
+
+    tr = CreateStyledElement("tr", "display_header"); // start next line
+    addTextHeaderCell(tr," VLAN  ID","hdrc");
+
+    for (var i = 0; i < SpomCurrentPorts(); i++ ) {
+        if (isStackPort(i + 1)) {
+            continue;
+        }
+        elem = addTextHeaderCell(tr, configPortName(i+1, 0), "portno");
+        elem.style.cssText = "width: 1em";
+
+    }
+    frag.appendChild(tr);
+}
+
+
+function processUpdate(req)
+{
+    if (redirectOnError(req))
+        return;
+    if (req.responseText) {
+        vlanmembership = req.responseText.split("#");
+        var fld = document.getElementById("StartVid");
+        fld.value = fld.defaultValue = parseInt(vlanmembership[vlanmembership.length-2]);
+
+        var fld = document.getElementById("NumberOfEntries");
+        fld.value = fld.defaultValue = parseInt(vlanmembership[vlanmembership.length-1]);
+
+        // Create holder for accumulated tbody elements and text nodes
+        updateTable( );
+        document.getElementById("update").style.visibility = "hidden";
+    } else {
+        SpomHandleError();
+    }
+
+    var autorefresh = document.getElementById('autorefresh');
+    if (autorefresh.checked) {
+        if(timerID)
+           clearTimeout(timerID);
+        timerID = setTimeout('requestUpdate("Refresh")', settingsRefreshInterval());
+    }
+}
+
+function checkForm()
+{
+    var rc1;
+
+    rc1 = true;
+    if(!isWithinRange("StartVid", 1,4095, "'Start Vid'", " ")) {
+       rc1 = false;
+    }
+
+    if(!isWithinRange("NumberOfEntries", 1,99, "'Number of entries'", " ")) {
+       rc1 = false;
+    }
+
+    if(!rc1) {
+        var autorefresh = document.getElementById('autorefresh');
+        if(autorefresh.checked) {
+            if(timerID) {
+                clearTimeout(timerID);
+            }
+            timerID = setTimeout('requestUpdate("Refresh")', settingsRefreshInterval());
+         }
+         return false; 
+    }
+
+    return true; // Feed the chickens and go home
+}
+
+function requestUpdate(type)
+{
+    var StartVid_var;
+    if (SpomNavigationLoading()) {
+        return;                 // Bail out, navigation will trigger update
+    }
+
+    if(!checkForm()) {
+        return false; 
+    }
+
+    document.getElementById("update").style.visibility = "visible";
+    if (type == "load") {
+        loadXMLDoc(SpomAddSidArg("/stat/vlan_membership_stat"), createOptions, 'VLANUser');
+    } else if (type == "GetFirstEntry") {
+        StartVid_var = 1;
+        loadXMLDoc(SpomAddSidArg("/stat/vlan_membership_stat?DynStartVid=" + StartVid_var  + "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value), processUpdate, 'VLANUser');
+    } else if (type == "NextEntries") {
+        StartVid_var = parseInt(LastVlanVal) + 1;
+        var fld = document.getElementById("StartVid");
+        
+        if(isNaN(StartVid_var)) {
+            alert("No VLAN data exists for the user");
+            document.getElementById("update").style.visibility = "hidden";
+            return false;
+        }
+
+        if((parseInt(StartVid_var) > 0) && (parseInt(StartVid_var) < 4096)) {
+            fld.value = fld.defaultValue = parseInt(StartVid_var);
+            loadXMLDoc(SpomAddSidArg("/stat/vlan_membership_stat?DynStartVid=" + StartVid_var  + "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value), processUpdate, 'VLANUser');
+        } else {
+            document.getElementById("update").style.visibility = "hidden";
+            alert("The value of VLAN is restricted to 1 - 4095");
+        }
+    } else if (type == "Refresh") {
+        var fld = document.getElementById("StartVid");
+        StartVid_var = fld.value;
+        loadXMLDoc(SpomAddSidArg("/stat/vlan_membership_stat?DynStartVid=" + StartVid_var  + "&DynNumberOfEntries=" + document.getElementById("NumberOfEntries").value), processUpdate, 'VLANUser');
+    } else {
+        loadXMLDoc(SpomAddSidArg("/stat/vlan_membership_stat"), processUpdate, 'VLANUser');
+    }
+    if (selectedtext != "Combined") {
+       document.getElementById("display_user").innerHTML= selectedtext + " user ";
+    } else {
+       document.getElementById("display_user").innerHTML= selectedtext + " users ";
+    }
+
+    SpomUpdateDisplaySid("display_sid");
+    SpomUpdateFormSid("submit_sid");
+   
+}
+
+function VLANUserSelect(sel)
+{
+    selectedtext = sel.options[sel.selectedIndex].text;
+    if(checkForm()) {
+        requestUpdate("Refresh");
+    }
+}
+
+function chkRefresh(fld)
+{
+    if (!fld.checked) {
+        if (timerID) {
+            clearTimeout(timerID);
+            timerID = null;
+        }
+    } else {
+        requestUpdate("Refresh");
+    }
+}
+
+  </script>
+</head>
+
+<body class="content" onload="requestUpdate('load');">
+    <h1>VLAN Membership Status for <span id= "display_user"></span>&nbsp;<span id= "display_sid"></span></h1>
+    <div class="refreshbar">
+    <form action="#">
+  <select id="VLANUser" onchange= "VLANUserSelect(this);">
+    <option value= "0" >Static </option>
+    <option value= "6" >Combined </option>
+  </select>
+   <label for="autorefresh">Auto-refresh</label>
+   <input type="checkbox" name="autorefresh" id="autorefresh" onclick="chkRefresh(this);">
+   <input type="button" value="Refresh" onClick="requestUpdate('Refresh'); this.blur();">
+   <img id="update" alt="" src="images/updating.gif">
+   </form>
+   </div>
+    <p class="config">
+        <span class="displaytext">Start from VLAN</span>
+        <INPUT id="StartVid" name="StartVid" maxlength="4" value="1" size = "5">
+        <span class="displaytext"> with </span>
+        <INPUT id="NumberOfEntries" name="NumberOfEntries" maxlength="4" value = "20" size = "4">
+        <span class="displaytext"> entries per page. </span>
+        <input type="button" value=" |<< "   title="First page" onClick="requestUpdate('GetFirstEntry'); this.blur();">
+        <input type="button" value=" >> "    title="Next page" onClick="requestUpdate('NextEntries'); this.blur();">
+    </p>
+
+<table id="VLANTable" summary="VLAN membership Status for User" cellspacing="0" class="display">
+    <tbody id="vlanData"></tbody>
+</table>
+<p>
+<input type="hidden" id="submit_sid" name="sid">
+</p>
+<!-- IE caching bug -->
+<div style="visibility: hidden">
+ <!-- <div style="padding : 0 4px 0 4px; font-size: 14pt" id="bullet">&bull;</div> -->
+ <img id="bullet" alt="yes" src="images/port.gif" height="12">
+</div>
+<div style="visibility: hidden">
+ <!-- <div style="padding : 0 4px 0 4px; font-size: 14pt" id="bullet">&bull;</div> -->
+ <img id="nobullet" alt="no" src="/images/forbid.gif" height="12">
+</div>
+<div style="visibility: hidden">
+ <!-- <div style="padding : 0 4px 0 4px; font-size: 14pt" id="bullet">&bull;</div> -->
+  <img id="confnobullet" alt="no" src="/images/conflict.gif" height="12">
+</div>
+<div style="visibility: hidden">
+ <!-- <div style="padding : 0 4px 0 4px; font-size: 14pt" id="bullet">&bull;</div> -->
+   <img id="emptybullet" alt="no" src="/images/menu_o.gif" height="12">
+</div>
+
+</body>
+</html>
+
+
+<!--
+    local variables:
+    mode: java
+    c-basic-offset: 4
+    tab-width: 8
+    c-comment-only-line-offset: 0
+    end:
+-->

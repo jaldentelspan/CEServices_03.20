@@ -1,0 +1,6 @@
+---
+directory: vtss_appl/port
+license: VTSS
+maintainer: Claus
+name: Port control
+source: Vitesse
