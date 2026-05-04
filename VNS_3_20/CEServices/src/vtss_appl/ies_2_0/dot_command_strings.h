@@ -127,7 +127,7 @@
 #define DOT_CMD_STR_EPE_FUNC          cli_cmd_epe_port
 
 #define DOT_CMD_STR_EPE_MULTI        ".EPE multi"
-#define DOT_CMD_STR_EPE_MULTI_ARGS   "[<port>] [<time>]"
+#define DOT_CMD_STR_EPE_MULTI_ARGS   "[<port>] [<time>] [enable|disable]"
 #define DOT_CMD_STR_EPE_MULTI_DESC   "Set or show the EPE Multiplex Mode" 
 #define DOT_CMD_STR_EPE_MULTI_CMD    DOT_CMD_STR_EPE_MULTI " " DOT_CMD_STR_EPE_MULTI_ARGS
 #define DOT_CMD_STR_EPE_MULTI_FUNC   cli_cmd_epe_multi

@@ -774,6 +774,7 @@ void set_config_shaddow(vns_fpga_conf_t cfg)
 		config_shaddow.time_out_calibration[i].med_cal = cfg.time_out_calibration[i].med_cal;
 		config_shaddow.time_out_calibration[i].fine_cal = cfg.time_out_calibration[i].fine_cal;
 	}
+        config_shaddow.epe_multi_enable = cfg.epe_multi_enable;
         for(i = 0; i < VNS_PORT_COUNT; i++)
         {
             config_shaddow.epe_multi_time_delay[i] = cfg.epe_multi_time_delay[i];
@@ -1526,6 +1527,33 @@ int set_multi_time_delay( int port, int delay)
     int retval = 0;
 
     config_shaddow.epe_multi_time_delay[port-1] = delay;
+
+    save_vns_config();
+
+    return retval;
+}
+BOOL is_epe_multi_enabled()
+{
+    T_D("!");
+    return config_shaddow.epe_multi_enable;
+}
+int enable_epe_multi()
+{
+    T_D("!");
+    int retval = 0;
+
+    config_shaddow.epe_multi_enable = TRUE;
+
+    save_vns_config();
+
+    return retval;
+}
+int disable_epe_multi()
+{
+    T_D("!");
+    int retval = 0;
+
+    config_shaddow.epe_multi_enable = FALSE;
 
     save_vns_config();
 
@@ -3324,6 +3352,7 @@ static void vns_fpga_conf_read(vtss_isid_t isid_add, BOOL force_default)
             for(i = 0; i < VNS_PORT_COUNT; i++)
                 vns_cfg_blk->epe_multi_time_delay[i] = 0;
 
+            config_shaddow.epe_multi_enable = FALSE;
             vns_cfg_blk->time_in_setting.channel_id         = 1;
 #if defined (BOARD_VNS_12_REF)  || defined (BOARD_VNS_16_REF)
             vns_cfg_blk->time_in_setting.signal             = TIME_INPUT_TYPE_DC;
@@ -3459,6 +3488,7 @@ static void vns_fpga_conf_read(vtss_isid_t isid_add, BOOL force_default)
             vns_cfg.time_out_calibration[i].med_cal = vns_cfg_blk->time_out_calibration[i].med_cal;
             vns_cfg.time_out_calibration[i].fine_cal = vns_cfg_blk->time_out_calibration[i].fine_cal;
         }
+        vns_cfg.epe_multi_enable = vns_cfg_blk->epe_multi_enable;
         for(i = 0; i < VNS_PORT_COUNT; i++)
         {
             vns_cfg.epe_multi_time_delay[i] = vns_cfg_blk->epe_multi_time_delay[i];
@@ -3560,6 +3590,7 @@ int save_vns_config()//vns_fpga_conf_t config)
                 {
                     vns_cfg_blk->epe_multi_time_delay[i] = config_shaddow.epe_multi_time_delay[i];
                 }
+                vns_cfg_blk->epe_multi_enable = config_shaddow.epe_multi_enable;
 		T_D("Before conf_sec_close");
 		conf_sec_close(CONF_SEC_GLOBAL, CONF_BLK_VNS_FPGA_CONF);
 		T_D("After conf_sec_close");

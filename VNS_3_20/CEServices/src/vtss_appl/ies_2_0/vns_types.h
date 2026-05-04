@@ -560,6 +560,7 @@ typedef struct vns_fpga_conf{
     discrete_out_config do_config;
     vns_epe_conf_blk_t epe_encoder_config;
     vns_epe_conf_blk_t epe_decoder_config;
+    BOOL epe_multi_enable;
     int epe_multi_time_delay[VNS_PORT_COUNT];
     /* vns_epe_conf_blk_t epe_config; */
 }vns_fpga_conf_t;

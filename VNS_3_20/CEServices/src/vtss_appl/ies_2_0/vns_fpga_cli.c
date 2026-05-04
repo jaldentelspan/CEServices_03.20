@@ -92,6 +92,7 @@ typedef struct {
     conf_board_t ies_board_conf;
     flash_conf_board_model_t ies_board_model;
     /* EPE Keywords */
+    BOOL enable;
     BOOL disable;
     BOOL encode;
     BOOL decode;
@@ -146,6 +147,7 @@ static void vns_fpga_cli_req_default_set(cli_req_t * req)
     fpga_req->decode        = FALSE;
     fpga_req->rx            = FALSE;
     fpga_req->tx            = FALSE;
+    fpga_req->enable        = FALSE;
     fpga_req->disable       = FALSE;
     memset( &fpga_req->epe_config, 0, sizeof( vns_epe_conf_blk_t ));
     fpga_req->epe_config.invert_clock  = FALSE;
@@ -1941,6 +1943,32 @@ static int32_t cli_fpga_i2c_register_parse(char *cmd, char *cmd2, char *stx,
     return 1;
 }
 
+static int32_t cli_fpga_epe_multi_enable_parse(char *cmd, char *cmd2, char *stx,
+        char *cmd_org, cli_req_t *req)
+{
+    int32_t        error;
+    vns_fpga_req_t *fpga_req = req->module_req;
+    error = VTSS_OK;
+
+    /* CPRINTF("cli_fpga_short_parse: cmd %s, value entered: %d, number of values %d\n" */
+            /* , cmd, req->int_values[req->int_value_cnt -1], req->int_value_cnt); */
+    if(0 == strncmp(cmd, "enable", 6))
+    {
+        fpga_req->enable = TRUE;
+        req->set = TRUE;
+    }
+    else if(0 == strncmp(cmd, "disable", 7))
+    {
+        fpga_req->disable = TRUE;
+        req->set = TRUE;
+    }
+    else
+    {
+        error = VTSS_INVALID_PARAMETER;
+    }
+
+    return VTSS_OK;
+}
 static int32_t cli_fpga_direction_parse(char *cmd, char *cmd2, char *stx,
         char *cmd_org, cli_req_t *req)
 {
@@ -2470,7 +2498,7 @@ static int32_t cli_fpga_epe_multi_parse (char *cmd, char *cmd2, char *stx, char 
             /* CPRINTF("Port out of rang: %d \n", val); */
             return -1;
         }
-        CPRINTF("cmd 1\n");
+        /* CPRINTF("cmd 1\n"); */
     }
     else if(req->int_value_cnt == 2 ) {
         fpga_req->time_seconds = val;
@@ -2491,7 +2519,7 @@ static int32_t cli_fpga_int_parse (char *cmd, char *cmd2, char *stx, char *cmd_o
     req->parm_parsed = 1;
     int error = cli_parse_integer(cmd, req, NULL);
 
-    CPRINTF("cli_fpga_short_parse: cmd %s, value entered: %d, number of values %d\n", cmd, req->int_values[req->int_value_cnt -1], req->int_value_cnt);
+    /* CPRINTF("cli_fpga_short_parse: cmd %s, value entered: %d, number of values %d\n", cmd, req->int_values[req->int_value_cnt -1], req->int_value_cnt); */
     return error;
 }
 
@@ -2740,18 +2768,21 @@ static void cli_cmd_epe_multi(cli_req_t *req)
     int delay, i = 0;
 
     if (req->set) {
+        if( fpga_req->enable )
+            enable_epe_multi();
+        else if( fpga_req->disable )
+            disable_epe_multi();
         /* cfg->epe_multi_time_delay[fpga_req->port_num-1] = fpga_req->time_seconds; */
-        set_multi_time_delay( fpga_req->port_num, fpga_req->time_seconds);
+        if( req->int_value_cnt == 2 )
+            set_multi_time_delay( fpga_req->port_num, fpga_req->time_seconds);
         /* CPRINTF("set_multi_time_delay %d, %d\n",fpga_req->port_num,fpga_req->time_seconds  ); */
     }
     else {
-        CPRINTF(" Multi Port Mode\n");
+        CPRINTF(" Multi Port Mode: %s\n", is_epe_multi_enabled() ? "Enabled" : "Disabled");
         CPRINTF("==================\n");
         for( i= 0; i < VNS_PORT_COUNT; i++ ) {
-
             get_multi_time_delay( i +1 , &delay);
             CPRINTF(" %d: %d\n", i + 1,delay );
-
         }
 
 
@@ -3701,6 +3732,13 @@ static cli_parm_t vns_fpga_cli_parm_table[] = {
         "time to sleep",
         CLI_PARM_FLAG_SET,
         cli_fpga_epe_multi_parse,
+        cli_cmd_epe_multi
+    },
+    {
+        "enable|disable",
+        "time to sleep",
+        CLI_PARM_FLAG_SET,
+        cli_fpga_epe_multi_enable_parse,
         cli_cmd_epe_multi
     },
     {
