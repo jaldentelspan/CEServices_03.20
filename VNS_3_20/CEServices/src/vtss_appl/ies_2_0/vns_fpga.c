@@ -180,6 +180,14 @@ typedef struct fpga_update_info{
     vtss_ecos_mutex_t mutex;
 } fpga_update_info_t;
 
+typedef struct multi_track_struct {
+    int count;
+    int port;
+    vtss_timer_t timer;
+} multi_track_struct_t;
+
+// uint32_t time_delay[VNS_PORT_COUNT];
+
 static struct{
     int init_complete;
     critd_t registermutex;
@@ -203,6 +211,7 @@ static struct{
     u8 fw_major;
     u8 fw_minor;
     eFrontPanelBoard_t front_panel;
+    multi_track_struct_t multi_track;
 } vns_global;
 
 //TODO: Remove this for build...
@@ -309,13 +318,6 @@ static BOOL ptp_lock = FALSE;
 static vtss_timestamp_t ptp_time;
 static int fail_count;
 
-typedef struct multi_track_struct {
-    int count;
-    int port;
-} multi_track_struct_t;
-
-// uint32_t time_delay[VNS_PORT_COUNT];
-static multi_track_struct_t multi_track;
 
 #define ALLOW_PTP_CLOCK_SETUP 1
 
@@ -1546,6 +1548,10 @@ int enable_epe_multi()
 
     save_vns_config();
 
+    if (vtss_timer_start(&vns_global.multi_track.timer) != VTSS_RC_OK) {
+        T_EG(VTSS_TRACE_GRP_VNS_BASE_TIMER, "Unable to start vns setup timer");
+    }
+
     return retval;
 }
 int disable_epe_multi()
@@ -1556,6 +1562,9 @@ int disable_epe_multi()
     config_shaddow.epe_multi_enable = FALSE;
 
     save_vns_config();
+    if (vtss_timer_cancel(&vns_global.multi_track.timer) != VTSS_RC_OK) {
+        T_EG(VTSS_TRACE_GRP_VNS_BASE_TIMER, "Unable to stop vns setup timer");
+    }
 
     return retval;
 }
@@ -3294,6 +3303,10 @@ int set_vns_config(void)
         T_D("epe_encoder_config->ch7_data_word_count %u", config_shaddow.epe_encoder_config.ch7_data_word_count );
         activate_epe_decoder( &config_shaddow.epe_decoder_config );
         activate_epe_encoder( &config_shaddow.epe_encoder_config );
+
+        if( config_shaddow.epe_multi_enable )
+            enable_epe_multi();
+
 /*         for(i = 0; i < VNS_PORT_COUNT; i++) */
 /*         { */
 /*             set_mu config_shaddow.epe_multi_time_delay[i]; */
@@ -4155,35 +4168,35 @@ void set_quick_reference_variables(void)
 }
 static int count_incement()
 {
-    multi_track.count ++;
-    /* std::cout << "Delay = " << config_shaddow.epe_multi_time_delay[ multi_track.port] << std::endl; */
-    /* std::cout << "Port = " << multi_track.port << "\t|count = " << multi_track.count << std::endl; */
-    T_D("Delay = %u", config_shaddow.epe_multi_time_delay[ multi_track.port]);
-    T_D("Port =  %u  \t|count = %u ", multi_track.port, multi_track.count);
+    vns_global.multi_track.count ++;
+    /* std::cout << "Delay = " << config_shaddow.epe_multi_time_delay[ vns_global.multi_track.port] << std::endl; */
+    /* std::cout << "Port = " << vns_global.multi_track.port << "\t|count = " << vns_global.multi_track.count << std::endl; */
+    T_D("Delay = %u", config_shaddow.epe_multi_time_delay[ vns_global.multi_track.port]);
+    T_D("Port =  %u  \t|count = %u ", vns_global.multi_track.port, vns_global.multi_track.count);
     return 0;
 }
 static int port_incement()
 {
-    multi_track.port++;
-    /* std::cout << "port increment = " << multi_track.port << " %%%%%%%%%%%%%%%% " << std::endl; */
-    T_D("port increment = %u $$$$$$$$$$$$$$$$ ", multi_track.port );
+    vns_global.multi_track.port++;
+    /* std::cout << "port increment = " << vns_global.multi_track.port << " %%%%%%%%%%%%%%%% " << std::endl; */
+    T_D("port increment = %u $$$$$$$$$$$$$$$$ ", vns_global.multi_track.port );
     return 0;
 }
 static int port_rollover()
 {
-    multi_track.port = 0;
-    /* std::cout << "port rollover = " << multi_track.port << " &&&&&&&&&&&&&&&& " << std::endl; */
-    T_D( "port rollover = %u &&&&&&&&&&&&&&&& ", multi_track.port) ;
+    vns_global.multi_track.port = 0;
+    /* std::cout << "port rollover = " << vns_global.multi_track.port << " &&&&&&&&&&&&&&&& " << std::endl; */
+    T_D( "port rollover = %u &&&&&&&&&&&&&&&& ", vns_global.multi_track.port) ;
     return 0;
 }
 static int count_rollover()
 {
-    multi_track.count = 0;
+    vns_global.multi_track.count = 0;
     int i;
-    T_D( "count rollover = %u ################ ", multi_track.count) ;
-    /* std::cout << "count rollover = " << multi_track.count << " ################ " << std::endl; */
+    T_D( "count rollover = %u ################ ", vns_global.multi_track.count) ;
+    /* std::cout << "count rollover = " << vns_global.multi_track.count << " ################ " << std::endl; */
     port_incement();
-    // multi_track.port++;
+    // vns_global.multi_track.port++;
 //    for ( i=0 ; i < VNS_PORT_COUNT; i++ ) 
 //    {
 //        T_D(" %u ",config_shaddow.epe_multi_time_delay[i] );
@@ -4193,12 +4206,12 @@ static int count_rollover()
 static void vns_fpga_multi_mode_start(vtss_timer_t *timer)
 {
     int sum = 0;
-    while( config_shaddow.epe_multi_time_delay[ multi_track.port ] == 0 )
+    while( config_shaddow.epe_multi_time_delay[ vns_global.multi_track.port ] == 0 )
     {
-        sum = sum + config_shaddow.epe_multi_time_delay[ multi_track.port ];
+        sum = sum + config_shaddow.epe_multi_time_delay[ vns_global.multi_track.port ];
         
         port_incement();
-        if( multi_track.port > VNS_PORT_COUNT )
+        if( vns_global.multi_track.port > VNS_PORT_COUNT )
         {
             // If zero, all values must be zero. Need to leave.
             port_rollover();
@@ -4208,7 +4221,7 @@ static void vns_fpga_multi_mode_start(vtss_timer_t *timer)
         }
 
     }
-    if( multi_track.count > config_shaddow.epe_multi_time_delay[ multi_track.port ] )
+    if( vns_global.multi_track.count > config_shaddow.epe_multi_time_delay[ vns_global.multi_track.port ] )
     {
         count_rollover();
 
@@ -4219,11 +4232,11 @@ static void vns_fpga_multi_mode_start(vtss_timer_t *timer)
     }
 
     /* return 0; */
-    /* multi_track.count++; */
+    /* vns_global.multi_track.count++; */
     /* multi_struct.port; */
     /* while( config_shaddow.epe_multi_time_delay[multi_struct.port] ) */
     /* #<{(| epe_multi_count++;  |)}># */
-    T_D( "multi_struct.count: %u\n", multi_track.count);
+    T_D( "multi_struct.count: %u\n", vns_global.multi_track.count);
     return;
 }
 static void vns_fpga_init_cmd_start(vtss_timer_t *timer)
@@ -5589,23 +5602,19 @@ static void init_ptp_timer(void)
 static void init_multi_mode_timer(void)
 {
     // Schedule delayed setup timer
-    static vtss_timer_t timer;
     // Initalize counter
 
-    multi_track.count = 0;
-    multi_track.port = 0;
-    if (vtss_timer_initialize(&timer) != VTSS_RC_OK) {
+    vns_global.multi_track.count = 0;
+    vns_global.multi_track.port = 0;
+    if (vtss_timer_initialize(&vns_global.multi_track.timer) != VTSS_RC_OK) {
         T_EG(VTSS_TRACE_GRP_VNS_BASE_TIMER, "Unable to initialize vns setup timer");
     }
-    timer.repeat      = TRUE;
-    timer.period_us   = 1000000;     /* 50000 us = 1/20 sec */
-    timer.dsr_context = FALSE;
-    timer.callback    = vns_fpga_multi_mode_start;
-    timer.prio        = VTSS_TIMER_PRIO_HIGH;
-    timer.modid       = VTSS_MODULE_ID_VNS_FPGA;
-    if (vtss_timer_start(&timer) != VTSS_RC_OK) {
-        T_EG(VTSS_TRACE_GRP_VNS_BASE_TIMER, "Unable to start vns setup timer");
-    }
+    vns_global.multi_track.timer.repeat      = TRUE;
+    vns_global.multi_track.timer.period_us   = 1000000;     /* 50000 us = 1/20 sec */
+    vns_global.multi_track.timer.dsr_context = FALSE;
+    vns_global.multi_track.timer.callback    = vns_fpga_multi_mode_start;
+    vns_global.multi_track.timer.prio        = VTSS_TIMER_PRIO_HIGH;
+    vns_global.multi_track.timer.modid       = VTSS_MODULE_ID_VNS_FPGA; 
 }
 static void init_setup_timer(void)
 {
