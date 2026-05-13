@@ -2778,6 +2778,7 @@ static void cli_cmd_epe_multi(cli_req_t *req)
         /* CPRINTF("set_multi_time_delay %d, %d\n",fpga_req->port_num,fpga_req->time_seconds  ); */
     }
     else {
+        print_mirror_config();
         CPRINTF(" Multi Port Mode: %s\n", is_epe_multi_enabled() ? "Enabled" : "Disabled");
         CPRINTF("==================\n");
         for( i= 0; i < VNS_PORT_COUNT; i++ ) {

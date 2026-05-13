@@ -588,6 +588,10 @@ BOOL is_epe_license_valid(vns_fpga_epe_license_info_t* license_info);
 BOOL is_epe_license_acitive(void);
 int Time_t_2_Vns_bcd_time(time_t t, vns_bcd_time * bcd);
 
+
+
+int print_mirror_config();
+
 #define SYSTEM_BUS_WIDTH (32)
 
 

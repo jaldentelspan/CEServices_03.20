@@ -22,6 +22,7 @@
 #include "firmware_api.h"
 
 //#ifndef DEBUG
+#include "mirror_api.h"
 #include "ptp_api.h"
 #include "unistd.h"
 #include "critd_api.h"
@@ -184,6 +185,7 @@ typedef struct multi_track_struct {
     int count;
     int port;
     vtss_timer_t timer;
+    mirror_switch_conf_t mirror_conf;
 } multi_track_struct_t;
 
 // uint32_t time_delay[VNS_PORT_COUNT];
@@ -1538,6 +1540,142 @@ BOOL is_epe_multi_enabled()
 {
     T_D("!");
     return config_shaddow.epe_multi_enable;
+}
+int print_mirror_config()
+{
+    switch_iter_t        sit;
+    mirror_switch_conf_t switch_conf;
+    mirror_conf_t mirror_conf;
+    int i;
+    vtss_rc rc;
+/* vtss_rc switch_iter_init(switch_iter_t *sit, vtss_isid_t isid, switch_iter_sort_order_t sort_order); */
+    vtss_port_no_t    port_no;
+        port_iter_t       pit;
+
+            BOOL stack_port = port_isid_port_no_is_stack(sit.isid, pit.iport);
+    int port_idx;
+    mirror_mgmt_conf_get( &mirror_conf );
+    if (( mirror_mgmt_switch_conf_get(mirror_conf.mirror_switch, &switch_conf)) != VTSS_OK) {
+        T_D("Error: mirror_mgmt_switch_conf_get");
+    }
+    T_D("%s-   %s %s\n",
+            "CPU",
+            switch_conf.cpu_src_enable ? "True" : "False" ,
+            switch_conf.cpu_dst_enable ? "True" : "False");
+    for (port_idx = VTSS_PORT_NO_START; port_idx < VTSS_PORT_NO_END; port_idx++) {
+        /* conf->src_enable[port_idx] = mem_mirror_conf.stack_conf.src_enable[isid_idx][port_idx]; */
+        /* conf->dst_enable[port_idx] = mem_mirror_conf.stack_conf.dst_enable[isid_idx][port_idx]; */
+            T_D("%-2u    %s %s\n",
+                    port_idx,
+                    switch_conf.src_enable[port_idx] ? switch_conf.dst_enable[port_idx] ? "Enabled" : "Rx" :
+                    switch_conf.dst_enable[port_idx] ? "Tx" : "Disabled",
+                    stack_port ? "(Stack Port!)" : "");
+            T_D("%-2u    %s %s\n",
+                    port_idx,
+                    switch_conf.src_enable[port_idx] ? "True" : "False" ,
+                    switch_conf.dst_enable[port_idx] ? "True" : "False");
+    }
+    return 0;
+#if false
+       if (( mirror_mgmt_switch_conf_get(VTSS_ISID_GLOBAL, &switch_conf)) != VTSS_OK) {
+           T_D("Error: mirror_mgmt_switch_conf_get");
+       }
+    T_D("%s-   %s %s\n",
+            "CPU",
+            switch_conf.cpu_src_enable ? "True" : "False" ,
+            switch_conf.cpu_dst_enable ? "True" : "False");
+    for (port_idx = VTSS_PORT_NO_START; port_idx < VTSS_PORT_NO_END; port_idx++) {
+        /* conf->src_enable[port_idx] = mem_mirror_conf.stack_conf.src_enable[isid_idx][port_idx]; */
+        /* conf->dst_enable[port_idx] = mem_mirror_conf.stack_conf.dst_enable[isid_idx][port_idx]; */
+            T_D("%-2u    %s %s\n",
+                    port_idx,
+                    switch_conf.src_enable[port_idx] ? switch_conf.dst_enable[port_idx] ? "Enabled" : "Rx" :
+                    switch_conf.dst_enable[port_idx] ? "Tx" : "Disabled",
+                    stack_port ? "(Stack Port!)" : "");
+            T_D("%-2u    %s %s\n",
+                    port_idx,
+                    switch_conf.src_enable[port_idx] ? "True" : "False" ,
+                    switch_conf.dst_enable[port_idx] ? "True" : "False");
+    }
+***********************************************
+            BOOL stack_port = port_isid_port_no_is_stack(sit.isid, pit.iport);
+    switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_ISID);
+    while (switch_iter_getnext(&sit)) {
+        port_iter_t       pit;
+        // Get current configuration
+        if (( mirror_mgmt_switch_conf_get(VTSS_ISID_GLOBAL, &switch_conf)) != VTSS_OK) {
+            /* cli_printf("\n%s\n", error_txt(rc)); */
+        }
+    /* if (port_iter_init(&pit, NULL, sid, PORT_ITER_SORT_ORDER_IPORT, PORT_ITER_FLAGS_FRONT) == VTSS_OK) { */
+    (void) port_iter_init(&pit, NULL, VTSS_ISID_LOCAL, PORT_ITER_SORT_ORDER_IPORT, PORT_ITER_FLAGS_NORMAL);
+        while (port_iter_getnext(&pit)) {
+
+            T_D("%-2u    %s %s\n",
+                    pit.uport,
+                    switch_conf.src_enable[pit.iport] ? switch_conf.dst_enable[pit.iport] ? "Enabled" : "Rx" :
+                    switch_conf.dst_enable[pit.iport] ? "Tx" : "Disabled",
+                    stack_port ? "(Stack Port!)" : "");
+
+        }
+
+    }
+    /* switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_ISID); */
+    switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_ISID);
+    while (switch_iter_getnext(&sit)) {
+        port_iter_t       pit;
+        // Get current configuration
+        if (( mirror_mgmt_switch_conf_get(VTSS_ISID_GLOBAL, &switch_conf)) != VTSS_OK) {
+            /* cli_printf("\n%s\n", error_txt(rc)); */
+        }
+        port_iter_init_local(&pit);
+        port_iter_init(&pit);
+        while (port_iter_getnext(&pit)) {
+            port_no = pit.iport;
+            BOOL stack_port = port_isid_port_no_is_stack(sit.isid, pit.iport);
+            //           T_D("%-2u    %s %s\n", pit.iport,
+            //                   switch_conf.src_enable[pit.iport] ? "Rx" : "Disabled", 
+            //                   switch_conf.dst_enable[pit.iport] ? "Tx" : "Disabled" );
+
+
+            T_D("%-2u    %s %s\n",
+                    pit.uport,
+                    switch_conf.src_enable[pit.iport] ? switch_conf.dst_enable[pit.iport] ? "Enabled" : "Rx" :
+                    switch_conf.dst_enable[pit.iport] ? "Tx" : "Disabled",
+                    stack_port ? "(Stack Port!)" : "");
+        }
+    }
+
+       /* (void)switch_iter_init(&sit, VTSS_ISID_GLOBAL, SWITCH_ITER_SORT_ORDER_ISID); */
+       /* while (switch_iter_getnext(&sit)) { */
+       /* for( i = 0; i <  VTSS_PORTS; i++) */
+           /* T_D("%-2u    %s %s\n", i, */
+                   /* switch_conf.src_enable[i] ? "Rx" : "Disabled",  */
+                   /* switch_conf.dst_enable[i] ? "Tx" : "Disabled" ); */
+//       while (switch_iter_getnext(&sit)) 
+//       {
+//
+//           T_D("%-2u    %s %s\n", i,
+//                   switch_conf.src_enable[sit.iport] ? "Rx" : "Disabled", 
+//                   switch_conf.dst_enable[sit.iport] ? "Tx" : "Disabled" );
+//       }
+//
+
+
+//            if (!stack_port || include_stack_ports ||
+//                switch_conf.src_enable[pit.iport] ||  // Always show src and/or dst enabled ports - even stack ports
+//                switch_conf.dst_enable[pit.iport]) {
+//                CPRINTF("%-2u    %s %s\n",
+//                        pit.uport,
+//        switch_conf.src_enable[pit.iport] ? switch_conf.dst_enable[pit.iport] ? "Enabled" : "Rx" :
+//                        switch_conf.dst_enable[pit.iport] ? "Tx" : "Disabled",
+//                        stack_port ? "(Stack Port!)" : "");
+//            }
+//
+//        // Loop through all ports
+//        (void)cli_port_iter_init(&pit, sit.isid, PORT_ITER_FLAGS_FRONT | PORT_ITER_FLAGS_STACK);
+//        while (cli_port_iter_getnext(&pit, req)) {
+//            BOOL stack_port = port_isid_port_no_is_stack(sit.isid, pit.iport);
+#endif
 }
 int enable_epe_multi()
 {
