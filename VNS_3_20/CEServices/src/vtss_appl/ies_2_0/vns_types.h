@@ -1,6 +1,8 @@
 #ifndef __VNS_I2C_TYPES_H__
 #define __VNS_I2C_TYPES_H__
 #include "vtss_api.h"
+/* #include "mirror_api.h" */
+
 
 #ifdef SHOW_IRIG_INPUTS
 #define HIDE_IRIG_INPUTS	0
@@ -547,6 +549,16 @@ typedef struct {
     char* name;
 }ies_board_rev_info_t;
 
+// Configuration for a single switch
+typedef struct {
+    BOOL           src_enable[VTSS_PORTS];    // Enable for source mirroring
+    BOOL           dst_enable[VTSS_PORTS];    // Enable for detination mirroring
+    BOOL           cpu_src_enable;            // Enable for CPU source mirroring
+    BOOL           cpu_dst_enable;            // Enable for CPU source mirroring
+} ies_mirror_switch_conf_t;
+
+
+
 typedef struct vns_fpga_conf{
     int version;
     BOOL verbose;
@@ -561,6 +573,7 @@ typedef struct vns_fpga_conf{
     vns_epe_conf_blk_t epe_encoder_config;
     vns_epe_conf_blk_t epe_decoder_config;
     BOOL epe_multi_enable;
+    ies_mirror_switch_conf_t mirror_sw_conf;
     int epe_multi_time_delay[VNS_PORT_COUNT];
     /* vns_epe_conf_blk_t epe_config; */
 }vns_fpga_conf_t;

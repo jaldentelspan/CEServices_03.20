@@ -590,7 +590,7 @@ int Time_t_2_Vns_bcd_time(time_t t, vns_bcd_time * bcd);
 
 
 
-int print_mirror_config();
+int multi_print_mirror_config();
 
 #define SYSTEM_BUS_WIDTH (32)
 

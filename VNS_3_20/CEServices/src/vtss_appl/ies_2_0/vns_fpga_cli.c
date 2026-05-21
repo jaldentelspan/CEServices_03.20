@@ -2769,20 +2769,20 @@ static void cli_cmd_epe_multi(cli_req_t *req)
 
     if (req->set) {
         if( fpga_req->enable )
-            enable_epe_multi();
+            multi_epe_enable_cli_web();
         else if( fpga_req->disable )
-            disable_epe_multi();
+            multi_epe_disable();
         /* cfg->epe_multi_time_delay[fpga_req->port_num-1] = fpga_req->time_seconds; */
         if( req->int_value_cnt == 2 )
-            set_multi_time_delay( fpga_req->port_num, fpga_req->time_seconds);
-        /* CPRINTF("set_multi_time_delay %d, %d\n",fpga_req->port_num,fpga_req->time_seconds  ); */
+            multi_set_time_delay( fpga_req->port_num, fpga_req->time_seconds);
+        /* CPRINTF("multi_set_time_delay %d, %d\n",fpga_req->port_num,fpga_req->time_seconds  ); */
     }
     else {
-        print_mirror_config();
-        CPRINTF(" Multi Port Mode: %s\n", is_epe_multi_enabled() ? "Enabled" : "Disabled");
+        multi_print_mirror_config();
+        CPRINTF(" Multi Port Mode: %s\n", multi_is_epe_enabled() ? "Enabled" : "Disabled");
         CPRINTF("==================\n");
         for( i= 0; i < VNS_PORT_COUNT; i++ ) {
-            get_multi_time_delay( i +1 , &delay);
+            multi_get_time_delay( i +1 , &delay);
             CPRINTF(" %d: %d\n", i + 1,delay );
         }
 
