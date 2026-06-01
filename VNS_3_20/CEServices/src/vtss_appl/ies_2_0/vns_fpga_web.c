@@ -2374,6 +2374,378 @@ static cyg_int32 handler_dot_fpga_epe_decoder_config(CYG_HTTPD_STATE *p)
 
     return -1; // Do not further search the file system.
 }
+static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p) 
+{ 
+    vtss_rc               rc = VTSS_OK; // error return code
+    vtss_isid_t           sid = web_retrieve_request_sid(p); /* Includes USID = ISID */
+    mirror_conf_t         conf;
+    vns_epe_conf_blk_t    epe_conf;
+    mirror_switch_conf_t  local_conf;
+    int                   ct;
+    uint32_t              epe_enable;
+    char                  form_name[32];
+    int                   form_value;
+    port_iter_t           pit;
+    static char           err_msg[100]; // Need to be static because it is set when posting data, but used getting data.
+
+    char unescaped_form_value[32];
+    char* char_form_value;
+    size_t len;
+
+    T_D ("Mirror web access - SID =  %d", sid );
+
+    if (redirectUnmanagedOrInvalid(p, sid)) { /* Redirect unmanaged/invalid access to handler */
+        return -1;
+    }
+
+#ifdef VTSS_SW_OPTION_PRIV_LVL
+    if (web_process_priv_lvl(p, VTSS_PRIV_LVL_CONFIG_TYPE, VTSS_MODULE_ID_MIRROR)) {
+        return -1;
+    }
+#endif
+
+    if (p->method == CYG_HTTPD_METHOD_POST) 
+    {
+
+        strcpy(err_msg, ""); // No errors so far :)
+
+        /* mirror_mgmt_conf_get(&conf); // Get the current configuration */
+        /* rc = mirror_mgmt_switch_conf_get(sid, &local_conf); */
+        T_D ("Updating from web");
+
+        epe_conf.mode = VNS_EPE_DISABLE;
+        epe_conf.bit_rate = VNS_EPE_BIT_RATE_MIN;
+        if (cyg_httpd_form_varable_int(p, "bitrate", &form_value) ) {
+            epe_conf.bit_rate =  form_value;
+            T_D ("Bitrate: %d", form_value);
+#if false
+            switch(epe_conf.mode) {
+                case VNS_EPE_HDLC:
+                case VNS_EPE_CH7_15:
+                    epe_conf.bit_rate =  form_value;
+                    break;
+                case VNS_EPE_DISABLE:
+                default:
+                    epe_conf.bit_rate = VNS_EPE_BIT_RATE_MIN;
+            }
+            /* set_vns_fpga_epe_conf(epe_conf); */
+#endif
+        } 
+        else {
+            /* T_D ("Mirroring disabled from web"); */
+            T_E ("cyg_httpd_form_varable_int failed");
+        }
+        if (cyg_httpd_form_varable_int(p, "framesize", &form_value) ) {
+            T_D ("Framesize: %d", form_value);
+            epe_conf.ch7_data_word_count = form_value;
+#if false
+            switch(epe_conf.mode) {
+                case VNS_EPE_CH7_15:
+                    epe_conf.ch7_data_word_count = form_value;
+                    break;
+                case VNS_EPE_HDLC:
+                case VNS_EPE_DISABLE:
+                default:
+                    epe_conf.ch7_data_word_count = 1;
+            }
+            /* set_vns_fpga_epe_conf(epe_conf); */
+#endif
+        } 
+        else {
+            /* T_D ("Mirroring disabled from web"); */
+            T_E ("cyg_httpd_form_varable_int failed");
+        }
+        
+        T_D("%s", p->inbuffer);
+        char_form_value = cyg_httpd_form_varable_string(p, "invertClock", &len);
+        rc = cgi_unescape(char_form_value, unescaped_form_value, len, sizeof(unescaped_form_value));
+        char_form_value = unescaped_form_value;
+
+        T_D("char_form_value! %s", char_form_value);
+        if (strcmp(char_form_value, "on") == 0) {
+            T_D("invertClock is ON! %s", char_form_value);
+            epe_conf.invert_clock = TRUE;
+        }
+        else {
+            T_D("invertClock is OFF! %s", char_form_value);
+            epe_conf.invert_clock = FALSE;
+        }
+        epe_conf.insert_fcs = TRUE;
+        // Get mirror port from WEB ( Form name = "portselect" )
+        if (cyg_httpd_form_varable_int(p, "portselect", &form_value) ) {
+            /* T_D ("Mirror port set to %d via web", form_value); */
+            /* conf.dst_port = uport2iport(form_value); */
+            conf.dst_port = VTSS_PORT_NO_NONE;
+            switch(form_value) {
+                case VNS_EPE_DISABLE:
+                    epe_conf.mode = VNS_EPE_DISABLE;
+                    activate_epe_encoder( &epe_conf );
+                    break;
+                case VNS_EPE_HDLC:
+                    epe_conf.mode = VNS_EPE_HDLC;
+                    activate_epe_encoder( &epe_conf );
+                    conf.dst_port = uport2iport(VNS_EPE_PORT);
+                    break;
+                case VNS_EPE_CH7_15:
+                    epe_conf.mode = VNS_EPE_CH7_15;
+                    activate_epe_encoder( &epe_conf );
+                    conf.dst_port = uport2iport(VNS_EPE_PORT);
+                    break;
+                case VNS_EPE_DECODE_HDLC:
+                case VNS_EPE_DECODE_CH7_15:
+                case VNS_EPE_FULLDPX_HDLC:
+                case VNS_EPE_FULLDPX_CH7_15:
+                default:
+                    T_E ("Invalid value for 'port_select'");
+                    epe_conf.mode = VNS_EPE_DISABLE;
+                    activate_epe_encoder( &epe_conf );
+                    break;
+            }
+        } 
+        else {
+            /* T_D ("Mirroring disabled from web"); */
+            T_E ("cyg_httpd_form_varable_int failed");
+        }
+        /* set_vns_fpga_epe_conf(epe_conf); */
+
+        save_vns_config();
+        // Get mirror switch from WEB ( Form name = "switchselect" )
+//#if false
+#if VTSS_SWITCH_STACKABLE
+        if (vtss_stacking_enabled()) {
+            if (cyg_httpd_form_varable_int(p, "switchselect", &form_value)) {
+                T_D ("Mirror switch set to %d via web", form_value);
+                conf.mirror_switch  = topo_usid2isid(form_value);
+            }
+        } else {
+            conf.mirror_switch = VTSS_ISID_START;
+        }
+#endif /* VTSS_SWITCH_STACKABLE */
+
+        // Get source and destination eanble checkbox values
+        /* rc = mirror_mgmt_switch_conf_get(sid, &local_conf); */
+
+
+        // Loop through all front ports
+        if (port_iter_init(&pit, NULL, sid, PORT_ITER_SORT_ORDER_IPORT, PORT_ITER_FLAGS_FRONT) == VTSS_OK) {
+            while (port_iter_getnext(&pit)) {
+
+                T_RG_PORT(VTSS_TRACE_GRP_DEFAULT, pit.iport, "Mirror enable configured");
+                sprintf(form_name, "mode_%d", pit.uport); // Set to the htm checkbox form name
+                if (cyg_httpd_form_varable_int(p, form_name, &form_value)   && (form_value >= 0 && form_value < 4)) {
+                    // form_value ok
+                } else {
+                    form_value = 0;
+                }
+
+                if (form_value == 0) {
+                    local_conf.src_enable[pit.iport] = 0;
+                    local_conf.dst_enable[pit.iport] = 0;
+                } else if (form_value == 1) {
+                    local_conf.src_enable[pit.iport] = 1;
+                    local_conf.dst_enable[pit.iport] = 0;
+                } else if (form_value == 2) {
+                    local_conf.src_enable[pit.iport] = 0;
+                    local_conf.dst_enable[pit.iport] = 1;
+                } else {
+                    // form_value is 3
+                    local_conf.src_enable[pit.iport] = 1;
+                    local_conf.dst_enable[pit.iport] = 1;
+                }
+            }
+        }
+
+#ifdef VTSS_FEATURE_MIRROR_CPU
+        //
+        // Getting CPU configuration
+        //
+        if (cyg_httpd_form_varable_int(p, "mode_CPU", &form_value)   && (form_value >= 0 && form_value < 4)) {
+            // form_value ok
+        } else {
+            form_value = 0;
+        }
+
+        if (form_value == 0) {
+            local_conf.cpu_src_enable = 0;
+            local_conf.cpu_dst_enable = 0;
+        } else if (form_value == 1) {
+            local_conf.cpu_src_enable = 1;
+            local_conf.cpu_dst_enable = 0;
+        } else if (form_value == 2) {
+            local_conf.cpu_src_enable = 0;
+            local_conf.cpu_dst_enable = 1;
+        } else {
+            // form_value is 3
+            local_conf.cpu_src_enable = 1;
+            local_conf.cpu_dst_enable = 1;
+        }
+#endif
+
+        //
+        // Apply new configuration.
+        //
+        mirror_mgmt_switch_conf_set(sid, &local_conf); // Update switch with new configuration
+        // Write new configuration
+        /* rc = mirror_mgmt_conf_set(&conf); */
+//#endif
+
+        /* redirect(p, "/dot_epe_encoder.htm"); */
+        redirect(p, "/epe_multi.htm");
+    } 
+    else 
+    {                    /* CYG_HTTPD_METHOD_GET (+HEAD) */
+
+        /* ",1,0,   |1#2#3#4#5#6#7#8#9#10#11#12#13#14#?  |1/0/0,2/0/0,3/0/0,4/0/0,5/0/0,6/0/0,7/0/0,8/0/0,9/0/0,10/0/0,11/0/0,12/0/0,13/0/0,14/0/0,CPU/0/0/-,"; */
+        /* ",1,13,  |HDLC#CH7#?                          |1/0/0,2/0/0,3/0/0,4/0/0,5/0/0,6/0/0,7/0/0,8/0/0,9/0/0,10/0/0,11/0/0,12/0/0/-,"; */
+        /* ",1,13,  |1#2#3#4#5#6#7#8#9#10#11#12#13#14#?  |1/0/0,2/1/1,3/0/0,4/0/0,5/0/0,6/1/1,7/0/0,8/0/0,9/0/0,10/0/0,11/0/0,12/0/0,13/0/0,14/0/0,CPU/0/0/-," */
+        // Transfer format = mirror switch,mirror uport,sid#sid#sid|uport/src enable/dst enable,uport/src enable/dst enable,......
+
+        cyg_httpd_start_chunked("html");
+
+        mirror_mgmt_conf_get(&conf); // Get the current configuration
+
+        /* ct = snprintf(p->outbuffer, sizeof(p->outbuffer), "%s,%u,%u,", */
+        /*               err_msg, */
+        /*               topo_isid2usid(conf.mirror_switch), */
+        /*               iport2uport(conf.dst_port)); */
+        if (!get_vns_fpga_epe_encode_conf(&epe_conf) ) { 
+            T_E("Could not get_vns_fpga_epe_conf.");
+            return -1;
+        }
+        epe_enable = 0;
+        epe_enable = epe_conf.mode;
+#if false
+        if(!is_epe_able()) {
+            strcpy(err_msg, "invalid"); // No errors so far :)
+        }
+        else if(!is_epe_license_acitive()) {
+            strcpy(err_msg, "no_license"); // No errors so far :)
+        }
+        else if(iport2uport(conf.dst_port) == VNS_EPE_PORT || 
+                iport2uport(conf.dst_port) == VNS_EPE_DISABLE) {
+            epe_enable = epe_conf.mode;
+        }
+        else {
+            strcpy(err_msg, "disable"); // No errors so far :)
+        }
+#endif
+        ct = snprintf(p->outbuffer, sizeof(p->outbuffer), "%s,%u,%u,,%u,%u,%s,",
+                err_msg,
+                topo_isid2usid(conf.mirror_switch),
+                epe_enable,
+                epe_conf.bit_rate,
+                epe_conf.ch7_data_word_count,
+                epe_conf.invert_clock ? "on" : "off"
+                );
+        cyg_httpd_write_chunked(p->outbuffer, ct);
+        T_N("cyg_httpd_write_chunked -> %s", p->outbuffer);
+
+#if VTSS_SWITCH_STACKABLE
+        vtss_usid_t usid;
+        // Make list of SIDs
+        for (usid = VTSS_USID_START; usid < VTSS_USID_END; usid++) {
+            vtss_usid_t isid = topo_usid2isid(usid);
+            if (msg_switch_exists(isid)) {
+                ct = snprintf(p->outbuffer, sizeof(p->outbuffer), "%u#", usid);
+                cyg_httpd_write_chunked(p->outbuffer, ct);
+            }
+        }
+#endif /* VTSS_SWITCH_STACKABLE */
+
+
+        // Insert Separator (,)
+        ct = snprintf(p->outbuffer, sizeof(p->outbuffer), "|");
+        cyg_httpd_write_chunked(p->outbuffer, ct);
+
+        // Make list of ports that each switch in the stack have (Corresponding to the sid list above)
+#if VTSS_SWITCH_STACKABLE
+        for (usid = VTSS_USID_START; usid < VTSS_USID_END; usid++) {
+            vtss_usid_t isid = topo_usid2isid(usid);
+            if (msg_switch_exists(isid)) {
+#else
+                vtss_isid_t isid = sid;
+#endif
+                /* if (port_iter_init(&pit, NULL, isid, PORT_ITER_SORT_ORDER_IPORT, PORT_ITER_FLAGS_FRONT) == VTSS_OK) { */
+                /*     while (port_iter_getnext(&pit)) { */
+                /* ct = snprintf(p->outbuffer, sizeof(p->outbuffer), "%u#", pit.uport); */
+                /* cyg_httpd_write_chunked(p->outbuffer, ct); */
+                /* } */
+                /* } */
+
+                if( is_epe_decoder_able() )
+                    /* ct = snprintf(p->outbuffer, sizeof(p->outbuffer), "%s#%s#%s#%s#%s#%s#", */
+                    ct = snprintf(p->outbuffer, sizeof(p->outbuffer), "%s#%s#",
+                            VNS_EPE_MODE_STR[ VNS_EPE_HDLC ],
+                            VNS_EPE_MODE_STR[ VNS_EPE_CH7_15 ]
+                            /* VNS_EPE_MODE_STR[ VNS_EPE_DECODE_HDLC ], */
+                            /* VNS_EPE_MODE_STR[ VNS_EPE_DECODE_CH7_15 ], */
+                            /* VNS_EPE_MODE_STR[ VNS_EPE_FULLDPX_HDLC ], */
+                            /* VNS_EPE_MODE_STR[ VNS_EPE_FULLDPX_CH7_15 ] */
+                            );
+                else
+                    ct = snprintf(p->outbuffer, sizeof(p->outbuffer), "%s#%s#","HDLC","CH7-15");
+                cyg_httpd_write_chunked(p->outbuffer, ct);
+
+                // Insert Separator (?)
+                ct = snprintf(p->outbuffer, sizeof(p->outbuffer), "?");
+                cyg_httpd_write_chunked(p->outbuffer, ct);
+#if VTSS_SWITCH_STACKABLE
+            }
+        }
+#endif
+
+
+        // Get  the SID config
+        /* rc = mirror_mgmt_switch_conf_get(sid, &local_conf); */
+
+
+        // Loop through all front ports
+        if (port_iter_init(&pit, NULL, sid, PORT_ITER_SORT_ORDER_IPORT, PORT_ITER_FLAGS_FRONT) == VTSS_OK)
+        {
+            while (port_iter_getnext(&pit)) {
+                if( pit.uport <= VNS_PORT_COUNT)
+                {
+                    if( VNS_PORT_COUNT == pit.uport) 
+                    {
+                        ct = snprintf(p->outbuffer, sizeof(p->outbuffer), "%s%u/%u/%u/-,",
+                                pit.first ? "|" : "",
+                                pit.uport,
+                                local_conf.src_enable[pit.iport],
+                                local_conf.dst_enable[pit.iport]);
+                        cyg_httpd_write_chunked(p->outbuffer, ct);
+                        T_R("cyg_httpd_write_chunked -> %s", p->outbuffer);
+                    }
+                    else
+                    {
+                        ct = snprintf(p->outbuffer, sizeof(p->outbuffer), "%s%u/%u/%u,",
+                                pit.first ? "|" : "",
+                                pit.uport,
+                                local_conf.src_enable[pit.iport],
+                                local_conf.dst_enable[pit.iport]);
+                        cyg_httpd_write_chunked(p->outbuffer, ct);
+                        T_R("cyg_httpd_write_chunked -> %s", p->outbuffer);
+                    }
+                }
+            }
+        }
+
+#ifdef VTSS_FEATURE_MIRROR_CPU
+        // CPU port
+        /* ct = snprintf(p->outbuffer, sizeof(p->outbuffer), "%s/%u/%u/%s,", */
+        /*               "CPU", */
+        /*               local_conf.cpu_src_enable, */
+        /*               local_conf.cpu_dst_enable, */
+        /*               "-" /1* Signal No trunking *1/); */
+        /* cyg_httpd_write_chunked(p->outbuffer, ct); */
+#endif
+        cyg_httpd_end_chunked();
+
+        strcpy(err_msg, ""); // Clear error message
+    }
+
+
+    return -1; // Do not further search the file system.
+}
 static cyg_int32 handler_dot_fpga_epe_encoder_config(CYG_HTTPD_STATE *p) 
 { 
     vtss_rc               rc = VTSS_OK; // error return code
@@ -2765,6 +3137,7 @@ CYG_HTTPD_HANDLER_TABLE_ENTRY(get_cb_FPGA_dot_discrete_config, "/config/dot_disc
 CYG_HTTPD_HANDLER_TABLE_ENTRY(get_cb_FPGA_dot_discrete_trigger, "/config/dot_discrete_trigger", handler_dot_fpga_discrete_trigger);
 #ifdef IES_EPE_FEATURE_ENABLE
 CYG_HTTPD_HANDLER_TABLE_ENTRY(get_cb_FPGA_dot_fpga_epe_encoder_config, "/config/dot_fpga_epe_encoder_config", handler_dot_fpga_epe_encoder_config);
+CYG_HTTPD_HANDLER_TABLE_ENTRY(get_cb_FPGA_dot_fpga_epe_multi_encoder_config, "/config/dot_fpga_epe_config_multi", handler_dot_fpga_epe_multi_encoder_config);
 CYG_HTTPD_HANDLER_TABLE_ENTRY(get_cb_FPGA_dot_fpga_epe_decoder_config, "/config/dot_fpga_epe_decoder_config", handler_dot_fpga_epe_decoder_config);
 #endif /* IES_EPE_FEATURE_ENABLE */
 /****************************************************************************/

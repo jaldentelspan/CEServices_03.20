@@ -1521,6 +1521,30 @@ static void multi_set_config()
 {
     T_D(":: updating config");
 }
+static void multi_copy_ies_config_to_struct(mirror_switch_conf_t *switch_conf)
+{
+    int i;
+
+    switch_conf->cpu_src_enable = config_shaddow.mirror_sw_conf.cpu_src_enable ;
+    switch_conf->cpu_dst_enable = config_shaddow.mirror_sw_conf.cpu_dst_enable ;
+    for(i = 0; i < VNS_PORT_COUNT; i++)
+    {
+        switch_conf->src_enable[i] = config_shaddow.mirror_sw_conf.src_enable[i];
+        switch_conf->dst_enable[i] = config_shaddow.mirror_sw_conf.dst_enable[i];
+    }
+}
+static void multi_copy_struct_to_ies_config(mirror_switch_conf_t switch_conf)
+{
+    int i;
+
+    config_shaddow.mirror_sw_conf.cpu_src_enable = switch_conf.cpu_src_enable;
+    config_shaddow.mirror_sw_conf.cpu_dst_enable = switch_conf.cpu_dst_enable;
+    for(i = 0; i < VNS_PORT_COUNT; i++)
+    {
+        config_shaddow.mirror_sw_conf.src_enable[i] =  switch_conf.src_enable[i];
+        config_shaddow.mirror_sw_conf.dst_enable[i] =  switch_conf.dst_enable[i];
+    }
+}
 static void multi_update_config()
 {
     int i;
@@ -1530,14 +1554,9 @@ static void multi_update_config()
     int port_idx = vns_global.multi_track.port;
 
     mirror_mgmt_conf_get( &mirror_conf );
-
-    switch_conf.cpu_src_enable = config_shaddow.mirror_sw_conf.cpu_src_enable ;
-    switch_conf.cpu_dst_enable = config_shaddow.mirror_sw_conf.cpu_dst_enable ;
-    for(i = 0; i < VNS_PORT_COUNT; i++)
-    {
-        switch_conf.src_enable[i] = config_shaddow.mirror_sw_conf.cpu_src_enable ;
-        switch_conf.dst_enable[i] = config_shaddow.mirror_sw_conf.cpu_dst_enable ;
-    }
+    /* multi_print_ies_mirror_config(); */
+    /* multi_print_mirror_config(); */
+    multi_copy_ies_config_to_struct(&switch_conf);
     /* vns_global.multi_track.mirror_conf = switch_conf; */
 
     /* int epe_multi_time_delay[VNS_PORT_COUNT]; */
@@ -1560,11 +1579,15 @@ static void multi_update_config()
             }
 
         }
-
-            T_D("%-2u    %s %s\n",
+        T_D("%-2u  D: %d  %s %s %s | shadow: %s %s\n",
                     i,
+                    config_shaddow.epe_multi_time_delay[i],
+                    config_shaddow.epe_multi_time_delay[i] ? "-" : "",
                     switch_conf.src_enable[i] ? "True" : "False" ,
-                    switch_conf.dst_enable[i] ? "True" : "False");
+                    switch_conf.dst_enable[i] ? "True" : "False",
+                    config_shaddow.mirror_sw_conf.src_enable[i] ? "True" : "False",
+                    config_shaddow.mirror_sw_conf.dst_enable[i] ? "True" : "False");
+
         // std::cout << "-- rx:" << track.running_config.rx[i] ? "on" : "off" << 
             // " tx:"  << track.running_config.tx[i] ? "on" : "off"  << std::endl;
         
@@ -1598,7 +1621,16 @@ BOOL multi_is_epe_enabled()
     T_D("!");
     return config_shaddow.epe_multi_enable;
 }
-int multi_print_mirror_config()
+int multi_get_ies_mirror_config( int port, BOOL *rx, BOOL *tx)
+{
+    T_D("!");
+    int retval = 0;
+    *rx = config_shaddow.epe_multi_time_delay[port];
+    *tx = config_shaddow.epe_multi_time_delay[port];
+
+    return retval;
+}
+int multi_print_ies_mirror_config()
 {
     switch_iter_t        sit;
     mirror_switch_conf_t switch_conf;
@@ -1622,6 +1654,38 @@ int multi_print_mirror_config()
     }
     return 0;
 }
+int multi_print_mirror_config()
+{
+    switch_iter_t        sit;
+    mirror_switch_conf_t switch_conf;
+    mirror_conf_t mirror_conf;
+    int port_idx;
+    mirror_mgmt_conf_get( &mirror_conf );
+    if (( mirror_mgmt_switch_conf_get(mirror_conf.mirror_switch, &switch_conf)) != VTSS_OK) {
+        T_D("Error: mirror_mgmt_switch_conf_get");
+    }
+    T_D("Port  Delay   Mirror rx   tx | shadow: rx    tx \n");
+    T_D("*****************************************************");
+    T_D("%s-   %s %s\n",
+            "CPU",
+            switch_conf.cpu_src_enable ? "True" : "False" ,
+            switch_conf.cpu_dst_enable ? "True" : "False");
+    for (port_idx = VTSS_PORT_NO_START; port_idx < VTSS_PORT_NO_END; port_idx++) {
+        /* conf->src_enable[port_idx] = mem_mirror_conf.stack_conf.src_enable[isid_idx][port_idx]; */
+        /* conf->dst_enable[port_idx] = mem_mirror_conf.stack_conf.dst_enable[isid_idx][port_idx]; */
+        if( vns_global.multi_track.port == port_idx)
+            T_D("***");
+        T_D("%-2u  D: %d  %s %s %s | shadow: %s %s\n",
+                    port_idx,
+                    config_shaddow.epe_multi_time_delay[port_idx],
+                    config_shaddow.epe_multi_time_delay[port_idx] ? "-" : "",
+                    switch_conf.src_enable[port_idx] ? "True" : "False" ,
+                    switch_conf.dst_enable[port_idx] ? "True" : "False",
+                    config_shaddow.mirror_sw_conf.src_enable[port_idx] ? "True" : "False",
+                    config_shaddow.mirror_sw_conf.dst_enable[port_idx] ? "True" : "False");
+    }
+    return 0;
+}
 int multi_epe_enable_cli_web()
 {
     T_D("!");
@@ -1636,13 +1700,7 @@ int multi_epe_enable_cli_web()
 
     /* config_shaddow.mirror_sw_conf = ( ies_mirror_switch_conf_t ) switch_conf; */
 
-    config_shaddow.mirror_sw_conf.cpu_src_enable = switch_conf.cpu_src_enable;
-    config_shaddow.mirror_sw_conf.cpu_dst_enable = switch_conf.cpu_dst_enable;
-    for(i = 0; i < VNS_PORT_COUNT; i++)
-    {
-        config_shaddow.mirror_sw_conf.src_enable[i] =  switch_conf.src_enable[i];
-        config_shaddow.mirror_sw_conf.dst_enable[i] =  switch_conf.dst_enable[i];
-    }
+    multi_copy_struct_to_ies_config(switch_conf);
 
     config_shaddow.epe_multi_enable = TRUE;
 
@@ -1668,12 +1726,19 @@ int multi_epe_disable()
     T_D("!");
     int retval = 0;
 
-    config_shaddow.epe_multi_enable = FALSE;
+    mirror_conf_t mirror_conf;
+    mirror_switch_conf_t switch_conf;
 
-    save_vns_config();
+    config_shaddow.epe_multi_enable = FALSE;
     if (vtss_timer_cancel(&vns_global.multi_track.timer) != VTSS_RC_OK) {
         T_EG(VTSS_TRACE_GRP_VNS_BASE_TIMER, "Unable to stop vns setup timer");
     }
+    save_vns_config();
+
+    // Copy origonal config back to the Mirror
+    mirror_mgmt_conf_get( &mirror_conf );
+    multi_copy_ies_config_to_struct(&switch_conf);
+    mirror_mgmt_switch_conf_set(mirror_conf.mirror_switch, &switch_conf);
 
     return retval;
 }
@@ -4311,8 +4376,8 @@ static int multi_port_rollover()
 }
 static int multi_count_rollover()
 {
-    vns_global.multi_track.count = 0;
     int i;
+    vns_global.multi_track.count = 0;
     multi_update_config();
     T_D( "count rollover = %u ################ ", vns_global.multi_track.count) ;
     /* std::cout << "count rollover = " << vns_global.multi_track.count << " ################ " << std::endl; */
@@ -4327,11 +4392,17 @@ static int multi_count_rollover()
 static void multi_vns_fpga_mode_start(vtss_timer_t *timer)
 {
     int sum = 0;
+    if( vns_global.multi_track.port >= VNS_PORT_COUNT )
+        multi_port_rollover();
+    if( vns_global.multi_track.count > config_shaddow.epe_multi_time_delay[ vns_global.multi_track.port ] )
+        multi_count_rollover();
     while( config_shaddow.epe_multi_time_delay[ vns_global.multi_track.port ] == 0 )
     {
         sum = sum + config_shaddow.epe_multi_time_delay[ vns_global.multi_track.port ];
         
         multi_port_incement();
+        if( vns_global.multi_track.port >= VNS_PORT_COUNT )
+            multi_port_rollover();
         if( vns_global.multi_track.port > VNS_PORT_COUNT )
         {
             // If zero, all values must be zero. Need to leave.
@@ -4342,16 +4413,7 @@ static void multi_vns_fpga_mode_start(vtss_timer_t *timer)
         }
 
     }
-    if( vns_global.multi_track.count > config_shaddow.epe_multi_time_delay[ vns_global.multi_track.port ] )
-    {
-        multi_count_rollover();
-
-    }
-    else
-    {
-        multi_count_incement();
-    }
-
+    multi_count_incement();
     /* return 0; */
     /* vns_global.multi_track.count++; */
     /* multi_struct.port; */

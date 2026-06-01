@@ -355,6 +355,7 @@ Configuration
   .EPE
  #if defined(IES_EPE_FEATURE_ENABLE)
    Encoder,dot_epe_encoder.htm
+   Encoder,epe_multi.htm
    Decoder,dot_epe_decoder.htm
  #endif /* IES_EPE_FEATURE_ENABLE */
 #endif /* VTSS_SW_OPTION_VNS_FPGA */
