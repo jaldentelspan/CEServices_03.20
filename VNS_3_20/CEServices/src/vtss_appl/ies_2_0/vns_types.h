@@ -574,7 +574,7 @@ typedef struct vns_fpga_conf{
     vns_epe_conf_blk_t epe_decoder_config;
     BOOL epe_multi_enable;
     ies_mirror_switch_conf_t mirror_sw_conf;
-    int epe_multi_time_delay[VNS_PORT_COUNT];
+    u32 epe_multi_time_delay[VNS_PORT_COUNT];
     /* vns_epe_conf_blk_t epe_config; */
 }vns_fpga_conf_t;
 

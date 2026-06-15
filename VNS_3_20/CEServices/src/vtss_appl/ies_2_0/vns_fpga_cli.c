@@ -68,7 +68,7 @@ typedef struct {
     uint32_t reg_offset;
     vns_direction_t direction;
     int port_num;
-    int time_seconds;
+    uint32_t time_seconds;
     vns_do_setting_t disc_out_setting;
     vns_di_setting_t disc_in_setting;
     vns_gps_dc_bias_t gps_bias_setting;
@@ -2496,15 +2496,21 @@ static int32_t cli_fpga_epe_multi_parse (char *cmd, char *cmd2, char *stx, char 
         }
         else {
             /* CPRINTF("Port out of rang: %d \n", val); */
-            return -1;
+            error = -2;
         }
         /* CPRINTF("cmd 1\n"); */
     }
     else if(req->int_value_cnt == 2 ) {
-        fpga_req->time_seconds = val;
-        /* CPRINTF("cmd 2\n"); */
+        if(val > 0 && val <= VNS_PORT_COUNT ) {
+            fpga_req->time_seconds = val;
+            req->set = TRUE;
+        }
+        else {
+            error = -3;
+
+        }
+       /* CPRINTF("cmd 2\n"); */
         /* CPRINTF("Setting Delay: %d \n", val); */
-        req->set = TRUE;
     }
     /* CPRINTF("cli_fpga_short_parse %d, %d\n",fpga_req->port_num,fpga_req->time_seconds  ); */
 

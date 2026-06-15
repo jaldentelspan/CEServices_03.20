@@ -1532,6 +1532,10 @@ static void multi_copy_ies_config_to_struct(mirror_switch_conf_t *switch_conf)
         switch_conf->src_enable[i] = config_shaddow.mirror_sw_conf.src_enable[i];
         switch_conf->dst_enable[i] = config_shaddow.mirror_sw_conf.dst_enable[i];
     }
+    switch_conf->src_enable[VNS_PORT_COUNT +1 ] =  FALSE;
+    switch_conf->dst_enable[VNS_PORT_COUNT +1 ] =  FALSE;
+    switch_conf->src_enable[VNS_PORT_COUNT  ] =  FALSE;
+    switch_conf->dst_enable[VNS_PORT_COUNT  ] =  FALSE;
 }
 static void multi_copy_struct_to_ies_config(mirror_switch_conf_t switch_conf)
 {
@@ -1544,6 +1548,11 @@ static void multi_copy_struct_to_ies_config(mirror_switch_conf_t switch_conf)
         config_shaddow.mirror_sw_conf.src_enable[i] =  switch_conf.src_enable[i];
         config_shaddow.mirror_sw_conf.dst_enable[i] =  switch_conf.dst_enable[i];
     }
+    config_shaddow.mirror_sw_conf.src_enable[VNS_PORT_COUNT +1 ] =  FALSE;
+    config_shaddow.mirror_sw_conf.dst_enable[VNS_PORT_COUNT +1 ] =  FALSE;
+    config_shaddow.mirror_sw_conf.src_enable[VNS_PORT_COUNT  ] =  FALSE;
+    config_shaddow.mirror_sw_conf.dst_enable[VNS_PORT_COUNT  ] =  FALSE;
+
 }
 static void multi_update_config()
 {
@@ -1597,20 +1606,26 @@ static void multi_update_config()
     mirror_mgmt_switch_conf_set(mirror_conf.mirror_switch, &switch_conf);
 
 }
-int multi_get_time_delay( int port, int *delay)
+int multi_get_time_delay( int port, uint32_t *delay)
 {
     T_D("!");
     int retval = 0;
-
-    *delay = config_shaddow.epe_multi_time_delay[port-1] ;
+    // port 1 is shifted to 0th index
+    if(port > 0 && port <= VNS_PORT_COUNT )
+        *delay = config_shaddow.epe_multi_time_delay[port-1] ;
+    else
+        retval = -1;
     return retval;
 }
-int multi_set_time_delay( int port, int delay)
+int multi_set_time_delay( int port, uint32_t delay)
 {
     T_D("!");
     int retval = 0;
 
-    config_shaddow.epe_multi_time_delay[port-1] = delay;
+    if(port > 0 && port <= VNS_PORT_COUNT )
+        config_shaddow.epe_multi_time_delay[port-1] = delay;
+    else
+        retval = -1;
 
     save_vns_config();
 
@@ -5788,7 +5803,8 @@ static void multi_init_mode_timer(void)
     // Initalize counter
 
     vns_global.multi_track.count = 0;
-    vns_global.multi_track.port = 0;
+    // port 1 is == 1; 2 as 2 etc. However, port 12 is 0 ??;
+    vns_global.multi_track.port = 1; 
     if (vtss_timer_initialize(&vns_global.multi_track.timer) != VTSS_RC_OK) {
         T_EG(VTSS_TRACE_GRP_VNS_BASE_TIMER, "Unable to initialize vns setup timer");
     }

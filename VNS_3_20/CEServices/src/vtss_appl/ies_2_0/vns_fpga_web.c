@@ -2375,16 +2375,21 @@ static cyg_int32 handler_dot_fpga_epe_decoder_config(CYG_HTTPD_STATE *p)
     return -1; // Do not further search the file system.
 }
 static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p) 
+/* static cyg_int32 handler_dot_fpga_epe_encoder_config(CYG_HTTPD_STATE *p)  */
 { 
     vtss_rc               rc = VTSS_OK; // error return code
     vtss_isid_t           sid = web_retrieve_request_sid(p); /* Includes USID = ISID */
     mirror_conf_t         conf;
     vns_epe_conf_blk_t    epe_conf;
     mirror_switch_conf_t  local_conf;
-    int                   ct;
-    uint32_t              epe_enable;
+    int                   ct,i;
+    uint32_t              epe_enable, delay;
+
+    uint32_t max_int_val = 0x7FFFFFFF;
+    uint64_t             form_value_64;
     char                  form_name[32];
     int                   form_value;
+
     port_iter_t           pit;
     static char           err_msg[100]; // Need to be static because it is set when posting data, but used getting data.
 
@@ -2409,8 +2414,8 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
 
         strcpy(err_msg, ""); // No errors so far :)
 
-        /* mirror_mgmt_conf_get(&conf); // Get the current configuration */
-        /* rc = mirror_mgmt_switch_conf_get(sid, &local_conf); */
+        mirror_mgmt_conf_get(&conf); // Get the current configuration
+        rc = mirror_mgmt_switch_conf_get(sid, &local_conf);
         T_D ("Updating from web");
 
         epe_conf.mode = VNS_EPE_DISABLE;
@@ -2523,7 +2528,7 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
 #endif /* VTSS_SWITCH_STACKABLE */
 
         // Get source and destination eanble checkbox values
-        /* rc = mirror_mgmt_switch_conf_get(sid, &local_conf); */
+        rc = mirror_mgmt_switch_conf_get(sid, &local_conf);
 
 
         // Loop through all front ports
@@ -2538,6 +2543,7 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
                     form_value = 0;
                 }
 
+                T_D ("mirror form_value %d via web", form_value);
                 if (form_value == 0) {
                     local_conf.src_enable[pit.iport] = 0;
                     local_conf.dst_enable[pit.iport] = 0;
@@ -2555,38 +2561,23 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
             }
         }
 
-#ifdef VTSS_FEATURE_MIRROR_CPU
-        //
-        // Getting CPU configuration
-        //
-        if (cyg_httpd_form_varable_int(p, "mode_CPU", &form_value)   && (form_value >= 0 && form_value < 4)) {
-            // form_value ok
-        } else {
-            form_value = 0;
-        }
-
-        if (form_value == 0) {
-            local_conf.cpu_src_enable = 0;
-            local_conf.cpu_dst_enable = 0;
-        } else if (form_value == 1) {
-            local_conf.cpu_src_enable = 1;
-            local_conf.cpu_dst_enable = 0;
-        } else if (form_value == 2) {
-            local_conf.cpu_src_enable = 0;
-            local_conf.cpu_dst_enable = 1;
-        } else {
-            // form_value is 3
-            local_conf.cpu_src_enable = 1;
-            local_conf.cpu_dst_enable = 1;
-        }
-#endif
-
         //
         // Apply new configuration.
         //
         mirror_mgmt_switch_conf_set(sid, &local_conf); // Update switch with new configuration
+
         // Write new configuration
-        /* rc = mirror_mgmt_conf_set(&conf); */
+        rc = mirror_mgmt_conf_set(&conf);
+
+        for(i = 0; i <= VNS_PORT_COUNT; i++)
+        {
+
+                sprintf(form_name, "delay_%d", i); // Set to the htm checkbox form name
+            if (cyg_httpd_form_varable_int(p, form_name, &form_value)   && (form_value >= 0 && form_value < max_int_val)) {
+                multi_set_time_delay( i, form_value);
+            }
+        }
+
 //#endif
 
         /* redirect(p, "/dot_epe_encoder.htm"); */
@@ -2629,13 +2620,15 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
             strcpy(err_msg, "disable"); // No errors so far :)
         }
 #endif
-        ct = snprintf(p->outbuffer, sizeof(p->outbuffer), "%s,%u,%u,,%u,%u,%s,",
+
+        ct = snprintf(p->outbuffer, sizeof(p->outbuffer), "%s,%u,%u,%u,%u,,%s,%s,",
                 err_msg,
                 topo_isid2usid(conf.mirror_switch),
                 epe_enable,
                 epe_conf.bit_rate,
                 epe_conf.ch7_data_word_count,
-                epe_conf.invert_clock ? "on" : "off"
+                epe_conf.invert_clock ? "invertClock" : "invertOff",
+                multi_is_epe_enabled() ? "multiEnable" : "multiDisable"
                 );
         cyg_httpd_write_chunked(p->outbuffer, ct);
         T_N("cyg_httpd_write_chunked -> %s", p->outbuffer);
@@ -2728,6 +2721,16 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
                 }
             }
         }
+        for(i = 0; i < VNS_PORT_COUNT; i++)
+        {
+            multi_get_time_delay( i+1, &delay);
+            ct = snprintf(p->outbuffer, sizeof(p->outbuffer), "%s%u/",
+                    (i == 0) ? "|" : "",
+                    delay
+                    );
+            cyg_httpd_write_chunked(p->outbuffer, ct);
+            T_R("cyg_httpd_write_chunked -> %s", p->outbuffer);
+        }
 
 #ifdef VTSS_FEATURE_MIRROR_CPU
         // CPU port
@@ -2747,6 +2750,7 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
     return -1; // Do not further search the file system.
 }
 static cyg_int32 handler_dot_fpga_epe_encoder_config(CYG_HTTPD_STATE *p) 
+/* static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)  */
 { 
     vtss_rc               rc = VTSS_OK; // error return code
     vtss_isid_t           sid = web_retrieve_request_sid(p); /* Includes USID = ISID */
@@ -2754,9 +2758,9 @@ static cyg_int32 handler_dot_fpga_epe_encoder_config(CYG_HTTPD_STATE *p)
     vns_epe_conf_blk_t    epe_conf;
     mirror_switch_conf_t  local_conf;
     int                   ct;
-    uint32_t              epe_enable;
+    uint32_t              epe_enable, delay;
     char                  form_name[32];
-    int                   form_value;
+    int                   form_value, i;
     port_iter_t           pit;
     static char           err_msg[100]; // Need to be static because it is set when posting data, but used getting data.
 
@@ -3099,6 +3103,8 @@ static cyg_int32 handler_dot_fpga_epe_encoder_config(CYG_HTTPD_STATE *p)
                 }
             }
         }
+
+
 
 #ifdef VTSS_FEATURE_MIRROR_CPU
         // CPU port
