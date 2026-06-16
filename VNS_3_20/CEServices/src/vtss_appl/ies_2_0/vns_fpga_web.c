@@ -2582,9 +2582,7 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
 
         /* redirect(p, "/dot_epe_encoder.htm"); */
         redirect(p, "/epe_multi.htm");
-    } 
-    else 
-    {                    /* CYG_HTTPD_METHOD_GET (+HEAD) */
+    } else {                    /* CYG_HTTPD_METHOD_GET (+HEAD) */
 
         /* ",1,0,   |1#2#3#4#5#6#7#8#9#10#11#12#13#14#?  |1/0/0,2/0/0,3/0/0,4/0/0,5/0/0,6/0/0,7/0/0,8/0/0,9/0/0,10/0/0,11/0/0,12/0/0,13/0/0,14/0/0,CPU/0/0/-,"; */
         /* ",1,13,  |HDLC#CH7#?                          |1/0/0,2/0/0,3/0/0,4/0/0,5/0/0,6/0/0,7/0/0,8/0/0,9/0/0,10/0/0,11/0/0,12/0/0/-,"; */
@@ -2689,7 +2687,7 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
 
 
         // Get  the SID config
-        /* rc = mirror_mgmt_switch_conf_get(sid, &local_conf); */
+        rc = mirror_mgmt_switch_conf_get(sid, &local_conf);
 
 
         // Loop through all front ports
