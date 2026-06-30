@@ -264,10 +264,12 @@ function processUpdate(req, ref)
         PortList         = config[1];
 
 	if (String(ErrMsg) !== "") {
-	    alert(ErrMsg);
+	    // alert(ErrMsg);
+            console.log(ErrMsg);
 	}
 
-        if( false /* MirrorPort > 12 */ ) {
+        // if( false /* MirrorPort > 12 */ ) {
+	if (String(ErrMsg) === "multiEnabled") {
             /* currently the mirroring is being used for EPE */
             document.getElementById("firstNode").id = "dimScreen";
             document.getElementById("dimScreen").style.display = "block";
@@ -275,7 +277,7 @@ function processUpdate(req, ref)
             iDiv.id = 'block';
             iDiv.className = 'alertDisable';
             document.getElementsByTagName('body')[0].appendChild(iDiv);
-            iDiv.innerHTML = "Mirror configuration is currently being used for EPE. <br />Please disable EPE configuration to enable mirror configuration.";
+            iDiv.innerHTML = "Mirror configuration is currently being used for EPE Time division. <br />Please disable EPE Time Division configuration to enable mirror configuration.";
             return;
         }
         // Create the "switch ot mirror to" drop down list

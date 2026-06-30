@@ -306,7 +306,7 @@ static void init_setup_timer(void);
 static void init_led_discrete_timer(void);
 static void init_debug_timer(void);
 int Time_t_2_struct_tm_time(time_t t, struct tm * ptime);
-int Set_IEEE_1588_Mode_Mod_clk(vns_1588_type mode, BOOL modify_clock);
+/* int Set_IEEE_1588_Mode_Mod_clk(vns_1588_type mode, BOOL modify_clock); */
 /* int Time_t_2_Vns_bcd_time(time_t t, vns_bcd_time * bcd); */
 
 int decoder_config_disable(void);
@@ -539,7 +539,6 @@ int activate_epe_encoder(const vns_epe_conf_blk_t* epe_conf)
 void create_ptp_clock(BOOL master)
 {
 #if ALLOW_PTP_CLOCK_SETUP
-
 	ptp_clock_default_ds_t clock_bs;
     ptp_set_clock_ds_t set_clock_bs;
     ptp_port_ds_t port_bs;
@@ -2298,7 +2297,10 @@ int Set_IEEE_1588_Mode_Mod_clk(vns_1588_type mode, BOOL modify_clock)
     retval = Get_IEEE_1588_Mode(&cur_mode);
     T_D("Set_IEEE_1588_Mode_Mod_clk mode = %d", mode);
     T_D("Set_IEEE_1588_Mode_Mod_clk cur_mode = %d", cur_mode);
-        switch(cur_mode)
+        /* switch(cur_mode) */
+    if(mode == cur_mode )
+        return 0;
+        switch(mode)
         {
             case IEEE_1588_SLAVE:
                 T_D("Setting 1588 to Slave Mode");

@@ -46,7 +46,7 @@ var last_mirror_port = -1;
 var modes = Array();
 var pcm_options = Array(); // Array going to contain a list of ports for each switch in a stack
 var EPEMode;         // Variable going to hold the current mirror port
-
+var EPEMulti;
 
 function addRow(index, frag, values, delay_value) {
     var portno          = values[0];
@@ -363,15 +363,22 @@ function processUpdate(req, ref)
 
         }
 
-        if(has_fcs ===  "instertFCS")
-            document.getElementById("insertFCS").checked = true;
-        else
-            document.getElementById("insertFCS").checked = false;
+        //if(has_fcs ===  "instertFCS")
+        //    document.getElementById("insertFCS").checked = true;
+        //else
+        //    document.getElementById("insertFCS").checked = false;
 
-        if(has_enable_multi ===  "multiEnable")
+        if(has_enable_multi ===  "multiEnable") {
             document.getElementById("enableMulti").checked = true;
-        else
+            document.getElementById("enableMulti").value = "on";
+            EPEMulti = true;
+        }
+        else {
             document.getElementById("enableMulti").checked = false;
+            document.getElementById("enableMulti").value = "off";
+            EPEMulti = false;
+
+        }
 
         
         // document.getElementById("frequency").innerHTML = '\xa0\xa0\xa0\xa0' + (  epe_bitrate/100 ).toFixed(2);
@@ -394,10 +401,13 @@ function checkForm(form)
 {
 
     var max_int_val = 0x7FFFFFFF
+
     if (document.getElementById("invertClock").checked == true)
         document.getElementById("invertClock").value = "on";
     else
         document.getElementById("invertClock").value = "off";
+
+    
     //bitrate
     if (!isWithinRange("bitrate", 1000000, 50000000,  "'Bit Rate'"))
         return false;
@@ -407,6 +417,17 @@ function checkForm(form)
          if (!isWithinRange("delay_" + i, 0, max_int_val, "'Delay Port' " + i))
 	    return false;
     }
+    if(EPEMulti ===  true)  {
+
+         if( document.getElementById("enableMulti").checked === true ) {
+            alert("Warning: must disable time division to configure!");
+	    return false;
+         }
+    }
+    if (document.getElementById("enableMulti").checked == true)
+        document.getElementById("enableMulti").value = "on";
+    else
+        document.getElementById("enableMulti").value = "off";
 
     return true;                // Feed the chickens and go home
 }
@@ -462,10 +483,10 @@ function DocLoad()
     </select>
    </td>
 
-  <tr class="config">
-   <td class="param_label">Insert FCS </td>
-   <td class="cl"><input type="checkbox" id="insertFCS" name="insertFCS" value="2000" size="5"></td>
-  </tr>
+  <!-- <tr class="config"> -->
+   <!-- <td class="param_label">Insert FCS </td> -->
+   <!-- <td class="cl"><input type="checkbox" id="insertFCS" name="insertFCS" value="2000" size="5"></td> -->
+  <!-- </tr> -->
 
   <tr class="config">
    <td class="param_label">Invert Clock</td>

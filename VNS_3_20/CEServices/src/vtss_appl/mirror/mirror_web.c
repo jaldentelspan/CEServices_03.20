@@ -32,6 +32,9 @@
 #include "vtss_privilege_api.h"
 #include "vtss_privilege_web_api.h"
 #endif
+#if defined (BOARD_VNS_12_REF) || defined (BOARD_VNS_16_REF)
+#include "vns_fpga_api.h"
+#endif /* BOARD_VNS_12_REF */ 
 
 /* =================
  * Trace definitions
@@ -176,6 +179,8 @@ static cyg_int32 handler_config_mirror(CYG_HTTPD_STATE *p)
 
         // Transfer format = mirror switch,mirror uport,sid#sid#sid|uport/src enable/dst enable,uport/src enable/dst enable,......
 
+        if(multi_is_epe_enabled()) 
+            strcpy(err_msg, "multiEnabled"); // No errors so far :)
         cyg_httpd_start_chunked("html");
 
         mirror_mgmt_conf_get(&conf); // Get the current configuration

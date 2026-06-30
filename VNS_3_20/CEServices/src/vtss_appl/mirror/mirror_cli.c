@@ -272,6 +272,10 @@ static void cli_cmd_epe_mode(cli_req_t *req)
         CPRINTF("Ethernet PCM Encoder license is not valid.\n");
         CPRINTF("Please contact vendor.\n");
     }
+    else if(multi_is_epe_enabled()) {
+        CPRINTF("EPE configuration may not be available for your hardware configuration.\n");
+        CPRINTF("Please contact vendor.\n");
+    }
     else {
         cli_cmd_mirror(req, 0, 0, 1, 0);
     }
