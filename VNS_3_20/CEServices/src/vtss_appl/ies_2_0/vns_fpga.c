@@ -1717,6 +1717,8 @@ int multi_epe_enable_cli_web()
     multi_copy_struct_to_ies_config(switch_conf);
 
     config_shaddow.epe_multi_enable = TRUE;
+    vns_global.multi_track.port = 0;
+    vns_global.multi_track.count = 0;
 
     save_vns_config();
     multi_epe_timer_start();

@@ -46,25 +46,67 @@
 <li> All frames transmitted on a given port (also known as egress or destination mirroring).</li>
 </ul>
 
-<h2>Bit Rate</h2>
+<h2>Ethernet PCM Encode Configuration</h2>
+
+<dt>Bit Rate</dt>
 
 <!-- <dt>Bit Rate</dt> -->
 <!-- <p><b>Bit Rate</b> sets the bitrate to a percentage of the base frequency, 20MHz ranging from 10 to 100%. Fractional bit rates are not supported.  -->
 <p><b>Bit Rate</b> sets the bitrate to  200000-50000000 bps.  </p>
-<h2>EPE Port</h2>
+<dt>EPE Port</dt>
 
 <p><b>EPE Port</b> Enables encoding in ISO/IEC 13239 HDLC Ethernet or CH7-15, IRIG 106-15 chapter 7 Ethernet formats.
 </p>
 
-<h2>CH7-15: Word(s) in Minor Frame</h2>
+<dt>CH7-15: Word(s) in Minor Frame</dt>
 <p><b>CH7-15: Word(s) in minor frame</b> sets the number of data words in a
 minor frame. Values 1-8 may be used.
 </p>
 
 
-<h2>Invert Clock</h2>
+<dt>Invert Clock</dt>
 
-<p>The invert clock feature allows a device to flip the sample clocks polarity, optimizing PCM data decoding by aligning the sampling edge with the data signal.</p>
+<p>The <b>Invert Clock </b>feature allows a device to flip the sample clocks polarity, optimizing PCM data decoding by aligning the sampling edge with the data signal.</p>
+
+<h2>Switch to mirror to </h2>
+
+<p>Frames from ports that have either source (rx) or destination (tx) mirroring enabled are mirrored to this switch.</p>
+
+
+<h2>Mirror Port & Time Inverval Configuration</h2>
+
+<dt>Enable Time Division</dt>
+
+<p><b>Enable Time Division</b> Enables time division functionality. The iES switch cycles through the designated ports using the allocated time delay. </p>
+</div>
+<p>The following table is used for Rx and Tx enabling.</p>
+
+<dl>
+ <dt>Port</dt>
+ <dd>
+
+ The logical port for the settings contained in the same row.
+ </dd>
+
+ <dt>Mode</dt>
+ <dd>
+  Select mirror mode.
+  <br><samp>Rx only</samp>  Frames received on this port are mirrored on the <b>mirror port</b>. Frames transmitted are not mirrored.
+  <br><samp>Tx only</samp>  Frames transmitted on this port are mirrored on the <b>mirror port</b>. Frames received are not mirrored.
+  <br><samp>Disabled</samp> Neither frames transmitted nor frames received are mirrored.
+  <br><samp>Enabled</samp>  Frames received and frames transmitted are mirrored on the <b>mirror port</b>.
+
+ </dd>
+ <dd>
+ Note: For a given port, a frame is only transmitted once. It is
+ therefore not possible to mirror <b>mirror port</b> Tx frames.
+ Because of this, <b>mode</b> for the selected <b>mirror port</b> is limited to <samp>Disabled</samp> 
+ or <samp>Rx only</samp>.
+ </dd>
+
+<dt>Time(s) Interval</dt>
+
+<p><b>Time(s) Interval</b> Allocates a time slot per port for the time division functionality. </p>
 
 <h2>Buttons</h2>
 <p><input type="button" value=" Save ">: Click to save changes.</p>

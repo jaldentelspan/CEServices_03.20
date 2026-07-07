@@ -2511,22 +2511,6 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
             /* T_D ("Mirroring disabled from web"); */
             T_E ("cyg_httpd_form_varable_int failed");
         }
-        /* set_vns_fpga_epe_conf(epe_conf); */
-        char_form_value = cyg_httpd_form_varable_string(p, "enableMulti", &len);
-        rc = cgi_unescape(char_form_value, unescaped_form_value, len, sizeof(unescaped_form_value));
-        char_form_value = unescaped_form_value;
-
-        T_D("char_form_value! %s", char_form_value);
-        if (strcmp(char_form_value, "on") == 0) {
-            T_D("multiEnable is ON! %s", char_form_value);
-            multi_epe_enable_cli_web();
-        }
-        else {
-            T_D("multiEnable is OFF! %s", char_form_value);
-            multi_epe_disable();
-        }
-
-        save_vns_config();
         // Get mirror switch from WEB ( Form name = "switchselect" )
 //#if false
 #if VTSS_SWITCH_STACKABLE
@@ -2590,6 +2574,22 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
                 multi_set_time_delay( i, form_value);
             }
         }
+        /* set_vns_fpga_epe_conf(epe_conf); */
+        char_form_value = cyg_httpd_form_varable_string(p, "enableMulti", &len);
+        rc = cgi_unescape(char_form_value, unescaped_form_value, len, sizeof(unescaped_form_value));
+        char_form_value = unescaped_form_value;
+
+        T_D("char_form_value! %s", char_form_value);
+        if (strcmp(char_form_value, "on") == 0) {
+            T_D("multiEnable is ON! %s", char_form_value);
+            multi_epe_enable_cli_web();
+        }
+        else {
+            T_D("multiEnable is OFF! %s", char_form_value);
+            multi_epe_disable();
+        }
+
+        save_vns_config();
 
 //#endif
 
