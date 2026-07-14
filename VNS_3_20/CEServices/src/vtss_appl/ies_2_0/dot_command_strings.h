@@ -324,6 +324,12 @@
 #define IES_DEBUG_CMD_STR_DECODER_REG_CMD       IES_DEBUG_CMD_STR_DECODER_REG " " IES_DEBUG_CMD_STR_DECODER_REG_ARGS
 #define IES_DEBUG_CMD_STR_DECODER_REG_FUNC      debug_decoder_reg   
 
+#define IES_DEBUG_CMD_STR_EPE_MULTI             "Debug ies EPE TimeDivision"
+#define IES_DEBUG_CMD_STR_EPE_MULTI_ARGS        "[<integer>]"
+#define IES_DEBUG_CMD_STR_EPE_MULTI_DESC        "Set or show the EPE Multiplex Mode" 
+#define IES_DEBUG_CMD_STR_EPE_MULTI_CMD         IES_DEBUG_CMD_STR_EPE_MULTI " " IES_DEBUG_CMD_STR_EPE_MULTI_ARGS
+#define IES_DEBUG_CMD_STR_EPE_MULTI_FUNC        cli_cmd_debug_epe_multi
+
 /***************************************************************************/
 /*                          iES Debug Commands                             */
 /***************************************************************************/

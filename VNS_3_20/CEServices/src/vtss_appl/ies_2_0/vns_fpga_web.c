@@ -2396,6 +2396,7 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
     char unescaped_form_value[32];
     char* char_form_value;
     size_t len;
+    BOOL multi_epe_enable = FALSE;
 
     T_D ("Mirror web access - SID =  %d", sid );
 
@@ -2512,7 +2513,7 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
             T_E ("cyg_httpd_form_varable_int failed");
         }
         // Get mirror switch from WEB ( Form name = "switchselect" )
-//#if false
+#if false
 #if VTSS_SWITCH_STACKABLE
         if (vtss_stacking_enabled()) {
             if (cyg_httpd_form_varable_int(p, "switchselect", &form_value)) {
@@ -2523,6 +2524,23 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
             conf.mirror_switch = VTSS_ISID_START;
         }
 #endif /* VTSS_SWITCH_STACKABLE */
+#endif /* false */
+
+        /* set_vns_fpga_epe_conf(epe_conf); */
+        char_form_value = cyg_httpd_form_varable_string(p, "enableMulti", &len);
+        rc = cgi_unescape(char_form_value, unescaped_form_value, len, sizeof(unescaped_form_value));
+        char_form_value = unescaped_form_value;
+
+        T_D("char_form_value! %s", char_form_value);
+        if (strcmp(char_form_value, "on") == 0) {
+            T_D("multiEnable is ON! %s", char_form_value);
+            multi_epe_enable = TRUE;
+        } else {
+            T_D("multiEnable is OFF! %s", char_form_value);
+            multi_epe_enable = FALSE;
+            multi_epe_disable();
+        }
+
 
         // Get source and destination eanble checkbox values
         rc = mirror_mgmt_switch_conf_get(sid, &local_conf);
@@ -2540,7 +2558,7 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
                     form_value = 0;
                 }
 
-                T_D ("mirror form_value %d via web", form_value);
+                T_D ("mirror form_name %s form_value %d via web", form_name, form_value);
                 if (form_value == 0) {
                     local_conf.src_enable[pit.iport] = 0;
                     local_conf.dst_enable[pit.iport] = 0;
@@ -2574,20 +2592,12 @@ static cyg_int32 handler_dot_fpga_epe_multi_encoder_config(CYG_HTTPD_STATE *p)
                 multi_set_time_delay( i, form_value);
             }
         }
-        /* set_vns_fpga_epe_conf(epe_conf); */
-        char_form_value = cyg_httpd_form_varable_string(p, "enableMulti", &len);
-        rc = cgi_unescape(char_form_value, unescaped_form_value, len, sizeof(unescaped_form_value));
-        char_form_value = unescaped_form_value;
 
-        T_D("char_form_value! %s", char_form_value);
-        if (strcmp(char_form_value, "on") == 0) {
-            T_D("multiEnable is ON! %s", char_form_value);
+        if (multi_epe_enable == TRUE) {
+            T_D("multiEnable is ON! ");
             multi_epe_enable_cli_web();
         }
-        else {
-            T_D("multiEnable is OFF! %s", char_form_value);
-            multi_epe_disable();
-        }
+
 
         save_vns_config();
 

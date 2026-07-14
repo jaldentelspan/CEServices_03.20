@@ -2765,6 +2765,14 @@ static void cli_cmd_epe_debug(cli_req_t *req)
     cli_cmd_epe_internal( req );
 }
 
+static void cli_cmd_debug_epe_multi(cli_req_t *req)
+{
+    /* vns_fpga_req_t *fpga_req = req->module_req; */
+    int port_num =  req->int_values[0];
+
+    multi_update_config_debug(port_num);
+
+}
 static void cli_cmd_epe_multi(cli_req_t *req)
 {
     vns_fpga_req_t *fpga_req = req->module_req;
@@ -2782,6 +2790,8 @@ static void cli_cmd_epe_multi(cli_req_t *req)
         if( req->int_value_cnt == 2 )
             multi_set_time_delay( fpga_req->port_num, fpga_req->time_seconds);
         /* CPRINTF("multi_set_time_delay %d, %d\n",fpga_req->port_num,fpga_req->time_seconds  ); */
+
+        save_vns_config();
     }
     else {
         multi_print_mirror_config();
@@ -3726,6 +3736,13 @@ static cli_parm_t vns_fpga_cli_parm_table[] = {
         CLI_PARM_FLAG_SET,
         cli_fpga_int_parse,
         FPGA_dot_led_test
+    },
+    {
+        "<integer>",
+        "time to sleep",
+        CLI_PARM_FLAG_SET,
+        cli_fpga_int_parse,
+        cli_cmd_debug_epe_multi
     },
     {
         "<port>",

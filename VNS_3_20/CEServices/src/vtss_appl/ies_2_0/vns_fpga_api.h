@@ -590,6 +590,8 @@ int Time_t_2_Vns_bcd_time(time_t t, vns_bcd_time * bcd);
 
 
 
+int multi_set_time_delay( int port, uint32_t delay);
+void multi_update_config_debug(int port);
 int multi_print_mirror_config();
 
 #define SYSTEM_BUS_WIDTH (32)
