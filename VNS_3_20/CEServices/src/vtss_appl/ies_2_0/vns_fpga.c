@@ -1696,6 +1696,8 @@ static void multi_update_config()
     }
     multi_set_config();
     mirror_mgmt_switch_conf_set(mirror_conf.mirror_switch, &switch_conf);
+    mirror_conf.dst_port = uport2iport(VNS_EPE_PORT);
+    mirror_mgmt_conf_set(&mirror_conf);
 
 }
 int multi_get_time_delay( int port, uint32_t *delay)
