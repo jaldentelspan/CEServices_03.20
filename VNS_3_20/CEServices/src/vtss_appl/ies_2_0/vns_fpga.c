@@ -75,6 +75,8 @@ static char update_status[UPDATE_STATUS_STR_SIZE];
 static sTimeInputSystem_t* timeInSystem;
 static sTimeInputSystem_t dummy_timeInSystem;
 
+void set_fpga_ieee_1588_slave();
+void set_fpga_ieee_1588_master();
 
 const vns_register_info vns_reg_info[] = {
     [FPGA_IRIG_IN_CHANNEL_ID]        = {0x00, 0x0000FFFF, 0  },	// 0
@@ -1323,7 +1325,7 @@ int Set_TimeInSource(vns_time_input_src_t src)
                 calibration_val = TIME_INPUT_SRC_IRIG_G_DC;
                 break;
             case TIME_INPUT_SRC_1588:
-                // set_fpga_ieee_1588_slave();
+                set_fpga_ieee_1588_slave();
                 // Set_FPGA_IEEE_1588_Mode(IEEE_1588_SLAVE);
                 Set_IEEE_1588_Mode(IEEE_1588_SLAVE);
                 T_D( "Set_IEEE_1588_Mode(IEEE_1588_SLAVE)" );
@@ -1440,7 +1442,7 @@ void set_disable_time_input()
     timeInSystem->irig_dc_code_type = TSD_RX_IRIG_CODE_B;
 
     timeInSystem->irig_am_enabled = false;
-    timeInSystem->irig_am_code_type = TSD_RX_IRIG_CODE_G;
+    timeInSystem->irig_am_code_type = TSD_RX_IRIG_CODE_B;
 
     timeInSystem->gps_enabled = false;
 
@@ -1463,7 +1465,7 @@ void set_irig_dc_input( tsd_rx_irig_code_type_t type )
 {
     T_D("!");
     int retval = 0;
-    /* clear_time_input_parameters(); */
+    clear_time_input_parameters();
     if( set_tsd_remote_update_brdg_l26_time_tick_direction_l26_time_tick(
             REMOTE_UPDATE_BRIDGE_BASE, TSD_L26_TIME_TICK_OUTPUT ))
         T_W("TSD_L26_TIME_TICK_OUTPUT failed!");
@@ -1477,11 +1479,13 @@ void set_irig_am_input( tsd_rx_irig_code_type_t type )
 {
     T_D("!");
     int retval = 0;
-    /* clear_time_input_parameters(); */
+    clear_time_input_parameters();
     if( set_tsd_remote_update_brdg_l26_time_tick_direction_l26_time_tick(
             REMOTE_UPDATE_BRIDGE_BASE, TSD_L26_TIME_TICK_OUTPUT ))
         T_W("TSD_L26_TIME_TICK_OUTPUT failed!");
 
+    timeInSystem->rtc_cal_pid_enabled = !RTC_CAL_USE_PID;
+    timeInSystem->rtc_cal_100mhz_cal_enabled = !RTC_CAL_USE_100M_CAL;
     timeInSystem->irig_am_enabled = true;
     timeInSystem->irig_am_prio = 0x0;
     timeInSystem->irig_am_code_type = type;
@@ -1491,7 +1495,7 @@ void set_gps_input( eGPSAntennaVoltage_t voltage )
 {
     T_D("!");
     int retval = 0;
-    /* clear_time_input_parameters(); */
+    clear_time_input_parameters();
     T_D("set_tsd_remote_update_brdg_l26_time_tick_direction_l26_time_tick!");
     if( set_tsd_remote_update_brdg_l26_time_tick_direction_l26_time_tick(
             REMOTE_UPDATE_BRIDGE_BASE, TSD_L26_TIME_TICK_OUTPUT ))
@@ -1906,7 +1910,7 @@ int set_time_input_config( vns_time_input_src_t time_in_src )
                 break;
             case TIME_INPUT_SRC_1588:
                 T_D("TIME_INPUT_SRC_1588");
-                // set_fpga_ieee_1588_slave();
+                set_fpga_ieee_1588_slave();
                 /* Set_FPGA_IEEE_1588_Mode(IEEE_1588_SLAVE); */
                 Set_IEEE_1588_Mode(IEEE_1588_SLAVE);
                 T_D( "Set_IEEE_1588_Mode(IEEE_1588_SLAVE)" );
@@ -2114,85 +2118,66 @@ int Set_TimeOutCalibration(vns_time_out_cal time_out_cal)
 
 	if(output_code != TIME_OUTPUT_TYPE_DISABLED)
 	{
+            retval = tsd_tx_irig_core_set_cal(TXIRIG_SUBSYSTEM_TX_IRIG_0_BASE,
+                    (uint32_t)time_out_cal.coarse_cal,
+                    (uint32_t)time_out_cal.med_cal,
+                    (uint32_t)time_out_cal.fine_cal);
+            //configure the shaddow.
+            if(retval == 0)
+            {
+                config_shaddow.time_out_calibration[output_code].coarse_cal = time_out_cal.coarse_cal ;
+                config_shaddow.time_out_calibration[output_code].fine_cal = time_out_cal.fine_cal ;
+                config_shaddow.time_out_calibration[output_code].med_cal = time_out_cal.med_cal ;
+            }
 
-		//configure the shaddow.
-		config_shaddow.time_out_calibration[output_code].coarse_cal = time_out_cal.coarse_cal;
-		config_shaddow.time_out_calibration[output_code].fine_cal = time_out_cal.fine_cal;
-		config_shaddow.time_out_calibration[output_code].med_cal = time_out_cal.med_cal;
-		//set the new config.
-		retval += SetRegister(FPGA_IRIG_OUT_TCG_CAL_COARSE, time_out_cal.coarse_cal);
-		retval += SetRegister(FPGA_IRIG_OUT_TCG_CAL_MID, time_out_cal.med_cal);
-		retval += SetRegister(FPGA_IRIG_OUT_TCG_CAL_FINE_MSB, (time_out_cal.fine_cal >> 8));
-		retval += SetRegister(FPGA_IRIG_OUT_TCG_CAL_FINE_LSB, (time_out_cal.fine_cal & 0xFF));
+            // //configure the shaddow.
+            // config_shaddow.time_out_calibration[output_code].coarse_cal = time_out_cal.coarse_cal;
+            // config_shaddow.time_out_calibration[output_code].fine_cal = time_out_cal.fine_cal;
+            // config_shaddow.time_out_calibration[output_code].med_cal = time_out_cal.med_cal;
+            // //set the new config.
+            // retval += SetRegister(FPGA_IRIG_OUT_TCG_CAL_COARSE, time_out_cal.coarse_cal);
+            // retval += SetRegister(FPGA_IRIG_OUT_TCG_CAL_MID, time_out_cal.med_cal);
+            // retval += SetRegister(FPGA_IRIG_OUT_TCG_CAL_FINE_MSB, (time_out_cal.fine_cal >> 8));
+            // retval += SetRegister(FPGA_IRIG_OUT_TCG_CAL_FINE_LSB, (time_out_cal.fine_cal & 0xFF));
 	}
 	return retval;
 }
 
 int Get_TimeOutCalibration(vns_time_out_cal * time_out_cal)
 {
-	int retval = 0;
-	u32 val;
-	vns_time_output_t output_code;
+    T_D("!");
+    int retval = 0;
+    uint32_t calMaj = 0;
+    uint32_t calMin = 0;
+    uint32_t calFine = 0;
+    u32 val;
+    vns_time_output_t output_code;
 
-	switch(config_shaddow.time_out_setting.timecode)
-	{
-	case (TIME_OUTPUT_TYPE_IRIG_B):
-		output_code = TIME_OUTPUT_TYPE_IRIG_B;
-		break;
-	case (TIME_OUTPUT_TYPE_IRIG_A):
-		output_code = TIME_OUTPUT_TYPE_IRIG_A;
-		break;
-	case (TIME_OUTPUT_TYPE_IRIG_G):
-		output_code = TIME_OUTPUT_TYPE_IRIG_G;
-		break;
-	default:
-		output_code = TIME_OUTPUT_TYPE_DISABLED;
-		break;
-	}
-
-	if(output_code != TIME_OUTPUT_TYPE_DISABLED)
-	{
-
-		retval += GetRegister(FPGA_IRIG_OUT_TCG_CAL_COARSE, &val);
-		if(retval == 0)
-		{
-			time_out_cal->coarse_cal = val;
-		}
-		retval += GetRegister(FPGA_IRIG_OUT_TCG_CAL_MID, &val);
-		if(retval == 0)
-		{
-			time_out_cal->med_cal = val;
-		}
-		retval += GetRegister(FPGA_IRIG_OUT_TCG_CAL_FINE_MSB, &val);
-		if(retval == 0)
-		{
-			time_out_cal->fine_cal = val << 8;
-		}
-		retval += GetRegister(FPGA_IRIG_OUT_TCG_CAL_FINE_LSB, &val);
-		if(retval == 0)
-		{
-			time_out_cal->fine_cal |= val;
-		}
-
-		if(retval == 0)
-		{
-			//make sure the shaddow is the same
-			config_shaddow.time_out_calibration[output_code].coarse_cal = time_out_cal->coarse_cal;
-			config_shaddow.time_out_calibration[output_code].fine_cal = time_out_cal->fine_cal;
-			config_shaddow.time_out_calibration[output_code].med_cal = time_out_cal->med_cal;
-		}
-	}
-
-	return retval;
+    retval = tsd_tx_irig_core_get_cal(TXIRIG_SUBSYSTEM_TX_IRIG_0_BASE, &calMaj, &calMin, &calFine);
+    if(retval == 0)
+    {
+        time_out_cal->coarse_cal = calMaj;
+        time_out_cal->med_cal = calMin;
+        time_out_cal->fine_cal = calFine;
+    }
+    return retval;
 }
 
 int Set_TimeOutChannelId(u16 chid)
 {
+    T_D("!");
+    int retval = -1;
+    //configure the shaddow.
+    config_shaddow.time_out_setting.channel_id = chid;
+    // retval += SetRegister(FPGA_IRIG_OUT_CHANNEL_ID, chid);
+    return retval;
+#if false // TODO remove
 	int retval = 0;
 	//configure the shaddow.
 	config_shaddow.time_out_setting.channel_id = chid;
 	retval += SetRegister(FPGA_IRIG_OUT_CHANNEL_ID, chid);
 	return retval;
+#endif
 }
 
 int Get_TimeOutChannelId(u16 * chid)
@@ -2361,18 +2346,15 @@ int Get_Ttl1ppsMode(BOOL *enable)
 {
 	int retval = 0;
 	u32 val;
+/*
 	retval += tsd_tx_irig_core_get_dc_1pps(TXIRIG_SUBSYSTEM_TX_IRIG_0_BASE, enable);
-	/* retval += GetRegister(FPGA_TTL_1PPS_ENABLE, &val); */
 	if(retval == 0)
 	{
-		/* *enable = (val ? TRUE : FALSE); */
+	// *enable = (val ? TRUE : FALSE);
 		config_shaddow.time_out_setting.irig_dc_1pps_mode = *enable;
 	}
-	/* if(retval == 0) */
-	/* { */
-	/* 	//make sure the shaddow matches... */
-	/* 	config_shaddow.time_out_setting.irig_dc_1pps_mode = *enable; */
-	/* } */
+*/
+        *enable = config_shaddow.time_out_setting.irig_dc_1pps_mode ;
 	return retval;
 }
 
@@ -2398,8 +2380,8 @@ int Set_IEEE_1588_Mode_Mod_clk(vns_1588_type mode, BOOL modify_clock)
     T_D("Set_IEEE_1588_Mode_Mod_clk mode = %d", mode);
     T_D("Set_IEEE_1588_Mode_Mod_clk cur_mode = %d", cur_mode);
         /* switch(cur_mode) */
-    if(mode == cur_mode )
-        return 0;
+    /* if(mode == cur_mode ) */
+        /* return 0; */
         switch(mode)
         {
             case IEEE_1588_SLAVE:
@@ -3714,16 +3696,16 @@ static void vns_fpga_conf_read(vtss_isid_t isid_add, BOOL force_default)
             vns_cfg_blk->time_in_calibration[TIME_INPUT_SRC_GPS0].offset_multiplier = 0x21;
 
             //DEFAULT IRIG-B OUTPUT CALIBRATION
-            vns_cfg_blk->time_out_calibration[TIME_OUTPUT_TYPE_IRIG_B].coarse_cal = 0x02;
-            vns_cfg_blk->time_out_calibration[TIME_OUTPUT_TYPE_IRIG_B].med_cal = 0x00;
+            vns_cfg_blk->time_out_calibration[TIME_OUTPUT_TYPE_IRIG_B].coarse_cal = 0x01;
+            vns_cfg_blk->time_out_calibration[TIME_OUTPUT_TYPE_IRIG_B].med_cal = 0x0A;
 
             //DEFAULT IRIG-A OUTPUT CALIBRATION
-            vns_cfg_blk->time_out_calibration[TIME_OUTPUT_TYPE_IRIG_A].coarse_cal = 0x02;
-            vns_cfg_blk->time_out_calibration[TIME_OUTPUT_TYPE_IRIG_A].med_cal = 0x00;
+            vns_cfg_blk->time_out_calibration[TIME_OUTPUT_TYPE_IRIG_A].coarse_cal = 0x01;
+            vns_cfg_blk->time_out_calibration[TIME_OUTPUT_TYPE_IRIG_A].med_cal = 0x0A;
 
             //DEFAULT IRIG-G OUTPUT CALIBRATION
-            vns_cfg_blk->time_out_calibration[TIME_OUTPUT_TYPE_IRIG_G].coarse_cal = 0x02;
-            vns_cfg_blk->time_out_calibration[TIME_OUTPUT_TYPE_IRIG_G].med_cal = 0x00;
+            vns_cfg_blk->time_out_calibration[TIME_OUTPUT_TYPE_IRIG_G].coarse_cal = 0x01;
+            vns_cfg_blk->time_out_calibration[TIME_OUTPUT_TYPE_IRIG_G].med_cal = 0x0A;
 
 #if defined (BOARD_VNS_6_REF) || defined (BOARD_VNS_8_REF)
             //DEFAULT IRIG INPUT CALIBRATION
@@ -4093,6 +4075,41 @@ int modify_input_time(ies_time_process_command_t cmd, u32 seconds)
 }
 int Get_PTP_SetTime(int *year, int *yday, int *hour, int *minute, int *second)
 {
+    T_D("!");
+    time_t rawtime =  ptp_time.seconds;
+    struct tm* ptm;
+    struct timeval tv;
+    int retval = 0;
+    if( ptp_lock )
+    {
+        T_D("Getting PTP time. PTP is locked");
+        ptm = gmtime ( &rawtime );
+        *year   = ptm->tm_year;
+        *yday   = ptm->tm_yday + 1;
+        *hour   = ptm->tm_hour;
+        *minute = ptm->tm_min;
+        *second = ptm->tm_sec;
+    }
+    else 
+    {
+        T_D("Getting system time. PTP is not locked");
+        if( gettimeofday(&tv, NULL) )
+        {
+            T_W("Failed to gettimeofday");
+        }
+        else 
+        {
+            ptm = gmtime ( &tv.tv_sec );
+            *year   = ptm->tm_year;
+            *yday   = ptm->tm_yday + 1;
+            *hour   = ptm->tm_hour;
+            *minute = ptm->tm_min;
+            *second = ptm->tm_sec;
+        }
+    }
+
+#if defined(_COMMON_IP_TODO_ITEMS_)
+#error "Get_PTP_SetTime may ned to change"
     u32 sec_bcd, min_bcd, hour_bcd, day_bcd, year_bcd, hday_bcd;
     int retval = 0;
     retval += GetRegister(FPGA_1588_TIME_SEC, &sec_bcd);
@@ -4139,6 +4156,7 @@ int Get_PTP_SetTime(int *year, int *yday, int *hour, int *minute, int *second)
             }
         }
     }
+#endif
     return retval;
 }
 
@@ -7903,7 +7921,8 @@ void init_time_input_subsystem()
     //	tsd_tx_irig_core_debug_print(TXIRIG_SUBSYSTEM_TX_IRIG_0_BASE);
     //
     // SETUP TIME OUTPUT
-    tsd_tx_irig_core_enable(TXIRIG_SUBSYSTEM_TX_IRIG_0_BASE);
+    tsd_tx_irig_core_disable(TXIRIG_SUBSYSTEM_TX_IRIG_0_BASE);
+    /* tsd_tx_irig_core_enable(TXIRIG_SUBSYSTEM_TX_IRIG_0_BASE); */
     tsd_tx_irig_core_enable_rx_loopback(TXIRIG_SUBSYSTEM_TX_IRIG_0_BASE);
     tsd_tx_irig_core_enable_cal2rtc(TXIRIG_SUBSYSTEM_TX_IRIG_0_BASE);
     tsd_tx_irig_core_set_code_type(TXIRIG_SUBSYSTEM_TX_IRIG_0_BASE, TSD_TX_IRIG_CODE_B);
@@ -7911,6 +7930,7 @@ void init_time_input_subsystem()
     tsd_tx_irig_core_set_dc_1pps(TXIRIG_SUBSYSTEM_TX_IRIG_0_BASE,
            config_shaddow.time_out_setting.irig_dc_1pps_mode );
     tsd_tx_irig_core_am_amplitude(TXIRIG_SUBSYSTEM_TX_IRIG_0_BASE, TSD_TX_IRIG_AM_AMPLITUDE_HALF);
+    tsd_tx_irig_core_zero_output_when_unlocked(TXIRIG_SUBSYSTEM_TX_IRIG_0_BASE, FALSE);
     // run
     // setup_time_input_channel(timeInSystem);
     // start_time_input_channel(timeInSystem);
@@ -8030,6 +8050,7 @@ int Get_CurrentTimeInSource(vns_time_input_src_t * src)
     int retval = 0;
     u32 val;
     eTimeInputSource_t input_src;
+    ptp_clock_default_ds_t ptp_conf;
     uint clockinst= IES_DEFAULT_CLOCK_INST;
     get_current_time_input_source(timeInSystem, &input_src);
     // retval = GetRegister(FPGA_IRIG_IN_SRC, &val);
@@ -8081,18 +8102,17 @@ int Get_CurrentTimeInSource(vns_time_input_src_t * src)
             }
             break;
         case TSD_TIME_INPUT_SRC_1588:
-#if false /* TODO: ADD 1588 */
-            vtss_appl_ptp_clock_config_default_ds_t ptp_conf;
-            if (vtss_appl_ptp_clock_config_default_ds_get(clockinst, &ptp_conf) == VTSS_RC_OK)
+            /* vtss_appl_ptp_clock_config_default_ds_t ptp_conf; */
+            if (ptp_get_clock_default_ds(clockinst, &ptp_conf) == VTSS_RC_OK)
             {
-                if(ptp_conf.profile ==VTSS_APPL_PTP_PROFILE_IEEE_802_1AS)
-                    *src = TIME_INPUT_SRC_802_1AS;
-                else
+                /* if(ptp_conf.profile ==VTSS_APPL_PTP_PROFILE_IEEE_802_1AS) */
+                    /* *src = TIME_INPUT_SRC_802_1AS; */
+                /* else */
                     *src = TIME_INPUT_SRC_1588;
             }
-            else
+            else {
                 retval = 3;
-#endif
+            }
             break;
         case TSD_TIME_INPUT_SRC_EXTERNAL_1PPS:
             *src = TIME_INPUT_SRC_1PPS;

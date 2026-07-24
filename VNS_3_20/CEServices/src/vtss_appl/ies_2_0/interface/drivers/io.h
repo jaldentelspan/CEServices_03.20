@@ -3,7 +3,7 @@
 /* #include <cstdint> */
 #include "main_types.h"
 
-/* #define alt_u8 uchar */
+#define alt_u8 uchar
 /* typedef uint8_t alt_u8 ; */
 #define SYSTEM_BUS_WIDTH (32)
 

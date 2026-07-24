@@ -633,7 +633,7 @@
 #define SYSID_IRQ_INTERRUPT_CONTROLLER_ID -1
 #define SYSID_NAME "/dev/sysid"
 #define SYSID_SPAN 8
-#define SYSID_TIMESTAMP 1701355948
+#define SYSID_TIMESTAMP 1726698079
 #define SYSID_TYPE "altera_avalon_sysid_qsys"
 
 
@@ -688,6 +688,7 @@
 #define TIMER_0_SPAN 32
 #define TIMER_0_TICKS_PER_SEC 1000
 #define TIMER_0_TIMEOUT_PULSE_OUTPUT 0
+#define TIMER_0_TIMER_DEVICE_TYPE 1
 #define TIMER_0_TYPE "altera_avalon_timer"
 
 

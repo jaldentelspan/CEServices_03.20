@@ -193,12 +193,28 @@ int tsd_tx_irig_core_get_dc_1pps(uint32_t base, bool *dc1ppsOn)
     int retval = get_register_region(base, TSD_TX_IRIG_CONTROL_REG, TSD_TX_IRIG_TTL_OUT_1PPS_MASK, TSD_TX_IRIG_TTL_OUT_1PPS_SHFT, &regVal);
     if( retval == 0 )
     {
-        if( regVal )
-            *dc1ppsOn = true;
-        else
-            *dc1ppsOn = false;
+        return 2;
     }
-    return retval;
+    if(((int)regVal < 0) || ((int)regVal >= TSD_TX_IRIG_CODE_UNDEFINED))
+    {
+        return 3;
+    }
+    *dc1ppsOn = (tsd_tx_irig_code_type_t)regVal;
+    return 0;
+#if false
+    return -1;
+#endif
+}
+
+/*
+ * Controls whether the IRIG output is generated when the intput source is unlocked.
+ * a value of true means that there will be NO IRIG output when unlocked
+ */
+int tsd_tx_irig_core_zero_output_when_unlocked(uint32_t base, bool val) {
+    if(val)
+        return set_register_bits(base, TSD_TX_IRIG_CONTROL_REG, TSD_TX_IRIG_CONTROL_0_OUTPUT_UNLOCKED);
+    else
+        return clear_register_bits(base, TSD_TX_IRIG_CONTROL_REG, TSD_TX_IRIG_CONTROL_0_OUTPUT_UNLOCKED);
 }
 
 /*
@@ -266,17 +282,18 @@ int tsd_tx_irig_core_get_time(uint32_t base, struct timespec* txtime)
     uint32_t timedata1 = TSD_TX_IRIG_IORD_TIME_L(base);
     uint32_t timedata2 = TSD_TX_IRIG_IORD_TIME_H(base);
 
-    uint64_t current_rtc, tv_sec_rtc, rtcdiff;
+   /* uint64_t current_rtc, tv_sec_rtc, rtcdiff;*/
 
     if(NULL == txtime) return 1;
 
     // get rtcs now for accuracy.
-    current_rtc = tsd_tx_irig_core_get_current_rtc(base);
-    tv_sec_rtc = tsd_tx_irig_core_get_latched_rtc(base);
+    /*current_rtc = tsd_tx_irig_core_get_current_rtc(base);*/
+    /*tv_sec_rtc = tsd_tx_irig_core_get_latched_rtc(base);*/
 
     get_timespec_from_bcd(timedata1, timedata2, txtime);
 
     // now fill in the tv_nsecs.
+    /*
     if(current_rtc > tv_sec_rtc)
     {
         rtcdiff = (current_rtc - tv_sec_rtc);
@@ -289,16 +306,17 @@ int tsd_tx_irig_core_get_time(uint32_t base, struct timespec* txtime)
             txtime->tv_nsec += 0;
         }
     }
+    */
 
     return 0;
 }
 
-uint64_t tsd_tx_irig_core_get_current_rtc(uint32_t base)
+/*uint64_t tsd_tx_irig_core_get_current_rtc(uint32_t base)
 {
     uint64_t rtcH = (uint64_t)TSD_TX_IRIG_IORD_CURRENT_RTC_MSW(base);
     uint64_t rtcL = (uint64_t)TSD_TX_IRIG_IORD_CURRENT_RTC_LSW(base);
     return (rtcH << 32) | rtcL;
-}
+}*/
 
 uint64_t tsd_tx_irig_core_get_latched_rtc(uint32_t base)
 {

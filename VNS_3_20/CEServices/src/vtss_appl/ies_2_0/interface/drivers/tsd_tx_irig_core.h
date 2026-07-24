@@ -31,7 +31,7 @@ typedef enum {
     TSD_TX_IRIG_AM_AMPLITUDE_EIGHTH,
     TSD_TX_IRIG_AM_AMPLITUDE_UNDEFINED
 }tsd_tx_irig_am_amplitude;
-
+extern const char* tsd_tx_irig_am_amplitude_str [];
 
 #ifdef __cplusplus
 extern "C"
@@ -120,6 +120,12 @@ int tsd_tx_irig_core_set_code_type(uint32_t base, tsd_tx_irig_code_type_t codeTy
 int tsd_tx_irig_core_get_code_type(uint32_t base, tsd_tx_irig_code_type_t *codeType);
 
 /*
+ * Controls whether the IRIG output is generated when the intput source is unlocked.
+ * a value of true means that there will be NO IRIG output when unlocked
+ */
+int tsd_tx_irig_core_zero_output_when_unlocked(uint32_t base, bool val);
+
+/*
  * Sets the DC 1PPS mode.
  * When on (set dc1ppsOn to true) the IRIG-DC output becomes a 1PPS output.
  * When off (set dc1ppsOn to false) the IRIG-DC output is IRIG DC Code.
@@ -134,6 +140,7 @@ int tsd_tx_irig_core_set_dc_1pps(uint32_t base, bool dc1ppsOn);
  * returns 0 on success
  */
 int tsd_tx_irig_core_get_dc_1pps(uint32_t base, bool *dc1ppsOn);
+
 
 /*
  * Gets the TX_IRIG Status/Error flags in the Telspan TX_IRIG core

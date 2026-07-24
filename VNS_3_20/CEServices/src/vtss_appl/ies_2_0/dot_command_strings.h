@@ -199,16 +199,16 @@
 #define DOT_CMD_STR_TIMOUT_FUNC       FPGA_dot_time_out_cmd
 
 #define DOT_CMD_STR_TCAL             ".TCAL" 
-#define DOT_CMD_STR_TCAL_ARGS        "[in|out] [cal1] [cal2] [cal3]" 
+#define DOT_CMD_STR_TCAL_ARGS        "[in|out] [<cal_1>] [<cal_2>] [<cal_3>]" 
 #define DOT_CMD_STR_TCAL_DESC        "Gets or sets the time input or output calibrations."
-#define DOT_CMD_STR_TCAL_CMD           DOT_CMD_STR_TCAL " " DOT_CMD_STR_TCAL_ARGS
-#define DOT_CMD_STR_TCAL_FUNC         FPGA_dot_tcal_cmd
+#define DOT_CMD_STR_TCAL_CMD         DOT_CMD_STR_TCAL " " DOT_CMD_STR_TCAL_ARGS
+#define DOT_CMD_STR_TCAL_FUNC        FPGA_dot_tcal_cmd
 
 #define DOT_CMD_STR_VERSION          ".VERSION" 
 #define DOT_CMD_STR_VERSION_ARGS     "" 
 #define DOT_CMD_STR_VERSION_DESC     "Gets the current VNS type and version."
-#define DOT_CMD_STR_VERSION_CMD        DOT_CMD_STR_VERSION
-#define DOT_CMD_STR_VERSION_FUNC      FPGA_dot_version_cmd
+#define DOT_CMD_STR_VERSION_CMD      DOT_CMD_STR_VERSION
+#define DOT_CMD_STR_VERSION_FUNC     FPGA_dot_version_cmd
  
 #define DOT_CMD_STR_SN               ".SN" 
 #define DOT_CMD_STR_SN_ARGS          "[<integer>]" 

@@ -23,7 +23,7 @@
   /* .TIMIN REDEFINE
    */
   /* #define DOT_CMD_STR_TIMIN_ARGS      "none|a|b|g|gps_0v|gps_3v|gps_5v|1588" */
-  #define DOT_CMD_STR_TIMIN_ARGS      "none|a_dc|b_dc|g_dc|a_am|b_am|g_am|gps_0v|gps_3v|gps_5v|1588"
+  #define DOT_CMD_STR_TIMIN_ARGS      "none|a_dc|b_dc|g_dc|gps_0v|gps_3v|gps_5v|1pps|1588"
   
   /* .TIME REDEFINE
    */
