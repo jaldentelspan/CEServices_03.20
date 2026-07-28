@@ -2327,6 +2327,30 @@ int Get_TimeOutMode(vns_time_output_mode_t *mode)
 	}
 	return retval;
 }
+int Set_FreeWheelMode(BOOL enable)
+{
+    T_D("!");
+    int retval = 0;
+    retval += tsd_tx_irig_core_zero_output_when_unlocked(TXIRIG_SUBSYSTEM_TX_IRIG_0_BASE, enable);
+    if(retval == 0)
+    {
+        config_shaddow.time_out_setting.freewheel = enable;
+    }
+    return retval;
+}
+
+int Get_FreeWheelMode(BOOL *enable)
+{
+    T_D("!");
+    int retval = 0;
+    if(retval == 0)
+    {
+        //make sure the shaddow matches...
+        *enable = config_shaddow.time_out_setting.freewheel;
+        /* *enable = config_shaddow.time_out_setting.irig_dc_1pps_mode ; */
+    }
+    return retval;
+}
 
 int Set_Ttl1ppsMode(BOOL enable)
 {

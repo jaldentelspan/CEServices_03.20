@@ -193,7 +193,7 @@
 #define DOT_CMD_STR_TIMIN_FUNC        FPGA_dot_time_in_cmd
 
 #define DOT_CMD_STR_TIMOUT           ".TIMOUT" 
-#define DOT_CMD_STR_TIMOUT_ARGS      "[none|a|b|g]" 
+#define DOT_CMD_STR_TIMOUT_ARGS      "[none|a|b|g] [freewheel]" 
 #define DOT_CMD_STR_TIMOUT_DESC      "Gets or sets the time out configuration."
 #define DOT_CMD_STR_TIMOUT_CMD         DOT_CMD_STR_TIMOUT " " DOT_CMD_STR_TIMOUT_ARGS
 #define DOT_CMD_STR_TIMOUT_FUNC       FPGA_dot_time_out_cmd

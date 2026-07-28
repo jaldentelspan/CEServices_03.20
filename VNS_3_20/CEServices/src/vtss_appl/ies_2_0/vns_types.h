@@ -98,8 +98,8 @@
 #define VNS_CONFIG_VERSION 	12
 #define VNS_VERSION_COMMON_IP   2
 #define VNS_VERSION_PCKG_ID   2
-#define VNS_VERSION_MAJOR   20260720   
-#define VNS_VERSION_MINOR   124726 
+#define VNS_VERSION_MAJOR   20260728   
+#define VNS_VERSION_MINOR    94445 
 
 #define MANUFACTURER_NAME "Telspan Data"
 
@@ -452,6 +452,7 @@ typedef struct vns_time_output_t{
         // making these bits usefull by assighning them to hold leap_seconds
 	/* u16 reserved2; // align to 32 bits */
 	u16 leap_seconds; // align to 32 bits
+        BOOL freewheel;
 }vns_time_output;
 
 

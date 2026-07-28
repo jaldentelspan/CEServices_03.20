@@ -100,7 +100,8 @@ typedef struct {
     BOOL tx;
     vns_epe_conf_blk_t epe_config;
 
-
+    BOOL freewheel;
+    
     u32 led_red_blue;
     u32 led_green; u32 led_flashing; 
     u32 discrete_out;
@@ -149,6 +150,7 @@ static void vns_fpga_cli_req_default_set(cli_req_t * req)
     fpga_req->tx            = FALSE;
     fpga_req->enable        = FALSE;
     fpga_req->disable       = FALSE;
+    fpga_req->freewheel     = FALSE;
     memset( &fpga_req->epe_config, 0, sizeof( vns_epe_conf_blk_t ));
     fpga_req->epe_config.invert_clock  = FALSE;
     fpga_req->epe_config.insert_fcs  = TRUE;
@@ -1537,10 +1539,13 @@ static void FPGA_dot_time_out_cmd(cli_req_t * req)
 {
     vns_time_output time_config;
     vns_fpga_req_t *fpga_req = req->module_req;
+    BOOL freewheel;
 
     if(fpga_req->set)
     {
         //time_config.timecode = fpga_req->time_out_setting;
+        
+        Set_FreeWheelMode(fpga_req->freewheel);
         if(Set_TimeOutTimeCode(fpga_req->time_out_setting))
         {
             PrintError(VNS_ERROR_COMMAND_FAILED);
@@ -1556,6 +1561,8 @@ static void FPGA_dot_time_out_cmd(cli_req_t * req)
         if(!Get_TimeOutConfig(&time_config))
         {
             cli_header("Time Output Configuration", 1);
+            Get_FreeWheelMode(&freewheel);
+            CPRINTF("Freewheel:\t%s\n", freewheel ? "ON" : "OFF" );
             CPRINTF("Time Output Type:\t%s\n", TIME_OUT_TYPE_STR[time_config.timecode]);
             /* CPRINTF("Time Output Mode:\t%s\n", TIME_OUTPUT_MODE_STR[time_config.mode]); */
             //CPRINTF("IEEE-1588 Mode:\t%s\n", IEEE_1588_TYPE_STR[time_config.ieee_1588_type]);
@@ -2177,6 +2184,8 @@ static int32_t cli_fpga_time_out_cfg_parse(char *cmd, char *cmd2, char *stx,
         fpga_req->time_out_setting = TIME_OUTPUT_TYPE_IRIG_B;
     else if(0 == strncmp(cmd, "g", 1))
         fpga_req->time_out_setting = TIME_OUTPUT_TYPE_IRIG_G;
+    else if(0 == strncmp(cmd, "freewheel", 8))
+        fpga_req->freewheel   = TRUE;
     else
     {
         fpga_req->set = FALSE;
@@ -3859,6 +3868,13 @@ static cli_parm_t vns_fpga_cli_parm_table[] = {
             "\ta:		IRIG-A time code.\n"
             "\tb:		IRIG-B time code.\n"
             "\tg:		IRIG-G time code.",
+        CLI_PARM_FLAG_SET,
+        cli_fpga_time_out_cfg_parse,
+        NULL
+    },
+    {
+        "freewheel",
+        "Time output will freewheel when time lock is lost.",
         CLI_PARM_FLAG_SET,
         cli_fpga_time_out_cfg_parse,
         NULL
