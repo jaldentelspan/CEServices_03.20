@@ -6,10 +6,10 @@ gcc -g -m32 -Wall ../../eCos/host/webstax_binmerge/webstax_binmerge.c -o webstax
 0x00040031 - 0x00080000: Padding
 0x00080000 - 0x00180000: Padding
 0x00180000 - 0x001c0000: Padding
-0x001c0000 - 0x006289ce: Copying managed
-0x006289ce - 0x007c0000: Padding
-0x007c0000 - 0x00c289ce: Copying managed.bk
-0x00c289ce - 0x00dc0000: Padding
+0x001c0000 - 0x0062896a: Copying managed
+0x0062896a - 0x007c0000: Padding
+0x007c0000 - 0x00c2896a: Copying managed.bk
+0x00c2896a - 0x00dc0000: Padding
 0x00dc0000 - 0x00fd0000: Padding
 0x00fd0000 - 0x00fd0a00: Writing Redundant FIS
 0x00fd0a00 - 0x00fe0000: Padding
